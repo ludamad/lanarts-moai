@@ -26,6 +26,7 @@ fi
 # Run the engine, using 'main.lua'.
 ###############################################################################
 
-EXECUTABLE="$BASE_FOLDER/$ENGINE_FOLDER/builds/native/dependencies/external/moai-dev/cmake/host-sdl/moai"
+BUILD_FOLDER="$BASE_FOLDER/$ENGINE_FOLDER/builds/native/"
+EXECUTABLE="$BUILD_FOLDER/moai"
 
 "$EXECUTABLE" src/lua/main.lua $@
