@@ -34,17 +34,19 @@ table.insert(package.loaders, require_moai_hook)
 MOAILogMgr.setLogLevel(MOAILogMgr.LOG_NONE)
 
 -------------------------------------------------------------------------------
--- Ensure files from src/ are loaded.
+-- Ensure files from src/ are loaded, and that we do not load any system files.
 -------------------------------------------------------------------------------
 
-package.path = package.path .. ';src/?.lua'
+package.cpath = ''
+package.path = '?.lua;src/?.lua;.lua-deps/?.lua'
 
 -------------------------------------------------------------------------------
 -- Mount lua-deps.zip, provided by our engine.
 -------------------------------------------------------------------------------
 
-local success = MOAIFileSystem.mountVirtualDirectory("lua-deps", "engine/dependencies/lua-deps.zip")
-assert(success, "Could not mount lua-deps.zip!")
+-- For now use folder instead.
+--local success = MOAIFileSystem.mountVirtualDirectory("lua-deps", "engine/dependencies/lua-deps.zip")
+--assert(success, "Could not mount lua-deps.zip!")
 
 -------------------------------------------------------------------------------
 -- Ensure proper loading of moonscript files (requires lua-deps.zip to be 
@@ -54,8 +56,21 @@ assert(success, "Could not mount lua-deps.zip!")
 require("moonscript.base").insert_loader()
 
 -------------------------------------------------------------------------------
--- Finally, run the game.
+-- Ensure undefined global access is an error.
 -------------------------------------------------------------------------------
 
+local prev_index = _G.__index
+
+function _G:__index(k)
+    local result = prev_index(self, k)
+    if result == nil then 
+        error("Undefined global variable '" .. k .. "'!")
+    end
+    return result
+end
+
+-------------------------------------------------------------------------------
+-- Finally, run the game.
+-------------------------------------------------------------------------------
 
 require "game"

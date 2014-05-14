@@ -23,3 +23,10 @@ if [ ! -e "$ENGINE" ] ; then
 fi
 
 bash "$ENGINE/build.sh" $@
+
+###############################################################################
+# Copy the engine lua-deps/ folder to .lua-deps/
+###############################################################################
+
+rm -rf "$BASE_FOLDER/.lua-deps/"
+cp -r "$ENGINE/builds/lua-deps/" .lua-deps/
