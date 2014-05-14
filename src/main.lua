@@ -1,6 +1,5 @@
-
 -------------------------------------------------------------------------------
--- Make 'require' aware of the MOAI filesystem:
+-- Make 'require' aware of the MOAI filesystem.
 -------------------------------------------------------------------------------
 
 local BUFF_SIZE = 4096
@@ -9,7 +8,7 @@ local function require_moai_hook(vpath)
     local rpath = vpath:gsub('%.', '/') .. '.lua'
     local stream = MOAIFileStream.new()
 
-    if not stream:open(rpath, MOAIFileStream.READ) then
+    if not stream:open(rpath) and not stream:open('lua-deps/' .. rpath) then
         return nil
     end
 
@@ -28,39 +27,35 @@ end
 
 table.insert(package.loaders, require_moai_hook)
 
+-------------------------------------------------------------------------------
+-- Disable logging.
+-------------------------------------------------------------------------------
+
 MOAILogMgr.setLogLevel(MOAILogMgr.LOG_NONE)
-assert(MOAIFileSystem.mountVirtualDirectory("test", "test.zip"))
 
-print("File", MOAIFileSystem.checkFileExists "test/test.lua")
-require "test.test"
+-------------------------------------------------------------------------------
+-- Ensure files from src/ are loaded.
+-------------------------------------------------------------------------------
 
-local w, h = 800,600
-if MOAIEnvironment.osBrand == "Android" or MOAIEnvironment.osBrand == "iOS" then
-   w, h = 320,480  
-end
+package.path = package.path .. ';src/?.lua'
 
-MOAISim.openWindow("Hello World", w,h)
+-------------------------------------------------------------------------------
+-- Mount lua-deps.zip, provided by our engine.
+-------------------------------------------------------------------------------
 
-viewport = MOAIViewport.new()
-viewport:setSize( w,h)
-viewport:setScale( w,h)
+local success = MOAIFileSystem.mountVirtualDirectory("lua-deps", "engine/dependencies/lua-deps.zip")
+assert(success, "Could not mount lua-deps.zip!")
 
-layer = MOAILayer2D.new()
-layer:setViewport(viewport)
+-------------------------------------------------------------------------------
+-- Ensure proper loading of moonscript files (requires lua-deps.zip to be 
+-- mounted).
+-------------------------------------------------------------------------------
 
-MOAISim.pushRenderPass(layer)
+require("moonscript.base").insert_loader()
 
-charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;!?()&/-'
+-------------------------------------------------------------------------------
+-- Finally, run the game.
+-------------------------------------------------------------------------------
 
-font = MOAIFont.new()
-font:loadFromTTF('resources/LiberationMono-Regular.ttf',chars,120,72)
 
-text = MOAITextBox.new()
-text:setString('Hello world')
-text:setFont(font)
-text:setTextSize(64,32)
-text:setYFlip(true)
-text:setRect(-w/4,-h/4,w/4,h/4)
-text:setAlignment(MOAITextBox.CENTER_JUSTIFY,MOAITextBox.CENTER_JUSTIFY)
-
-layer:insertProp(text)
+require "game"
