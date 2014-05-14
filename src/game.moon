@@ -17,6 +17,11 @@ charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,/;
 font = with MOAIFont.new()
     \loadFromTTF('resources/LiberationMono-Regular.ttf', charcodes, 120, 72)
 
+if MOAIInputMgr.device.keyboard
+    MOAIInputMgr.device.keyboard\setCallback (key,down) ->
+        if down then
+            text\setString(string.char(tostring key))
+
 text = with MOAITextBox.new()
     \setString('Hello world')
     \setFont(font)

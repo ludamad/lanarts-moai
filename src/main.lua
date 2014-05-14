@@ -59,18 +59,31 @@ require("moonscript.base").insert_loader()
 -- Ensure undefined global access is an error.
 -------------------------------------------------------------------------------
 
-local prev_index = _G.__index
+local global_meta = {}
+setmetatable(_G, global_meta)
 
-function _G:__index(k)
-    local result = prev_index(self, k)
-    if result == nil then 
-        error("Undefined global variable '" .. k .. "'!")
-    end
-    return result
+function global_meta:__index(k)
+    error("Undefined global variable '" .. k .. "'!")
 end
 
 -------------------------------------------------------------------------------
--- Finally, run the game.
+-- Define global utilities.
+-------------------------------------------------------------------------------
+
+require "global_utils"
+
+-------------------------------------------------------------------------------
+-- Are we a debug server? 
+-------------------------------------------------------------------------------
+
+if os.getenv('DEBUG_SERVER') then 
+    -- Run a debug server:
+    require("mobdebug").listen()
+    return
+end
+
+-------------------------------------------------------------------------------
+-- Finally, if we are not a debug server, run the game.
 -------------------------------------------------------------------------------
 
 require "game"
