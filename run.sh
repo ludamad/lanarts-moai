@@ -29,4 +29,11 @@ fi
 BUILD_FOLDER="$BASE_FOLDER/$ENGINE_FOLDER/builds/native/"
 EXECUTABLE="$BUILD_FOLDER/moai"
 
-"$EXECUTABLE" src/lua/main.lua $@
+if handle_flag "--gdb" || handle_flag "-g" ; then
+    echo "Wrapping in GDB:" | colorify '1;35'
+    gdb -silent --args \
+        "$EXECUTABLE" src/main.lua $args
+
+else
+    "$EXECUTABLE" src/main.lua $args
+fi
