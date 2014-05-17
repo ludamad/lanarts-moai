@@ -17,17 +17,22 @@ charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,/;
 font = with MOAIFont.new()
     \loadFromTTF('resources/LiberationMono-Regular.ttf', charcodes, 120, 72)
 
-if MOAIInputMgr.device.keyboard
-    MOAIInputMgr.device.keyboard\setCallback (key,down) ->
-        if down then
-            text\setString(string.char(tostring key))
+setup_game = () ->
+    text = with MOAITextBox.new()
+        \setString('Hello world')
+        \setFont(font)
+        \setTextSize(64,32)
+        \setYFlip(true)
+        \setRect(-w/4,-h/4,w/4,h/4)
+        \setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
+    layer\insertProp(text)
 
-text = with MOAITextBox.new()
-    \setString('Hello world')
-    \setFont(font)
-    \setTextSize(64,32)
-    \setYFlip(true)
-    \setRect(-w/4,-h/4,w/4,h/4)
-    \setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
+--if MOAIInputMgr.device.keyboard
+--    MOAIInputMgr.device.keyboard\setCallback (key,down) ->
+--        if down then
+--            text\setString(tostring key)
 
-layer\insertProp(text)
+setup_game()
+
+inspect()
+

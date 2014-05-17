@@ -7,8 +7,6 @@ function nilprotect(t)
     return setmetatable(t, nilprotect_meta)
 end
 
-nilprotect(_G) -- Strict access to globals!
-
 function values(table)
     local idx = 1
     return function()

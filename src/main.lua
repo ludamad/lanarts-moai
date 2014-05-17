@@ -4,12 +4,55 @@
 
 local BUFF_SIZE = 4096
 
-local function require_moai_hook(vpath)
-    local rpath = vpath:gsub('%.', '/') .. '.lua'
-    local stream = MOAIFileStream.new()
+-- Path containing bundled Lua-file dependencies.
+local LUA_DEPS = 'lua-deps/'
 
-    if not stream:open(rpath) and not stream:open('lua-deps/' .. rpath) then
+-- Returns object that represents a required directory, ie a package.
+local function required_directory(vpath, path)
+    if not MOAIFileSystem.checkPathExists(path) then
         return nil
+    end
+    local object,meta = {},{}
+    -- Try to require. Note, only occurs if object[k] == nil.
+    function meta:__index(k)
+        local req = require(vpath .. '.' .. k)
+        object[k] = req -- Cache
+        return req
+    end
+    return setmetatable(object, meta)
+end
+
+local function require_moai_directory(vpath)
+    -- We determine whether we are loading a path as a Lua object.
+    -- Note this can name-clash with Lua files, which are resolved first.
+    -- To explicitly specify a directory, include a leading '.' or '/'
+
+    local dpath = vpath:gsub('%.', '/') 
+
+    -- Return an object representing a path, or nil if not existent:
+    for _, root in ipairs(package.path:split ';') do
+        local obj = required_directory(vpath, root:gsub('%?%.lua', dpath))
+        if obj then 
+            return obj 
+        end
+    end
+
+    return nil -- Path not existent
+end
+
+local function require_moai_file(vpath)
+    local fpath = vpath:gsub('%.', '/') .. '.lua'
+
+    -- First, we ask whether we can load a Lua file
+    local stream = MOAIFileStream.new()
+    if not stream:open(fpath) and not stream:open(LUA_DEPS .. fpath) then
+        -- Next, we ask whether we can load a directory as a collection
+        local obj = require_moai_directory(vpath)
+        if obj then -- We must return a loader function:
+            return function() 
+                return obj 
+            end
+        end
     end
 
     local func,err = load(
@@ -25,7 +68,7 @@ local function require_moai_hook(vpath)
     return func
 end
 
-table.insert(package.loaders, require_moai_hook)
+table.insert(package.loaders, require_moai_file)
 
 -------------------------------------------------------------------------------
 -- Disable logging.
