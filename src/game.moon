@@ -18,6 +18,7 @@ font = with MOAIFont.new()
     \loadFromTTF('resources/LiberationMono-Regular.ttf', charcodes, 120, 72)
 
 setup_game = () ->
+    import TextEditBox from require "interface"
     text = with MOAITextBox.new()
         \setString('Hello world')
         \setFont(font)
@@ -26,6 +27,8 @@ setup_game = () ->
         \setRect(-w/4,-h/4,w/4,h/4)
         \setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
     layer\insertProp(text)
+
+    TextEditBox.create() 
 
 --if MOAIInputMgr.device.keyboard
 --    MOAIInputMgr.device.keyboard\setCallback (key,down) ->

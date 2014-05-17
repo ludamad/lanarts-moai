@@ -52,6 +52,8 @@ local function require_moai_file(vpath)
             return function() 
                 return obj 
             end
+        else
+            return nil
         end
     end
 
