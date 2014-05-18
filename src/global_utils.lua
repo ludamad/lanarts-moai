@@ -162,7 +162,7 @@ function newtype(args)
     function type:__newindex(k, v)
         local setter = set[k]
         if setter then
-            setter(self, k, v)
+            setter(self, v)
             return
         end
         if parent then

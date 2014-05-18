@@ -85,6 +85,10 @@ MOAILogMgr.setLogLevel(MOAILogMgr.LOG_NONE)
 package.cpath = ''
 package.path = '?.lua;src/?.lua;.lua-deps/?.lua'
 
+if os.getenv("p") then
+    package.path = package.path .. ';' .. os.getenv("p") .. "/?.lua"
+end
+
 -------------------------------------------------------------------------------
 -- Mount lua-deps.zip, provided by our engine.
 -------------------------------------------------------------------------------
@@ -131,4 +135,9 @@ end
 -- Finally, if we are not a debug server, run the game.
 -------------------------------------------------------------------------------
 
-require "game"
+local ErrorReporting = require "system.ErrorReporting"
+
+local module = os.getenv("f") or "game"
+ErrorReporting.report(function() 
+    require(module)
+end)

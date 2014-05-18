@@ -120,7 +120,3 @@ MOAIInputMgr.device.pointer:setCallback(onPointerEvent)
 MOAIInputMgr.device.mouseLeft:setCallback(onMouseLeftEvent)
 MOAIInputMgr.device.mouseMiddle:setCallback(onMouseMiddleEvent)
 MOAIInputMgr.device.mouseRight:setCallback(onMouseRightEvent)
-
-
-
-
