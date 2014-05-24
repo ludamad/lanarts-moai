@@ -59,14 +59,8 @@ function table.index_of(t, val)
 end
 function table.merge(t1, t2) for k,v in pairs(t1) do t2[k] = v end end
 
--- Lua string API extension:
-function string:split(sep) 
-    local t = {}
-    self:gsub(("([^%s]+)"):format(sep), 
-        function(s) append(t, s) end
-    )
-    return t 
-end
+-- String split provided in main.lua
+
 function string:interpolate(table)
     return (self:gsub('($%b{})', function(w) return table[w:sub(3, -2)] or w end))
 end

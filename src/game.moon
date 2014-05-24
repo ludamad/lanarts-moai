@@ -51,7 +51,7 @@ setup_game = (w, h) ->
     if MOAIInputMgr.device.keyboard
         MOAIInputMgr.device.keyboard\setCallback (key,down) ->
         	ErrorReporting.report () ->
-            	if down then
+            	if down 
                 	edit_box\_onHandleKeyDown key: key
 
     layer\insertProp(text)
