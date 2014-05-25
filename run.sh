@@ -26,14 +26,14 @@ fi
 # Run the engine, using 'main.lua'.
 ###############################################################################
 
-BUILD_FOLDER="$BASE_FOLDER/$ENGINE_FOLDER/builds/native/"
-EXECUTABLE="$BUILD_FOLDER/moai"
+BUILD_ROOT="$BASE_FOLDER/$ENGINE_FOLDER/builds/"
+EXECUTABLE="$BUILD_ROOT/dist/lanarts"
 
 if handle_flag "--gdb" || handle_flag "-g" ; then
     echo "Wrapping in GDB:" | colorify '1;35'
     gdb -silent --args \
-        "$EXECUTABLE" src/main.lua $args
+        "$EXECUTABLE" main $args
 
 else
-    "$EXECUTABLE" src/main.lua $args
+    "$EXECUTABLE" main $args
 fi
