@@ -211,26 +211,3 @@ function file_as_string(name)
     f:close()
     return contents
 end
-
-local repl = require "repl.console"
-
-for _, plugin in ipairs { 'linenoise', 'history', 'completion', 'autoreturn' } do
-    repl:loadplugin(plugin)
-end
-
-function inspect(val)
-    _G.val = val
-    local r = repl:clone()
-    function r:run()
-        self:prompt(1)
-        for line in self:lines() do
-            if line:trim() == "q" or line:trim() == "quit" then 
-                return
-            end
-            local level = self:handleline(line)
-            self:prompt(level)
-        end
-        self:shutdown()
-    end
-    r:run()
-end
