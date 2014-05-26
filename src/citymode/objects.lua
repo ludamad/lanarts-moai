@@ -9,7 +9,8 @@ local io = require "io"
 local ObjectBase = newtype()
 
 -- img_name : string, image to back prop with
-function ObjectBase:init_prop(img_name)
+function ObjectBase:init_with_prop(img_name, x, y)
+    self.x, self.y = x, y
     self.prop = res.get_tiles_bg(img_name, {{1,1}, {1,1}}, 32, 32)
     self.prop:setLoc(self.x,self.y)
 end
@@ -34,8 +35,8 @@ end
 
 local BuildingObject = newtype { parent = ObjectBase }
 
-function BuildingObject:init()
-    self:init_prop("shop.png")
+function BuildingObject:init(x, y)
+    self:init_with_prop("shop.png", x, y)
 end
 
 function BuildingObject:draw()

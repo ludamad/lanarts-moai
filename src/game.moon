@@ -39,6 +39,7 @@ setup_game = (w, h) ->
 
     import TextEditBox from require "interface"
     import ErrorReporting from require "system"
+    import BuildingObject from require "objects"
 
  --   text = with MOAITextBox.new()
  --       \setFont(font)
@@ -58,6 +59,7 @@ setup_game = (w, h) ->
  --   layer\insertProp(text)
 
     game = Game.create(layer)
+    game.map\add_obj BuildingObject.create()
 
     init_script_deck () -> 
         game\step() 
