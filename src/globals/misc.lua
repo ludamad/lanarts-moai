@@ -25,39 +25,6 @@ fmt = string.format
 
 -- Lua table API extensions:
 append = table.insert
-table.next, _ = pairs {}
-function table.copy(dst,src)
-    assert(#dst == #src, "Sizes don't match!")
-    for i=1,#dst do
-        dst[i] = src[i]
-    end
-end
-
-local function zero_row(len)
-    local r = {}
-    for i=1,len do append(r, 0) end
-    return r
-end
-
-function table.zeros(w, --[[Optional]] h)
-    if h == nil then return zero_row(w) end
-    local ret = {}
-    for y=1,h do
-        append(ret, zero_row(w))
-    end
-    return ret
-end
-
-function table.key_list(t)
-    local keys = {}
-    for k, _ in pairs(t) do append(keys, k) end
-    return keys
-end
-function table.index_of(t, val)
-    for k,v in pairs(t) do if v == val then return k end end
-    return nil
-end
-function table.merge(t1, t2) for k,v in pairs(t1) do t2[k] = v end end
 
 -- String split provided in main.lua
 

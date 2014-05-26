@@ -14,9 +14,13 @@ Map.step = () =>
 Map.draw = () =>
     for obj in *@objs do obj\draw()
 
+Map.remove_obj = (obj) =>
+    obj\deregister(self, self.obj_layer)
+    append(@objs, obj)
+
 Map.add_obj = (obj) =>
     append(@objs, obj)
-    obj\register(self.obj_layer)
+    obj\register(self, self.obj_layer)
 
 Map.add_layer = (layer) =>
     append(@layers, layer)
@@ -38,9 +42,9 @@ data2grid = (w, h, data) ->
 load_layer = (map, L) ->
     layer = MOAILayer2D.new()
     w,h = L.width, L.height
---    tiles = resources.get_tiles_bg("terrain.png", data2grid(w, h, L.data), 32, 32)
---    tiles:setLoc(L.x, L.y)
---    layer:insertProp(tiles)
+    tiles = resources.get_tiles_bg("terrain.png", data2grid(w, h, L.data), 32, 32)
+    tiles:setLoc(L.x, L.y)
+    layer:insertProp(tiles)
     map\add_layer(layer)
 
 load_map = (ppath) ->

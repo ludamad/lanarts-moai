@@ -2,12 +2,12 @@
 -- Game state class
 -------------------------------------------------------------------------------
 
-import map from require "."
+import Map from require "levels"
 
 Game = newtype()
 
 Game.init = (layer) =>
-    @map = map.create("test")
+    @map = Map.create("test")
 Game.step = () =>
     @map\step()
 Game.draw = () =>
@@ -40,21 +40,22 @@ setup_game = (w, h) ->
     import TextEditBox from require "interface"
     import ErrorReporting from require "system"
 
-    text = with MOAITextBox.new()
-        \setFont(font)
-        \setTextSize(64,32)
-        \setYFlip(true)
-        \setRect(-w/4,-h/4,w/4,h/4)
-        \setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
-    edit_box = TextEditBox.create(text, "Hello World!")
+ --   text = with MOAITextBox.new()
+ --       \setFont(font)
+ --       \setTextSize(64,32)
+ --       \setYFlip(true)
+ --       \setRect(-w/4,-h/4,w/4,h/4)
+ --       \setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
+ --   edit_box = TextEditBox.create(text, "Hello World!")
 
     if MOAIInputMgr.device.keyboard
         MOAIInputMgr.device.keyboard\setCallback (key,down) ->
         	ErrorReporting.report () ->
-            	if down 
-                	edit_box\_onHandleKeyDown key: key
+            	if down
+            		print "DOWN" 
+                	--edit_box\_onHandleKeyDown key: key
 
-    layer\insertProp(text)
+ --   layer\insertProp(text)
 
     game = Game.create(layer)
 

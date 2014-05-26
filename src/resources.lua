@@ -1,8 +1,6 @@
 local RESOURCE_PATH = {
-    "./",
-    "./dependencies/",
-    "./images/",
-    "./maps/"
+    "./resources/",
+    "./resources/tiled-maps",
 }
 
 -- ppath => partial path
@@ -50,6 +48,12 @@ local function get_sprite_quad(ppath, --[[Optional]] w,  --[[Optional]] h)
     quad:setRect(-w/2, -h/2, w/2, h/2)
 
     return quad
+end
+
+local function get_json(ppath)
+    local stream = get_stream(ppath)
+    local data = stream:read()
+    return MOAIJsonParser.decode(data)
 end
 
 local function get_sprite_prop(ppath, --[[Optional]] w, --[[Optional]] h)
@@ -103,6 +107,7 @@ end
 return {
     get_resource_path = get_resource_path,
     get_stream = get_stream,
+    get_json = get_json,
     get_texture= get_texture,
     get_tiles_bg= get_tiles_bg,
     get_sprite_prop = get_sprite_prop,
