@@ -1,5 +1,5 @@
 local res = require "resources"
-local io = require "io"
+local user_io = require "user_io"
 
 --------------------------------------------------------------------------------
 -- Object base. Links with MOAI. 
@@ -21,12 +21,12 @@ end
 function ObjectBase:step()
 end
 
-function ObjectBase:register()
-    self.layer:insertProp(self.prop)
+function ObjectBase:register(map, layer)
+    layer:insertProp(self.prop)
 end
 
-function ObjectBase:unregister()
-    self.layer:removeProp(self.prop)
+function ObjectBase:unregister(map, layer)
+    layer:removeProp(self.prop)
 end
 
 --------------------------------------------------------------------------------
@@ -36,11 +36,12 @@ end
 local BuildingObject = newtype { parent = ObjectBase }
 
 function BuildingObject:init(x, y)
+    assert(x and y, "Must provide x & y!")
     self:init_with_prop("shop.png", x, y)
 end
 
-function BuildingObject:draw()
-    if io.key_down then
+function BuildingObject:step()
+    if user_io.key_down("K_ENTER") then
         print "Down"
         self.prop:setColor(0.5, 0.5, 0.5)
     else

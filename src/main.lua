@@ -36,7 +36,6 @@ package.path = package.path .. ';citymode/?.lua;src/citymode/?.lua'
 local ErrorReporting = require "system.ErrorReporting"
 
 local module = os.getenv("f") or "game"
-ErrorReporting.report(function() 
+ErrorReporting.wrap(function() 
     require(module)
-end)
-
+end)()

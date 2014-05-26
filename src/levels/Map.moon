@@ -11,26 +11,45 @@ Map.step = () =>
     for obj in *@objs
         obj\step()
 
-Map.draw = () =>
-    for obj in *@objs do obj\draw()
-
 Map.remove_obj = (obj) =>
-    obj\deregister(self, self.obj_layer)
-    append(@objs, obj)
+    -- Remove & deregister a game object
+    obj\deregister(@, @obj_layer)
+    table.remove_occurrences(@objs, obj)
 
 Map.add_obj = (obj) =>
+    -- Add & register a game object
     append(@objs, obj)
-    obj\register(self, self.obj_layer)
+    obj\register(@, @obj_layer)
 
 Map.add_layer = (layer) =>
     append(@layers, layer)
 
-Map.push_render_pass = (vp) =>
-    for layer in values(self.layers)
+Map.deregister = () =>
+    -- Unregister the misc. layers:
+    for layer in values(@layers)
+        MOAISim.removeRenderPass(layer)
+    -- Unregister the object layer:
+    MOAISim.removeRenderPass(@obj_layer)
+    -- Remove callback prop that calls draw & step:
+    @obj_layer\removeProp @callback_prop
+
+Map.register = (vp) =>
+    -- Register the misc. layers
+    for layer in values(@layers)
         MOAISim.pushRenderPass(layer)
         layer\setViewport(vp)
-    MOAISim.pushRenderPass(self.obj_layer)
+
+    -- Register the object layer
+    MOAISim.pushRenderPass(@obj_layer)
     @obj_layer\setViewport(vp)
+
+    -- Register callback prop that calls draw & step:
+    @callback_prop = with MOAIProp2D.new()
+        \setDeck with MOAIScriptDeck.new()
+            \setDrawCallback () ->
+                @\draw()
+
+    @obj_layer\insertProp @callback_prop
 
 data2grid = (w, h, data) ->
     ret = table.zeros(w, h)

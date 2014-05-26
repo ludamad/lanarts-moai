@@ -189,8 +189,20 @@ function M.traceback(--[[Optional]] str)
     )
 end
 
-function M.report(f)
-    xpcall(f, function(err) print(M.traceback(err)) end) 
+function M.wrap(f)
+    return function(...)
+        local args = {...}
+        xpcall(
+            -- Call 
+            function() 
+                return f(unpack(args))
+            end, 
+            -- Error handling 
+            function(err) 
+                print(M.traceback(err)) 
+            end
+        )
+    end 
 end
 
 AnsiColors = require "system.AnsiColors" -- Lazy import
