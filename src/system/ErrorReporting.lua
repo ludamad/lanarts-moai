@@ -56,6 +56,7 @@ M = {
     filter_patterns = {
         -- Lines to delete starting with this line and going up
         [modulestart "ErrorReporting%.lua"] = 1,
+        [modulestart "main%.lua.*__index"] = 1,
         [modulestart "GlobalVariableLoader%.lua:.*'__index'"] = 1,
         [modulestart "ModuleSystem%.lua:.*'import.*'"] = 1,
         [modulestart "Globals%.lua:.*'errorf'"] = 2,

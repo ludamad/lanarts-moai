@@ -33,15 +33,17 @@ Map.deregister = () =>
     -- Remove callback prop that calls draw & step:
     @obj_layer\removeProp @callback_prop
 
-Map.register = (vp) =>
+Map.register = (vp, camera) =>
     -- Register the misc. layers
     for layer in values(@layers)
         MOAISim.pushRenderPass(layer)
         layer\setViewport(vp)
+        layer\setCamera(camera)
 
     -- Register the object layer
     MOAISim.pushRenderPass(@obj_layer)
     @obj_layer\setViewport(vp)
+    @obj_layer\setCamera(camera)
 
     -- Register callback prop that calls draw & step:
     @callback_prop = with MOAIProp2D.new()

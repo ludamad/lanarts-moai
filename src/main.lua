@@ -22,6 +22,8 @@ require("moonscript.base").insert_loader()
 
 require "globals.misc"
 require "globals.table"
+require "globals.flextypes"
+require "globals.string"
 
 -------------------------------------------------------------------------------
 -- Add citymode/ folder to require path.

@@ -20,28 +20,9 @@ end
 function printf(fmt, ...) print(fmt:format(...)) end
 function errorf(fmt, ...) error(fmt:format(...)) end
 function assertf(cond, fmt, ...) return assert(cond, fmt:format(...)) end
--- Convenient handle for very useful function:
-fmt = string.format
 
 -- Lua table API extensions:
 append = table.insert
-
--- String split provided in main.lua
-
-function string:interpolate(table)
-    return (self:gsub('($%b{})', function(w) return table[w:sub(3, -2)] or w end))
-end
-function string:join(parts_table)
-    return table.concat(parts_table, self)
-end
-function string:trim()
-  return self:gsub("^%s*(.-)%s*$", "%1")
-end
-function string:trimsplit(s)
-    local parts = self:split(s)
-    for i,p in ipairs(parts) do parts[i] = p:trim() end
-    return parts
-end
 
 --- Get a  human-readable string from a lua value. The resulting value is generally valid lua.
 -- Note that the paramaters should typically not used directly, except for perhaps 'packed'.
@@ -171,10 +152,3 @@ function pretty(...)
     print(unpack(args))
 end
 
-function file_as_string(name)
-    local f = io.open(name,"r")
-    if f == nil then return nil end
-    local contents = f:read("*all")
-    f:close()
-    return contents
-end

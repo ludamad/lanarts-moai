@@ -1,6 +1,6 @@
 local RESOURCE_PATH = {
     "./resources/",
-    "./resources/tiled-maps",
+    "./resources/tiled-maps/",
 }
 
 -- ppath => partial path
@@ -90,20 +90,6 @@ local function get_tiles_bg(ppath, t, --[[Optional]] x, --[[Optional]] y)
     return prop
 end
 
-local orig_require = _G.require -- in case it gets replaced
-local require_cache = {}
-local function require(ppath)
-    local lpath = (ppath):gsub("%.","/") .. ".lua"
-    local abs_path = get_resource_path(lpath, --[[Soft fail]] true)
-    if not abs_path then
-        return orig_require(ppath) -- For shared objects and such
-    end
-    if require_cache[ppath] then return require_cache[ppath] end 
-    local res = dofile(MOAIFileSystem.getRelativePath(abs_path))
-    require_cache[ppath] = res
-    return res
-end
-
 return {
     get_resource_path = get_resource_path,
     get_stream = get_stream,
@@ -111,6 +97,5 @@ return {
     get_texture= get_texture,
     get_tiles_bg= get_tiles_bg,
     get_sprite_prop = get_sprite_prop,
-    get_tiles_prop = get_tiles_prop,
-    require = require
+    get_tiles_prop = get_tiles_prop
 }

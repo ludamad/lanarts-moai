@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="isometric" width="20" height="20" tilewidth="64" tileheight="32">
+ <tileset firstgid="1" name="tiles" tilewidth="64" tileheight="100">
+  <image source="../../../../moai-resources/Tiles/Stitch/tiles.png" width="448" height="600"/>
+ </tileset>
+ <layer name="Tile Layer 1" width="20" height="20">
+  <data encoding="base64" compression="zlib">
+   eJxjYBgFtACMaJgaZrFDMSVmIrsJ3TxqmAnCSlBMrrno5mHDlLqRmn4GAWYkcUoALcyjdloUAWJBIOaignlsQCwAxDxUMo+BgXp+HQWEAQAB9QD4
+  </data>
+ </layer>
+</map>

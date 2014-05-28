@@ -9,12 +9,14 @@ local user_io = require "user_io"
 local ObjectBase = newtype()
 
 -- img_name : string, image to back prop with
-function ObjectBase:init_with_prop(img_name, x, y)
+function ObjectBase:init_with_prop(img_name, x, y, w, h)
     self.x, self.y = x, y
-    self.prop = res.get_tiles_bg(img_name, {{1,1}, {1,1}}, 32, 32)
+    self.prop = res.get_sprite_prop(img_name, w, h)
     self.prop:setLoc(self.x,self.y)
 end
 
+-- By default, never called.
+-- Must call init_with_script_prop.
 function ObjectBase:draw()
 end
 
@@ -37,7 +39,7 @@ local BuildingObject = newtype { parent = ObjectBase }
 
 function BuildingObject:init(x, y)
     assert(x and y, "Must provide x & y!")
-    self:init_with_prop("shop.png", x, y)
+    self:init_with_prop("shop.png", x, y, 32, 32)
 end
 
 function BuildingObject:step()

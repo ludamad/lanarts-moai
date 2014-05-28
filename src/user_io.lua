@@ -1,6 +1,59 @@
-local M = {}
+local M = nilprotect {}
 
-local keyboard = MOAIInputMgr.device.keyboard
+--------------------------------------------------------------------------------
+-- Mouse utilities.
+--------------------------------------------------------------------------------
+
+local mouse = MOAIInputMgr.device.pointer
+local mleft = MOAIInputMgr.device.mouseLeft
+local mright = MOAIInputMgr.device.mouseRight
+local mmiddle = MOAIInputMgr.device.mouseMiddle
+
+function M.mouse_xy()
+    return mouse:getLoc() 
+end 
+
+-- Has a mouse button been pressed since last iteration?
+
+function M.mouse_left_pressed()
+    return mleft:down()
+end
+function M.mouse_middle_pressed()
+    return mmiddle:down()
+end
+function M.mouse_right_pressed()
+    return mright:down()
+end
+
+-- Has a mouse button been released since last iteration?
+
+function M.mouse_left_released()
+    return mleft:up()
+end
+function M.mouse_middle_released()
+    return mmiddle:up()
+end
+function M.mouse_right_released()
+    return mright:up()
+end
+
+-- Is a mouse button currently down?
+
+function M.mouse_left_down()
+    return mleft:isDown()
+end
+function M.mouse_middle_down()
+    return mmiddle:isDown()
+end
+function M.mouse_right_down()
+    return mright:isDown()
+end
+
+--------------------------------------------------------------------------------
+-- Keyboard utilities.
+--------------------------------------------------------------------------------
+
+local keyboard = MOAIInputMgr.device.keyboard -- Canonical instance of MOAIKeyboardSensor
 
 local function wrap(method)
     return function(key)
@@ -16,10 +69,6 @@ M.key_down = wrap("keyIsDown")
 M.key_up = wrap("keyIsUp")
 M.key_pressed = wrap("keyDown")
 M.key_released = wrap("keyUp")
-
-M.LEFTMOUSE_BUTTON = 0
-M.MIDDLEMOUSE_BUTTON = 1
-M.RIGHTMOUSE_BUTTON = 2
 
 local byte = string.byte
 
@@ -77,6 +126,12 @@ M.K_HASH = byte("#")
 M.K_POUND = M.K_HASH
 M.K_AT = byte("@")
 M.K_EXCLAIM = byte("!")
+
+--------------------------------------------------------------------------------
+-- Arrow-key codes.
+--------------------------------------------------------------------------------
+
+M.K_RIGHT, M.K_LEFT, M.K_DOWN, M.K_UP = 335, 336, 337, 338
 
 M.K_LEFT_BRACKET = byte("[")
 M.K_RIGHT_BRACKET = byte("]")
