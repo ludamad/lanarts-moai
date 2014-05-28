@@ -37,6 +37,17 @@ local function get_texture(ppath)
     return texture
 end
 
+local function reload_textures(ppath)
+    local prev = texture_cache
+    -- Reload all the textures
+    for k,v in pairs(texture_cache) do
+        -- Release 
+        v:release()
+        -- And reload
+        texture:load(get_stream(ppath))
+    end
+end
+
 local function get_sprite_quad(ppath, --[[Optional]] w,  --[[Optional]] h)
     local texture = get_texture(ppath)
     if not w then
@@ -91,6 +102,7 @@ local function get_tiles_bg(ppath, t, --[[Optional]] x, --[[Optional]] y)
 end
 
 return {
+    reload_textures = reload_textures,
     get_resource_path = get_resource_path,
     get_stream = get_stream,
     get_json = get_json,
