@@ -20,7 +20,7 @@
  "tilesets":[
         {
          "firstgid":1,
-         "image":"..\/..\/..\/..\/moai-resources\/Tiles\/Stitch\/tiles.png",
+         "image":"..\/placeholder-tiles.png",
          "imageheight":600,
          "imagewidth":448,
          "margin":0,
