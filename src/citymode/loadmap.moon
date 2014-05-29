@@ -1,3 +1,68 @@
+import Map from require "levels"
+
+import TextEditBox from require "interface"
+import ErrorReporting from require "system"
+import BuildingObject from require "objects"
+import get_texture, get_json from require "resources"
+import ui_ingame_scroll, ui_ingame_select from require "ui"
+
+user_io = require "user_io"
+
+-------------------------------------------------------------------------------
+-- Tiled-loading structures
+-------------------------------------------------------------------------------
+
+TiledMap = typedef [[
+    tile_width, tile_height : int 
+    layers, tile_sets : list
+    iso_width, iso_height : int
+]]
+
+TiledLayer = typedef [[
+    name : string
+    width, height : int 
+    x, y : int
+    data : list
+]]
+
+TiledTileSet = typedef [[
+    name : string
+    path : string
+    first_id : int
+    image_width, image_height : int
+    tile_width, tile_height : int 
+]]
+
+-------------------------------------------------------------------------------
+-- Tiled-loading functions
+-------------------------------------------------------------------------------
+
+-- Return Level object, parsed from Tiled map
+parse_tiled_json = (path) ->
+    -- Parse the JSON representation of the Tiled map
+    json = get_json path
+
+    -- Parse the tile sets from the Tiled map
+    tile_sets = {} 
+    for tset in *json.tilesets
+        append tile_sets,
+            TiledTileSet.create tset.name, tset.image, 
+                tset.firstgid,
+                tset.imagewidth, tset.imageheight,
+                tset.tilewidth, tset.tileheight
+
+    -- Parse the tile layers from the Tiled map
+    layers = {} 
+    for lay in *json.layers
+        append layers,
+            TiledLayer.create lay.name, 
+                lay.width, lay.height,
+                lay.x, lay.y,
+                lay.data
+
+    -- Parse the top-level attributes
+    -- Hardcode the width and height of the isometric placement, for now
+    return TiledMap.create(json.tilewidth, json.tileheight, layers, tile_sets, 32, 16)
 
 -- Setup up layers from a Tiled description.
 -- Returns a table with the components, with a function
@@ -6,7 +71,7 @@
 load_tiled_json = (path, vieww, viewh) ->
     map = parse_tiled_json path 
 
-    C = {} -- The components
+    C = { :vieww, :viewh } -- The components
 
     cx, cy = map.tile_width * map.iso_height / 2, map.tile_height * map.iso_width / 2
     C.camera = with MOAICamera2D.new()
@@ -62,14 +127,27 @@ load_tiled_json = (path, vieww, viewh) ->
         -- Solve the inverse function of above
         x_sub_y = rx / map.iso_width + .5
         x_plus_y = ry / map.iso_height + .5
-        x, y = 
-        return (x - y - .5)*map.iso_width, (x + y - .5)*map.iso_height
-
-    --
+        -- Calculate x and y, return if within acceptable bounds
+        x = (x_sub_y + x_plus_y) / 2
+        y = (x_plus_y - x)
+        -- Floor
+        x, y = math.floor(x), math.floor(y)
+        -- Are we in acceptable bounds?
+        if (x >= 1 and x <= map.tile_width) and (y >= 1 and y <= map.tile_height)
+            return x, y
+        -- Otherwise, return nils
+        return nil, nil
+            
+    -- Find the nearest multiple of the tile size
     C.real_xy_snap = (rx, ry) -> 
+        rx = math.floor(rx / map.iso_width) * map.iso_width
+        ry = math.floor(ry / map.iso_height) * map.iso_height
+        return rx, ry
 
     -- The MOAI layers to accumulate
     C.layers = {}
+    -- The UI or animation threads to accumulate
+    C.threads = {}
 
     -- Create the MOAI layers from the Tiled layers
     for lay in *map.layers
@@ -93,6 +171,11 @@ load_tiled_json = (path, vieww, viewh) ->
 
         append C.layers, layer
 
+    -- Add the UI threads for a typical game
+    append C.threads, ui_ingame_scroll C
+    append C.threads, ui_ingame_select C
+    pretty("threads", C.threads)
+
     -- Add the UI layer, which is sorted by priority (the default sort mode):
     C.ui_layer = with MOAILayer2D.new()
             \setCamera(C.camera) -- All layers use the same camera
@@ -101,50 +184,21 @@ load_tiled_json = (path, vieww, viewh) ->
     append C.layers, C.ui_layer
 
     -- Setup function
-    C.setup = () -> 
-        -- Run a MOAIThread for scrolling by mouse
-        text_box = with MOAITextBox.new()
-            \setFont( font )
-            \setTextSize( 24 )
-            \setString( "" )
-            \setRect(-128,-128,128,128)
-            \setAlignment( MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY )
-
-        C.ui_layer\insertProp(text_box)
-        MOAIThread.new()\run () ->
-           mX,mY = user_io.mouse_xy()
-           dragging = false
-           while true
-               coroutine.yield()
-               -- Handle dragging for scroll:
-               if user_io.mouse_right_pressed()
-                   dragging = true
-               if user_io.mouse_right_released()
-                   dragging = false
-               if dragging and user_io.mouse_right_down() 
-                   newMX,newMY = user_io.mouse_xy()
-                   prevX, prevY = C.camera\getLoc()
-                   C.camera\setLoc(prevX + (mX - newMX), prevY + (mY - newMY))
-
-               mX,mY = user_io.mouse_xy()
-               cX, cY = C.camera\getLoc()
-               cX -= vieww/2
-               cY -= viewh/2
-
-               text_box\setString((mX+cY) .. ", " .. (mY+cY))
-               text_box\setLoc((mX+cX), (mY+cY))
-               text_box\setColor(1,1,0,1)
-
+    C.start = () -> 
+        for thread in *C.threads
+            thread.start()
          -- Begin rendering the MOAI layers
         for layer in *C.layers
            MOAISim.pushRenderPass(layer)
 
     -- Tear-down function
-    C.teardown = () -> 
+    C.stop = () -> 
+        for thread in *C.threads
+            thread.stop()
         -- Cease rendering the MOAI layers
         for layer in *C.layers
             MOAISim.removeRenderPass(layer)
 
     return C
 
-
+return { :parse_tiled_json, :load_tiled_json }
