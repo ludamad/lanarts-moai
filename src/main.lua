@@ -22,7 +22,10 @@ require "globals.string"
 -- Add citymode/ folder to require path.
 -------------------------------------------------------------------------------
 
-package.path = package.path .. ';citymode/?.lua;src/citymode/?.lua'
+-- Hackish way to develop multiple games in the same repo, for now.
+local GAME = "lanarts" -- "citymode"
+
+package.path = package.path .. ';'..GAME..'/?.lua;src/'..GAME..'/?.lua'
 
 -------------------------------------------------------------------------------
 -- Ensure proper loading of moonscript files.

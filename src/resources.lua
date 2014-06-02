@@ -1,5 +1,6 @@
 local RESOURCE_PATH = {
     "./resources/",
+    "./resources/lanarts/",
     "./resources/tiled-maps/",
 }
 

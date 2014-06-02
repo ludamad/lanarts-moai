@@ -1,7 +1,5 @@
-import Map from require "levels"
-
 import ErrorReporting from require "system"
-import BuildingObject from require "objects"
+
 import get_texture, get_json from require "resources"
 import ui_ingame_scroll, ui_ingame_select from require "ui"
 
@@ -60,8 +58,8 @@ parse_tiled_json = (path) ->
                 lay.data
 
     -- Parse the top-level attributes
-    -- Hardcode the width and height of the isometric placement, for now
-    return TiledMap.create(json.tilewidth, json.tileheight, layers, tile_sets, 32, 16)
+    -- TODO: Hardcode the width and height of the placement, for now
+    return TiledMap.create(json.tilewidth, json.tileheight, layers, tile_sets, 32, 32)
 
 -- Setup up layers from a Tiled description.
 -- Returns a table with the components, with a function
@@ -74,7 +72,7 @@ load_tiled_json = (path, vieww, viewh) ->
 
     cx, cy = map.tile_width * map.iso_height / 2, map.tile_height * map.iso_width / 2
     C.camera = with MOAICamera2D.new()
-        \setLoc(-cx, cy)
+        \setLoc(cx,cy)--cx, -cy)
     C.viewport = with MOAIViewport.new()
         \setSize(vieww, viewh)
         \setScale(vieww, -viewh)
@@ -118,20 +116,14 @@ load_tiled_json = (path, vieww, viewh) ->
 
     -- Function to convert a tile location to a real location
     C.tile_xy_to_real = (x, y) -> 
-        return (x - y - .5)*map.iso_width, (x + y - .5)*map.iso_height
+        return (x - .5) *map.iso_width, (y - .5)*map.iso_height
 
     -- Function to convert a real location to a tile location
     -- Returns 'nil' if not possible
     C.real_xy_to_tile = (rx, ry) -> 
         -- Solve the inverse function of above
-        x_sub_y = rx / map.iso_width + .5
-        x_plus_y = ry / map.iso_height + .5
-        -- Calculate x and y, return if within acceptable bounds
-        x = (x_sub_y + x_plus_y) / 2
-        y = (x_plus_y - x)
-        -- Floor
-        x, y = math.floor(x), math.floor(y)
-        -- Are we in acceptable bounds?
+        x = math.floor(rx / map.iso_width + .5)
+        y = math.floor(ry / map.iso_height + .5)
         if (x >= 1 and x <= map.tile_width) and (y >= 1 and y <= map.tile_height)
             return x, y
         -- Otherwise, return nils
@@ -191,6 +183,7 @@ load_tiled_json = (path, vieww, viewh) ->
            MOAISim.pushRenderPass(layer)
 
     -- Tear-down function
+
     C.stop = () -> 
         for thread in *C.threads
             thread.stop()
