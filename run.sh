@@ -27,13 +27,14 @@ fi
 ###############################################################################
 
 BUILD_ROOT="$BASE_FOLDER/$ENGINE_FOLDER/builds/"
-EXECUTABLE="$BUILD_ROOT/dist/lanarts"
+EXECUTABLE="$BUILD_ROOT/dist/moai"
+FLAGS="$BUILD_ROOT/dist/loader.lua $BUILD_ROOT/dist"  
 
 if handle_flag "--gdb" || handle_flag "-g" ; then
     echo "Wrapping in GDB:" | colorify '1;35'
     gdb -silent --args \
-        "$EXECUTABLE" main $args
+        "$EXECUTABLE" $FLAGS main $args
 
 else
-    "$EXECUTABLE" main $args
+    "$EXECUTABLE" $FLAGS main $args
 fi
