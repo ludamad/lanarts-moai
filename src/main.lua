@@ -39,15 +39,11 @@ require("moonscript.base").insert_loader()
 
 local ErrorReporting = require "system.ErrorReporting"
 
---inspect()
-
-local GIS = require "lanarts.GameInstSet" 
-
-local gis = GIS.create(--[[width]] 100, --[[height]] 100)
-local id = gis:add_instance( --[[x]] 32, --[[y]] 32, --[[radius]] 32, --[[target_radius]] 32, --[[solid]] true)
-
-print("ID =", id)
---local module = os.getenv("f") or "game"
---ErrorReporting.wrap(function() 
---    require(module)
---end)()
+if os.getenv("i") then
+    inspect()
+else
+    local module = os.getenv("f") or "game"
+    ErrorReporting.wrap(function() 
+        require(module)
+    end)()
+end
