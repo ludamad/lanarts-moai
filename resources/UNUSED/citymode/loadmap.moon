@@ -102,15 +102,7 @@ load_tiled_json = (path, vieww, viewh) ->
             for x=1,tw 
                 x1, x2 = (x-1) * 1 / tw, (x) * 1 / tw
                 y1, y2 = (y-1) * 1 / th, (y) * 1 / th
-                quad = with MOAIGfxQuad2D.new()
-                    \setTexture texture
-                    -- Center tile on origin:
-                    \setUVQuad x1, y1, 
-                        x2, y1, 
-                        x2, y2,
-                        x1, y2
-                    \setRect -tilew/2, tileh/2, 
-                        tilew/2, -tileh/2
+                
 
                 assert(gidmap[gid] == nil, "Tile GID overlap, logic error!")
                 gidmap[gid] = quad

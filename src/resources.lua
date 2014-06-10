@@ -1,6 +1,8 @@
 local RESOURCE_PATH = {
     "./resources/",
-    "./resources/lanarts/",
+    "./resources/game/",
+    "./src/modules/base"/,
+    "./src/modules/base/resources/",
     "./resources/tiled-maps/",
 }
 
@@ -102,6 +104,14 @@ local function get_tiles_bg(ppath, t, --[[Optional]] x, --[[Optional]] y)
     return prop
 end
 
+local function get_base_paths() 
+    return RESOURCE_PATH
+end
+
+local function set_base_paths(paths) 
+    RESOURCE_PATH = assert(paths, "Cannot set resource path to nil!")
+end
+
 return {
     reload_textures = reload_textures,
     get_resource_path = get_resource_path,
@@ -110,5 +120,9 @@ return {
     get_texture= get_texture,
     get_tiles_bg= get_tiles_bg,
     get_sprite_prop = get_sprite_prop,
-    get_tiles_prop = get_tiles_prop
+    get_tiles_prop = get_tiles_prop,
+
+    -- Resource path management, for loading modules:
+    get_base_paths = get_base_paths,
+    set_base_paths = set_base_paths
 }

@@ -2,7 +2,7 @@ BoolGrid = require "BoolGrid"
 mtwist = require "mtwist"
 
 import print_map, make_tunnel_oper, make_rectangle_criteria, make_rectangle_oper, place_instances
-    from require "map_util"
+    from require "levels.map_util"
 
 import FloodFillPaths, GameInstSet, GameTiles, GameView, util, mapgen
     from require "lanarts"
@@ -24,7 +24,7 @@ InstanceList =
 
         return obj
 
-generate = (rng) ->
+generate_test_model = (rng) ->
     -- Uses 'InstanceList' class defined above
     map = mapgen.map_create { size: {80,40}, flags: mapgen.FLAG_SOLID, instances: InstanceList.create() }
 
@@ -52,7 +52,7 @@ generate = (rng) ->
 
     tunnel_oper map, mapgen.ROOT_GROUP, bbox_create( {0,0}, map.size) 
 
-    print_map(map, map.instances)
+    --print_map(map, map.instances) -- Uncomment to print
+    return map
 
-rng = mtwist.create(1)
-generate(rng)
+return {:generate_test_model}

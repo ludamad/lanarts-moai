@@ -43,6 +43,11 @@ local LUAFILE_PATTERN = "%w+/[^%.]*%.lua"
 local ROOTFILE_PATTERN = "%w+%.lua"
 local LUAMODULE_PATTERN = "[%.%w_]+%.%u%w*"
 
+-- Support for moonscript context grabbing:
+local MOONFILE_PATTERN = "%w+/[^%.]*%.moon"
+local MOONROOTFILE_PATTERN = "%w+%.moon"
+
+
 local function modulestart(s)
     -- Search for space, followed by any root package name.
     return ("%s*[%w/]+" .. s)
@@ -55,15 +60,24 @@ local M -- Forward declare for inner functions
 M = {
     filter_patterns = {
         -- Lines to delete starting with this line and going up
+        -- Support for moonscript traceback wrapping:
+        ["moon:"] = 1,
+        ["stack traceback:"] = 1,
+
+        -- Filtering noise:
         [modulestart "ErrorReporting%.lua"] = 1,
         [modulestart "main%.lua.*__index"] = 1,
         [modulestart "GlobalVariableLoader%.lua:.*'__index'"] = 1,
         [modulestart "ModuleSystem%.lua:.*'import.*'"] = 1,
         [modulestart "Globals%.lua:.*'errorf'"] = 2,
         [modulestart "globals/LuaJITReplacements%.lua:.*'__index'"] = 2,
-        [modulestart "Main.lua"] = 1,
+        [modulestart "main.lua"] = 1,
         [modulestart "TestRunner.lua:[^']+'main'"] = 1,
-        ["%s*%[C%]: in function 'error'"] = 4
+
+        -- Remove very common but non-revealing C functions from traceback:
+        ["%s*%[C%]: in function 'error'"] = 4,
+        ["%s*%[C%]: in function 'require'"] = 1,
+        ["%s*%[C%]: in function 'xpcall'"] = 1
     },
     
     stacktrace_replacements = {
@@ -158,8 +172,9 @@ local function resolve_changes(stacktrace, i)
     end
     local s = stacktrace[i]
     s = s:gsub('[%<%>]', '')
-    s = s:gsub('('..LUAFILE_PATTERN .. "):(%d+)", path_conv)
-    s = s:gsub('('..ROOTFILE_PATTERN .. "):(%d+)", path_conv)
+    for _, pattern in ipairs {LUAFILE_PATTERN, MOONFILE_PATTERN, ROOTFILE_PATTERN, MOONROOTFILE_PATTERN} do
+        s = s:gsub('('.. pattern .. "):(%d+)", path_conv)
+    end
     if #converted > 0 then
         s = s .. ' ' .. converted[1]
     end
@@ -167,10 +182,13 @@ local function resolve_changes(stacktrace, i)
     return inserts
 end
 
+local merror = require 'moonscript.errors'
+
 local debug_traceback = debug.traceback -- Stash & wrap the current debug.traceback
 -- Improve the traceback in various ways, including adding color and reducing noise:
 function M.traceback(--[[Optional]] str)
     local traceback = debug_traceback()
+    traceback = merror.rewrite_traceback(traceback, '')
     local stacktrace = traceback:split('\n')
     local i = 1
     while i <= #stacktrace do

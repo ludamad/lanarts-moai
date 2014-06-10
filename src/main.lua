@@ -19,15 +19,6 @@ require "globals.flextypes"
 require "globals.string"
 
 -------------------------------------------------------------------------------
--- Add citymode/ folder to require path.
--------------------------------------------------------------------------------
-
--- Hackish way to develop multiple games in the same repo, for now.
-local GAME = "lanarts" -- "citymode"
-
-package.path = package.path .. ';'..GAME..'/?.lua;src/'..GAME..'/?.lua'
-
--------------------------------------------------------------------------------
 -- Ensure proper loading of moonscript files.
 -------------------------------------------------------------------------------
 
@@ -42,7 +33,7 @@ local ErrorReporting = require "system.ErrorReporting"
 if os.getenv("i") then
     inspect()
 else
-    local module = os.getenv("f") or "game"
+    local module = os.getenv("f") or "game.main"
     ErrorReporting.wrap(function() 
         require(module)
     end)()
