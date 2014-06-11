@@ -9,9 +9,9 @@ with tiledef file: 'floor.png', solid: false
 with tiledef file: 'wall.png', solid: true
     .define name: 'dungeon_wall', from: {1,1}, to: {32, 1}
 
-with spritedef file: 'feat.png', size: {32,32}, tiled: true
-    .define name: 'door_closed', from: {3, 2},
-    .define name: 'door_open',   from: {10, 2}, 
+with spritedef file: 'feat.png', size: {32,32}, tiled: true, kind: 'variant'
+    .define name: 'door_closed', from: {3, 2}
+    .define name: 'door_open',   from: {10, 2}    
     .define name: 'shop',        from: {11,6}, to: {21,6}
 
 leveldef.define name: "start", generator: gen.generate_test_model

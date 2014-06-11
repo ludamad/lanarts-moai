@@ -4,9 +4,6 @@
 
 BoolGrid, mtwist = require "BoolGrid", require "mtwist" 
 
-import print_map, make_tunnel_oper, make_rectangle_criteria, make_rectangle_oper, place_instances
-    from require "levels.map_util"
-
 import FloodFillPaths, GameInstSet, GameTiles, GameView, util, mapgen
     from require "lanarts"
 
@@ -14,10 +11,7 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, mapgen
 -- Other requires
 -------------------------------------------------------------------------------
 
-import generate_test_model from require 'levels.generate'
-
-import ui_ingame_scroll, ui_ingame_select from require "ui"
-
+import ui_ingame_scroll, ui_ingame_select from require "game.ui"
 
 -------------------------------------------------------------------------------
 -- Set up the camera & viewport
@@ -77,6 +71,7 @@ setup_helpers = (C) ->
 -------------------------------------------------------------------------------
 
 create = (model, vieww, viewh) ->
+    inspect()
 
     -- Initialize our components object
     C = { :model, :vieww, :viewh }
@@ -88,7 +83,8 @@ create = (model, vieww, viewh) ->
     C.layers = {}
     -- The UI or animation threads to accumulate
     C.threads = {}
-    C.solidity, C.seethrough = util.extract_solidity_and_seethrough_maps(source_map)
+
+    C.solidity, C.seethrough = util.extract_solidity_and_seethrough_maps(model)
 
     -- Setup function
     C.start = () -> 

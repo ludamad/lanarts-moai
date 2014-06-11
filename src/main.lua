@@ -34,7 +34,7 @@ if os.getenv("i") then
     inspect()
 else
     local module = os.getenv("f") or "game.main"
-    ErrorReporting.wrap(function() 
+    ErrorReporting.wrap(function()
         require(module)
     end)()
 end

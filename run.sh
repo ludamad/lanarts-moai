@@ -32,9 +32,10 @@ FLAGS="$BUILD_ROOT/dist/loader.lua $BUILD_ROOT/dist"
 
 if handle_flag "--gdb" || handle_flag "-g" ; then
     echo "Wrapping in GDB:" | colorify '1;35'
-    gdb -silent --args \
+    gdb -silent -quiet \
+        -ex='set confirm off' \
+        -ex=r --args \
         "$EXECUTABLE" $FLAGS main $args
-
 else
     "$EXECUTABLE" $FLAGS main $args
 fi

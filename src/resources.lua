@@ -1,7 +1,7 @@
 local RESOURCE_PATH = {
     "./resources/",
     "./resources/game/",
-    "./src/modules/base"/,
+    "./src/modules/base/",
     "./src/modules/base/resources/",
     "./resources/tiled-maps/",
 }

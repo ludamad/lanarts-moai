@@ -1,4 +1,5 @@
 user_io = require "user_io"
+modules = require "game.modules"
 
 -------------------------------------------------------------------------------
 -- Game setup
@@ -14,6 +15,7 @@ MOAISim.openWindow "Lanarts", w,h
 --C.start()
 
 main = () ->
+	base = modules.load "base"
     level = require 'game.level'
 	C = level.create()
 	C.start()
