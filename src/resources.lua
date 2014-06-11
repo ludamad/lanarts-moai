@@ -1,6 +1,7 @@
 local RESOURCE_PATH = {
     "./resources/",
     "./resources/game/",
+    "./resources/lanarts/",
     "./src/modules/base/",
     "./src/modules/base/resources/",
     "./resources/tiled-maps/",
@@ -81,7 +82,6 @@ local function get_tiles_prop(ppath)
     local tex = get_texture(ppath)
     tiles:setTexture(tex)
     local w,h = tex:getSize()
-    print(w/32,h/32)
     tiles:setSize(w/32,h/32)
     return tiles
 end

@@ -17,30 +17,38 @@ import ui_ingame_scroll, ui_ingame_select from require "game.ui"
 -- Set up the camera & viewport
 -------------------------------------------------------------------------------
 setup_view = (C) ->
-    cx, cy = map.tile_width * map.iso_height / 2, map.tile_height * map.iso_width / 2
+    {w,h} = C.model.size
+    tw, th = C.tile_width, C.tile_height
+
+    cx, cy = w * th / 2, h * tw / 2
     C.camera = with MOAICamera2D.new()
         \setLoc(cx,cy)
     C.viewport = with MOAIViewport.new()
-        \setSize(vieww, viewh)
-        \setScale(vieww, -viewh)
+        \setSize(C.vieww, C.viewh)
+        \setScale(C.vieww, -C.viewh)
 
 -------------------------------------------------------------------------------
 -- Set up the layers for the map
 -------------------------------------------------------------------------------
 setup_layers = (C) ->
+    {w, h} = C.model.size
 
     -- Create the tile layers
-    {w, h} = C.model.size
     for y=1,h do for x=1,w do 
        -- Note: Model access is 0-based (for now! TODO)
-       {:flags, :content, :group} = map.model\get {x-1, y-1}
-       print(x, y, content)
+       {:flags, :content, :group} = C.model\get {x-1, y-1}
+
+    -- Add the UI layer, which is sorted by priority (the default sort mode):
+    C.ui_layer = with MOAILayer2D.new()
+            \setCamera(C.camera) -- All layers use the same camera
+            \setViewport(C.viewport) -- All layers use the same viewport
+
 
 -------------------------------------------------------------------------------
 -- Set up helper methods (closures, to be exact)
 -------------------------------------------------------------------------------
 setup_helpers = (C) ->
-    {w, h} = C.map.size
+    {w, h} = C.model.size
     tw, th = C.tile_width, C.tile_height
 
     -- Function to convert a tile location to a real location
@@ -60,8 +68,8 @@ setup_helpers = (C) ->
 
     -- Find the nearest multiple of the tile size
     C.real_xy_snap = (rx, ry) -> 
-        rx = math.floor(rx / map.iso_width) * map.iso_width
-        ry = math.floor(ry / map.iso_height) * map.iso_height
+        rx = math.floor(rx / tw) * tw
+        ry = math.floor(ry / th) * th
         return rx, ry
 
 -------------------------------------------------------------------------------
@@ -71,8 +79,6 @@ setup_helpers = (C) ->
 -------------------------------------------------------------------------------
 
 create = (model, vieww, viewh) ->
-    inspect()
-
     -- Initialize our components object
     C = { :model, :vieww, :viewh }
 
@@ -85,6 +91,10 @@ create = (model, vieww, viewh) ->
     C.threads = {}
 
     C.solidity, C.seethrough = util.extract_solidity_and_seethrough_maps(model)
+
+    setup_view(C)
+    setup_layers(C)
+    setup_helpers(C)
 
     -- Setup function
     C.start = () -> 
@@ -108,5 +118,7 @@ create = (model, vieww, viewh) ->
     -- Add the UI threads for a typical game
     append C.threads, ui_ingame_scroll C
     append C.threads, ui_ingame_select C
+
+    return C
 
 return {:create}

@@ -55,6 +55,18 @@ Sprite = with newtype()
 	.init = (tex_parts, kind, w, h) => 
 		@tex_parts, @kind, @w, @h = tex_parts, kind, w, h
 
+-------------------------------------------------------------------------------
+-- Level data
+-------------------------------------------------------------------------------
+
+LevelData = with newtype()
+	.init = (name, generator) => 
+		@name, @generator = name, generator
+
+-------------------------------------------------------------------------------
+-- Part iteration
+-------------------------------------------------------------------------------
+
 -- Iterates numbered tiles
 part_xy_iterator = (_from, to, id = 1) ->
 	{minx,miny} = _from
@@ -90,6 +102,7 @@ define_wrapper = (func) ->
 TILE_WIDTH, TILE_HEIGHT = 32, 32
 
 setup_define_functions = (module_name) ->
+	-- Tile definition
 	_G.tiledef = define_wrapper (values) ->
 		{:file, :solid, :name, :to} = values
 		_from = values["from"] -- skirt around Moonscript keyword
@@ -115,6 +128,7 @@ setup_define_functions = (module_name) ->
 		-- Skip the amount of tiles added
 		data.next_tile_id += #tiles
 
+	-- Sprite definition
 	_G.spritedef = define_wrapper (values) ->
 		{:file, :size, :tiled, :kind, :name, :to} = values
 		{:w, :h} = size
@@ -136,8 +150,15 @@ setup_define_functions = (module_name) ->
 		-- Increment sprite number
 		data.next_sprite_id += 1
 
+	-- Level generation data definition
+	_G.leveldef = define_wrapper (values) ->
+		{:name, :generator} = values
+		level = LevelData.create(name, generator)
+		data.levels[module_name .. '.' .. name] = level
+		data.id_to_level[data.next_sprite_id] = level
 
-get_level = () -> nil --todo
+		-- Increment sprite number
+		data.next_level_id += 1
 
 -------------------------------------------------------------------------------
 -- Load a module found in the folder modules/<module_name>/ by running the 
@@ -166,8 +187,11 @@ load = (module_name) ->
 	package.path = prev_package_paths
 	package.moonpath = prev_package_mpaths
 
+-------------------------------------------------------------------------------
+
 return { 
-	:load, :get_level, 
+	:load,
 	get_tile: (name) -> data.tiles[name], 
-	get_sprite: (name) -> data.tiles[name] 
+	get_sprite: (name) -> data.sprites[name] 
+	get_level: (name) -> data.levels[name] 
 }

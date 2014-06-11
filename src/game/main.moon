@@ -15,9 +15,11 @@ MOAISim.openWindow "Lanarts", w,h
 --C.start()
 
 main = () ->
+	rng = (require 'mtwist').create(os.time())
 	base = modules.load "base"
+	model = modules.get_level("base.start").generator(rng)
     level = require 'game.level'
-	C = level.create()
+	C = level.create(model, w, h)
 	C.start()
     --if user_io.key_pressed("K_ESCAPE")
 	--	C.stop()

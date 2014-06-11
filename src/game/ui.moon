@@ -2,6 +2,7 @@
 
 import get_texture, get_json from require "resources"
 user_io = require "user_io"
+ErrorReporting = require "system.ErrorReporting"
 
 -- Draw various debugging components?
 SHOW_DEBUG = true
