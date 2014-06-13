@@ -1,5 +1,7 @@
 BoolGrid = require "BoolGrid"
 mtwist = require "mtwist"
+modules = require "game.modules"
+T = modules.get_tilelist_id
 
 import print_map, make_tunnel_oper, make_rectangle_criteria, make_rectangle_oper, place_instances
     from require "map_util"
@@ -26,7 +28,7 @@ InstanceList =
 
 generate_test_model = (rng) ->
     -- Uses 'InstanceList' class defined above
-    map = mapgen.map_create { size: {80,40}, flags: mapgen.FLAG_SOLID, instances: InstanceList.create() }
+    map = mapgen.map_create { size: {80,40}, content: T('grey_floor'), flags: mapgen.FLAG_SOLID, instances: InstanceList.create() }
 
     oper = mapgen.random_placement_operator {
         size_range: {6,9}

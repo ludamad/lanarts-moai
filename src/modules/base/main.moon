@@ -4,7 +4,7 @@ gen = require 'generate'
 
 with tiledef file: 'floor.png', solid: false
     .define name: 'undefined', from: {1,1}, to: {2,1}
-    .define name: 'grey', from: {3,1}, to: {11,1}
+    .define name: 'grey_floor', from: {3,1}, to: {11,1}
 
 with tiledef file: 'wall.png', solid: true
     .define name: 'dungeon_wall', from: {1,1}, to: {32, 1}

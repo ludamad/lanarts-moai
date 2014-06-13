@@ -12,6 +12,8 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, mapgen
 -------------------------------------------------------------------------------
 
 import ui_ingame_scroll, ui_ingame_select from require "game.ui"
+modules = require 'game.modules'
+res = require 'resources'
 
 -------------------------------------------------------------------------------
 -- Set up the camera & viewport
@@ -20,7 +22,8 @@ setup_view = (C) ->
     {w,h} = C.model.size
     tw, th = C.tile_width, C.tile_height
 
-    cx, cy = w * th / 2, h * tw / 2
+    cx, cy = w * tw / 2, h * th / 2
+    assert(not C.camera and not C.viewport, "Double call to setup_view!")
     C.camera = with MOAICamera2D.new()
         \setLoc(cx,cy)
     C.viewport = with MOAIViewport.new()
@@ -30,19 +33,77 @@ setup_view = (C) ->
 -------------------------------------------------------------------------------
 -- Set up the layers for the map
 -------------------------------------------------------------------------------
+setup_tile_layers = (C) ->
+    -- Map and tile dimensions
+    {w,h} = C.model.size
+    tw, th = C.tile_width, C.tile_height
+
+    -- Prop lists, and grid map
+    -- There is one prop and grid for each tile texture used
+    props, grids = {}, {}
+
+    -- Get the appropriate grid for a tile ID
+    _grid = (tileid) ->
+        tilelist = modules.get_tilelist(tileid)
+        file = tilelist.texfile
+
+        if not grids[file] 
+            grids[file] = with MOAIGrid.new()
+                \setSize(w, h, tw, th)
+
+            tex = res.get_texture(file)
+            tex_w, tex_h = tex\getSize()
+            -- Create the tile prop:
+            append props, with MOAIProp2D.new()
+                \setDeck with MOAITileDeck2D.new()
+                    \setTexture(res.get_texture(file))
+                    \setSize(tex_w / tw, tex_h / th)
+                \setGrid(grids[file])
+        return grids[file]
+
+    -- Assign a tile to the appropriate grid
+    _set_xy = (x, y, tileid) ->
+        -- 0 represents an empty tile, for now
+        if tileid == 0 then return
+        -- Otherwise, locate the correct grid instance
+        -- and set the tile grid position accordingly
+        grid = _grid(tileid)
+        tilelist = modules.get_tilelist(tileid)
+        -- The tile number
+        --n = C.rng\random(1, #tilelist.tiles + 1)
+        n = x % (#tilelist.tiles) + 1
+        tile = tilelist.tiles[n]
+
+        grid\setTile(x, y, tile.grid_id)
+
+    for y=1,th do for x=1,tw 
+        _set_xy(x, y, C.model\get({x,y}).content)
+
+    layer = with MOAILayer2D.new()
+        \setViewport(C.viewport)
+        \setCamera(C.camera)
+
+    pretty("Props", props)
+    -- Add all the different textures to the layer
+    for p in *props do layer\insertProp(p)
+
+    append(C.layers, layer)
+
 setup_layers = (C) ->
     {w, h} = C.model.size
 
     -- Create the tile layers
     for y=1,h do for x=1,w do 
        -- Note: Model access is 0-based (for now! TODO)
-       {:flags, :content, :group} = C.model\get {x-1, y-1}
+       {:flags, :content, :group} = C.model\get {x, y}
 
     -- Add the UI layer, which is sorted by priority (the default sort mode):
     C.ui_layer = with MOAILayer2D.new()
-            \setCamera(C.camera) -- All layers use the same camera
-            \setViewport(C.viewport) -- All layers use the same viewport
+        \setCamera(C.camera) -- All layers use the same camera
+        \setViewport(C.viewport) -- All layers use the same viewport
+    append(C.layers, C.ui_layer)
 
+    setup_tile_layers(C)
 
 -------------------------------------------------------------------------------
 -- Set up helper methods (closures, to be exact)
@@ -78,9 +139,9 @@ setup_helpers = (C) ->
 -- The 'model' is created by the lanarts.mapgen module.
 -------------------------------------------------------------------------------
 
-create = (model, vieww, viewh) ->
+create = (rng, model, vieww, viewh) ->
     -- Initialize our components object
-    C = { :model, :vieww, :viewh }
+    C = { :rng, :model, :vieww, :viewh }
 
     -- Hardcoded for now:
     C.tile_width,C.tile_height = 32,32
@@ -99,7 +160,6 @@ create = (model, vieww, viewh) ->
     -- Setup function
     C.start = () -> 
         -- Set up the camera & viewport
-        setup_view(C)
         for thread in *C.threads
             thread.start()
          -- Begin rendering the MOAI layers

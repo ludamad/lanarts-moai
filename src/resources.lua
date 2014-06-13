@@ -1,4 +1,5 @@
 local RESOURCE_PATH = {
+    "",
     "./resources/",
     "./resources/game/",
     "./resources/lanarts/",

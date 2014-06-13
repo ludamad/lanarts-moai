@@ -33,7 +33,7 @@ create_ui_thread = (func) ->
     thread = MOAIThread.new()
     return {
         start: () -> thread\run(func)
-        stop: () -> thread:stop()
+        stop: () -> thread\stop()
     }
 
 real_mouse_xy = (C) ->

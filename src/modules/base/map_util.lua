@@ -1,5 +1,8 @@
 local mapgen = require "lanarts.mapgen"
 
+local modules = require "game.modules"
+local T = modules.get_tilelist_id
+
 local function make_rectangle_criteria()
         return mapgen.rectangle_criteria { 
                 fill_selector = { matches_all = mapgen.FLAG_SOLID, matches_none = mapgen.FLAG_PERIMETER }, 
@@ -12,8 +15,8 @@ local function make_rectangle_oper(--[[Optional]] area_query)
     return mapgen.rectangle_operator { 
         area_query = area_query,
         perimeter_width = 1,
-       fill_operator = { remove = {mapgen.FLAG_SOLID}, content = 1 },
-        perimeter_operator = { add = {mapgen.FLAG_PERIMETER}, content = 2 },
+       fill_operator = { remove = {mapgen.FLAG_SOLID}, content = T('grey_floor') },
+        perimeter_operator = { add = {mapgen.FLAG_PERIMETER}, content = T('dungeon_wall') },
     }
 end
 
@@ -29,8 +32,8 @@ local function make_tunnel_oper(rng)
             perimeter_selector = { matches_none = mapgen.FLAG_SOLID } 
         },
 
-        fill_operator = { add = mapgen.FLAG_TUNNEL, remove = mapgen.FLAG_SOLID, content = 3},
-        perimeter_operator = { matches_all = mapgen.FLAG_SOLID, add = {mapgen.FLAG_SOLID, mapgen.FLAG_TUNNEL, mapgen.FLAG_PERIMETER}, content = 4 },
+        fill_operator = { add = mapgen.FLAG_TUNNEL, remove = mapgen.FLAG_SOLID, content = T('grey_floor')},
+        perimeter_operator = { matches_all = mapgen.FLAG_SOLID, add = {mapgen.FLAG_SOLID, mapgen.FLAG_TUNNEL, mapgen.FLAG_PERIMETER}, content = T('dungeon_wall') },
 
             rng = rng,
                 perimeter_width = 1,

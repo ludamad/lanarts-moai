@@ -10,7 +10,11 @@ data = {
 	-- Tile data
 	tiles: {}, 
 	id_to_tile: {}, 
-	next_tile_id: 1, 
+	next_tile_id: 1,
+
+	-- Tile variation data
+	id_to_tilelist: {},
+	next_tilelist_id: 1, 
 
 	-- Level data
 	levels: {}, 
@@ -38,18 +42,23 @@ TexPart = with newtype()
 	.as_quad = (quad) =>
 		with quad 
 			\setTexture @texture
-            -- Center tile on origin:
             \setUVQuad @x, @y,
                 @x+@w, @y, 
                 @x+@w, @y+@h,
                 @x, @y+@h
+            -- Center tile on origin:
             \setRect -@w/2, @h/2, 
                 @w/2, -@h/2
 
 -- Represents a single tile
 Tile = with newtype()
-	.init = (id, tex_part, solid) => 
-		@id, @tex_part, @solid= id, tex_part, solid 
+	.init = (id, grid_id, solid) => 
+		@id, @grid_id, @solid= id, grid_id, solid 
+
+-- Represents a list of variant tiles (from same tile-set)
+TileList = with newtype()
+	.init = (id, name, tiles, texfile) => 
+		@id, @name, @tiles, @texfile = id, name, tiles, texfile
 
 Sprite = with newtype()
 	.init = (tex_parts, kind, w, h) => 
@@ -105,21 +114,32 @@ setup_define_functions = (module_name) ->
 	-- Tile definition
 	_G.tiledef = define_wrapper (values) ->
 		{:file, :solid, :name, :to} = values
+		file = res.get_resource_path(file)
 		_from = values["from"] -- skirt around Moonscript keyword
 
 		-- Default to 1 tile
 		to = to or _from
 
 		first_id = data.next_tile_id
+		list_id = data.next_tilelist_id
+
+		texture = res.get_texture(file)
+		-- Width and height in pixels
+		pix_w, pix_h = texture\getSize()
+		-- With and height in tiles
+		tex_w, tex_h = (pix_w / TILE_WIDTH), (pix_h / TILE_HEIGHT)
 
 		-- Gather the tile list
 		tiles = for x, y, id in part_xy_iterator(_from, to, first_id) 
 			Tile.create id, 
-				TexPart.create(res.get_texture(file), x, y, TILE_WIDTH, TILE_HEIGHT), 
+				(y-1) * tex_w + x,
 				solid
 
+		tilelist = TileList.create(list_id, name, tiles, file)
+
 		-- Assign to the tile name
-		data.tiles[module_name .. '.' .. name] = tiles
+		data.tiles[name] = tilelist
+		data.id_to_tilelist[list_id] = tilelist
 
 		-- Assign by tile id
 		for tile in *tiles 
@@ -127,6 +147,7 @@ setup_define_functions = (module_name) ->
 
 		-- Skip the amount of tiles added
 		data.next_tile_id += #tiles
+		data.next_tilelist_id += 1
 
 	-- Sprite definition
 	_G.spritedef = define_wrapper (values) ->
@@ -144,7 +165,7 @@ setup_define_functions = (module_name) ->
 			TexPart.create(res.get_texture(file), x, y, w, h)
 
 		sprite = Sprite.create(frames, kind, w, h)
-		data.sprites[module_name .. '.' .. name] = sprite
+		data.sprites[name] = sprite
 		data.id_to_sprite[data.next_sprite_id] = sprite
 
 		-- Increment sprite number
@@ -154,7 +175,7 @@ setup_define_functions = (module_name) ->
 	_G.leveldef = define_wrapper (values) ->
 		{:name, :generator} = values
 		level = LevelData.create(name, generator)
-		data.levels[module_name .. '.' .. name] = level
+		data.levels[name] = level
 		data.id_to_level[data.next_sprite_id] = level
 
 		-- Increment sprite number
@@ -191,7 +212,13 @@ load = (module_name) ->
 
 return { 
 	:load,
-	get_tile: (name) -> data.tiles[name], 
+	get_tilelist: (key) -> 
+		if type(key) == 'string' 
+			data.tiles[key] 
+		else 
+			data.id_to_tilelist[key]
+
+	get_tilelist_id: (name) -> data.tiles[name].id,
 	get_sprite: (name) -> data.sprites[name] 
 	get_level: (name) -> data.levels[name] 
 }
