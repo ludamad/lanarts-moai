@@ -83,6 +83,9 @@ function newtype(args)
     local parent = args and args.parent
     local type = {get = get, set = set}
 
+    if parent then
+        type.base_init = parent.init
+    end
     function type.create(...)
         local val = setmetatable({}, type)
         type.init(val, ...)

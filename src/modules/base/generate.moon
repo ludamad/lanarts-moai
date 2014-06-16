@@ -11,15 +11,16 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, mapgen
 
 InstanceList =
     create: () ->
-        obj = {instances: {}}
+        obj = {instances: {}, positions: {}}
  
         obj.add = (content, xy) =>
             assert @\at(xy) == nil, "Overlapping instances! Some placement check failed."
-            table.insert(@instances, {content, xy}) 
+            table.insert(@instances, content) 
+            table.insert(@positions, xy) 
 
         obj.at = (xy) =>
-            for inst in *@instances
-                content, cxy = unpack(inst)
+            for i=1,#@instances
+                content, cxy  = @instances[i], @positions[i]
                 if cxy[1] == xy[1] and cxy[2] == xy[2] 
                     return content 
             return nil
@@ -27,8 +28,16 @@ InstanceList =
         return obj
 
 generate_test_model = (rng) ->
+    padding = {10, 10}
+    size = {80, 40}
+    padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
     -- Uses 'InstanceList' class defined above
-    map = mapgen.map_create { size: {80,40}, content: T('grey_floor'), flags: mapgen.FLAG_SOLID, instances: InstanceList.create() }
+    map = mapgen.map_create { 
+        size: padded_size
+        content: T('dungeon_wall')
+        flags: mapgen.FLAG_SOLID
+        instances: InstanceList.create()
+    }
 
     oper = mapgen.random_placement_operator {
         size_range: {6,9}
@@ -42,17 +51,17 @@ generate_test_model = (rng) ->
                 return query(map, subgroup, bounds)
             oper = make_rectangle_oper(queryfn)
             if oper(map, subgroup, bounds)
-                place_instances(rng, map, bounds)
+                --place_instances(rng, map, bounds)
                 return true
             return false
     }
  
     -- Apply the binary space partitioning (bsp)
-    oper map, mapgen.ROOT_GROUP, bbox_create({0,0}, map.size)
+    oper map, mapgen.ROOT_GROUP, bbox_create(padding, size)
 
     tunnel_oper = make_tunnel_oper(rng)
 
-    tunnel_oper map, mapgen.ROOT_GROUP, bbox_create( {0,0}, map.size) 
+    tunnel_oper map, mapgen.ROOT_GROUP, bbox_create({0,0}, padded_size)
 
     --print_map(map, map.instances) -- Uncomment to print
     return map

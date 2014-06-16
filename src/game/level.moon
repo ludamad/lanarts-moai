@@ -4,13 +4,14 @@
 
 BoolGrid, mtwist = require "BoolGrid", require "mtwist" 
 
-import FloodFillPaths, GameInstSet, GameTiles, GameView, util, mapgen
+import FloodFillPaths, GameInstSet, GameTiles, GameView, util, mapgen, RVOWorld
     from require "lanarts"
 
 -------------------------------------------------------------------------------
 -- Other requires
 -------------------------------------------------------------------------------
 
+import create_thread from require 'game.util'
 import ui_ingame_scroll, ui_ingame_select from require "game.ui"
 modules = require 'game.modules'
 res = require 'resources'
@@ -19,7 +20,7 @@ res = require 'resources'
 -- Set up the camera & viewport
 -------------------------------------------------------------------------------
 setup_view = (C) ->
-    {w,h} = C.model.size
+    w,h = C.model_width, C.model_height
     tw, th = C.tile_width, C.tile_height
 
     cx, cy = w * tw / 2, h * th / 2
@@ -35,7 +36,7 @@ setup_view = (C) ->
 -------------------------------------------------------------------------------
 setup_tile_layers = (C) ->
     -- Map and tile dimensions
-    {w,h} = C.model.size
+    w,h = C.model_width, C.model_height
     tw, th = C.tile_width, C.tile_height
 
     -- Prop lists, and grid map
@@ -70,44 +71,38 @@ setup_tile_layers = (C) ->
         grid = _grid(tileid)
         tilelist = modules.get_tilelist(tileid)
         -- The tile number
-        --n = C.rng\random(1, #tilelist.tiles + 1)
-        n = x % (#tilelist.tiles) + 1
+        n = C.rng\random(1, #tilelist.tiles + 1)
         tile = tilelist.tiles[n]
 
         grid\setTile(x, y, tile.grid_id)
 
-    for y=1,th do for x=1,tw 
+    for y=1,h do for x=1,w
         _set_xy(x, y, C.model\get({x,y}).content)
 
-    layer = with MOAILayer2D.new()
-        \setViewport(C.viewport)
-        \setCamera(C.camera)
+    layer = C.add_layer()
 
     pretty("Props", props)
     -- Add all the different textures to the layer
     for p in *props do layer\insertProp(p)
 
-    append(C.layers, layer)
+setup_overlay_layers = (C) ->
+    -- Add the object layer, which holds assorted game objects. 
+    C.object_layer = C.add_layer()
+    -- Add the field of view layer, which hides unexplored regions.
+    C.fov_layer = C.add_layer()
+    -- Add the UI layer.
+    C.ui_layer = C.add_layer()
 
-setup_layers = (C) ->
-    {w, h} = C.model.size
-
-    -- Create the tile layers
-    for y=1,h do for x=1,w do 
-       -- Note: Model access is 0-based (for now! TODO)
-       {:flags, :content, :group} = C.model\get {x, y}
-
-    -- Add the UI layer, which is sorted by priority (the default sort mode):
-    C.ui_layer = with MOAILayer2D.new()
-        \setCamera(C.camera) -- All layers use the same camera
-        \setViewport(C.viewport) -- All layers use the same viewport
-    append(C.layers, C.ui_layer)
-
-    setup_tile_layers(C)
+    -- Helpers for layer management
+    C.add_ui_prop = (prop) -> C.ui_layer\insertProp(prop)
+    C.remove_ui_prop = (prop) -> C.ui_layer\removeProp(prop)
+    C.add_object_prop = (prop) -> C.object_layer\insertProp(prop)
+    C.remove_object_prop = (prop) -> C.object_layer\removeProp(prop)
 
 -------------------------------------------------------------------------------
 -- Set up helper methods (closures, to be exact)
 -------------------------------------------------------------------------------
+
 setup_helpers = (C) ->
     {w, h} = C.model.size
     tw, th = C.tile_width, C.tile_height
@@ -133,6 +128,44 @@ setup_helpers = (C) ->
         ry = math.floor(ry / th) * th
         return rx, ry
 
+    C.tile_check = (obj) ->
+        return GameTiles.radius_test(C.model, obj.x, obj.y, obj.radius)
+
+    C.object_check = (obj) ->
+        return C.collision_world\object_radius_test(obj.id_col)
+
+    -- Create and add a layer, sorted by priority (the default sort mode):
+    C.add_layer = () -> 
+        layer = with MOAILayer2D.new()
+            \setCamera(C.camera) -- All layers use the same camera
+            \setViewport(C.viewport) -- All layers use the same viewport
+        append(C.layers, layer)
+        return layer
+
+-------------------------------------------------------------------------------
+-- Set up game state
+-------------------------------------------------------------------------------
+
+setup_level_state = (C) ->
+    -- The game-logic objects
+    C.objects = {}
+    -- The game collision detection 'world'
+    C.collision_world = GameInstSet.create(C.pix_width, C.pix_height)
+
+    -- The game collision avoidance 'world'
+    C.rvo_world = RVOWorld.create()
+
+    -- C.solidity, C.seethrough = util.extract_solidity_and_seethrough_maps(C.model)
+
+-------------------------------------------------------------------------------
+-- The main stepping 'thread' (coroutine)
+-------------------------------------------------------------------------------
+
+main_thread = (C) -> create_thread () ->
+    while true
+        coroutine.yield()
+        C.step()
+
 -------------------------------------------------------------------------------
 -- Returns a 'components object' that holds the various parts of the 
 -- level's state.
@@ -146,16 +179,21 @@ create = (rng, model, vieww, viewh) ->
     -- Hardcoded for now:
     C.tile_width,C.tile_height = 32,32
 
+    {C.model_width, C.model_height} = C.model.size
+    C.pix_width, C.pix_height = (C.tile_width*C.model_width), (C.tile_height*C.model_height)
+
     -- The MOAI layers to accumulate
     C.layers = {}
     -- The UI or animation threads to accumulate
     C.threads = {}
+    -- TODO: Reevaluate spread of state
+    C.instances = C.model.instances.instances
 
-    C.solidity, C.seethrough = util.extract_solidity_and_seethrough_maps(model)
-
-    setup_view(C)
-    setup_layers(C)
     setup_helpers(C)
+    setup_level_state(C)
+    setup_view(C)
+    setup_tile_layers(C)
+    setup_overlay_layers(C)
 
     -- Setup function
     C.start = () -> 
@@ -165,9 +203,10 @@ create = (rng, model, vieww, viewh) ->
          -- Begin rendering the MOAI layers
         for layer in *C.layers
            MOAISim.pushRenderPass(layer)
+        for inst in *C.instances
+            inst\register(C)
 
     -- Tear-down function
-
     C.stop = () -> 
         for thread in *C.threads
             thread.stop()
@@ -175,7 +214,19 @@ create = (rng, model, vieww, viewh) ->
         for layer in *C.layers
             MOAISim.removeRenderPass(layer)
 
+    -- Game step function
+    C.step = () ->
+        for inst in *C.instances
+            inst\step(C)
+        -- Synchronize data to the subsystems
+        for inst in *C.instances
+            inst\update(C)
+        -- Step the subsystems
+        C.collision_world\step()
+        C.rvo_world\step()
+
     -- Add the UI threads for a typical game
+    append C.threads, main_thread C
     append C.threads, ui_ingame_scroll C
     append C.threads, ui_ingame_select C
 

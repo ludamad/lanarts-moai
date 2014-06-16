@@ -39,16 +39,15 @@ TileGrid = with newtype()
 TexPart = with newtype()
 	.init = (texture, x, y, w, h) =>
 		@texture, @x, @y, @w, @h = texture, x, y, w, h
-	.as_quad = (quad) =>
+	.update_quad = (quad) =>
+		texw, texh = @texture\getSize()
 		with quad 
 			\setTexture @texture
-            \setUVQuad @x, @y,
-                @x+@w, @y, 
-                @x+@w, @y+@h,
-                @x, @y+@h
+            \setUVRect @x/texw, @y/texh,
+             	(@x+@w)/texw, (@y+@h)/texh
             -- Center tile on origin:
-            \setRect -@w/2, @h/2, 
-                @w/2, -@h/2
+            \setRect -@w/2, -@h/2, 
+                @w/2, @h/2
 
 -- Represents a single tile
 Tile = with newtype()
@@ -63,6 +62,12 @@ TileList = with newtype()
 Sprite = with newtype()
 	.init = (tex_parts, kind, w, h) => 
 		@tex_parts, @kind, @w, @h = tex_parts, kind, w, h
+	.update_quad = (quad, frame = 1) =>
+		@tex_parts[frame]\update_quad(quad)
+	.create_quad = (frame = 1) =>
+		quad = MOAIGfxQuad2D.new()
+		@update_quad(quad, frame)
+		return quad
 
 -------------------------------------------------------------------------------
 -- Level data
@@ -152,7 +157,7 @@ setup_define_functions = (module_name) ->
 	-- Sprite definition
 	_G.spritedef = define_wrapper (values) ->
 		{:file, :size, :tiled, :kind, :name, :to} = values
-		{:w, :h} = size
+		{w, h} = size
 		kind = kind or variant
 
 		_from = values["from"] -- skirt around Moonscript keyword
@@ -162,7 +167,7 @@ setup_define_functions = (module_name) ->
 
 		-- Gather the sprite frames
 		frames = for x, y in part_xy_iterator(_from, to) 
-			TexPart.create(res.get_texture(file), x, y, w, h)
+			TexPart.create(res.get_texture(file), (x-1)*w, (y-1)*h, w, h)
 
 		sprite = Sprite.create(frames, kind, w, h)
 		data.sprites[name] = sprite
@@ -218,7 +223,7 @@ return {
 		else 
 			data.id_to_tilelist[key]
 
-	get_tilelist_id: (name) -> data.tiles[name].id,
+	get_tilelist_id: (name) -> data.tiles[name].id
 	get_sprite: (name) -> data.sprites[name] 
 	get_level: (name) -> data.levels[name] 
 }

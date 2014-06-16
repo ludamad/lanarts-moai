@@ -1,5 +1,6 @@
 -- UI components that run on separate 'threads'.
 
+import create_thread from require 'game.util'
 import get_texture, get_json from require "resources"
 user_io = require "user_io"
 ErrorReporting = require "system.ErrorReporting"
@@ -27,15 +28,6 @@ create_text = (layer) ->
     layer\insertProp(text)
     return text
 
--- Create a simple 'thread' object that runs a custom
--- function.
-create_ui_thread = (func) ->
-    thread = MOAIThread.new()
-    return {
-        start: () -> thread\run(func)
-        stop: () -> thread\stop()
-    }
-
 real_mouse_xy = (C) ->
     mX, mY = user_io.mouse_xy()
     cX, cY = C.camera\getLoc()
@@ -51,7 +43,7 @@ tile_mouse_xy = (C) ->
 
 -- Runs a MOAIThread for scrolling by mouse
 -- C: The level components, from load_tiled_json
-ui_ingame_scroll = (C) -> create_ui_thread () ->
+ui_ingame_scroll = (C) -> create_thread () ->
     -- First, create components
     text_box = with create_text(C.ui_layer)
         \setColor(1,1,0,1)
@@ -88,7 +80,7 @@ ui_ingame_scroll = (C) -> create_ui_thread () ->
 
 -- Runs a MOAIThread for selecting squares
 -- C: The level components, from load_tiled_json
-ui_ingame_select = (C) -> create_ui_thread () ->
+ui_ingame_select = (C) -> create_thread () ->
 
     texture = (get_texture "highlight32x32.png")
     tilew, tileh = texture\getSize()

@@ -21,7 +21,7 @@ local function make_rectangle_oper(--[[Optional]] area_query)
 end
 
 local function make_tunnel_oper(rng) 
-        return mapgen.tunnel_operator {
+    return mapgen.tunnel_operator {
         validity_selector = { 
             fill_selector = { matches_all = mapgen.FLAG_SOLID, matches_none = mapgen.FLAG_TUNNEL },
             perimeter_selector = { matches_all = mapgen.FLAG_SOLID, matches_none = mapgen.FLAG_TUNNEL }
@@ -35,8 +35,8 @@ local function make_tunnel_oper(rng)
         fill_operator = { add = mapgen.FLAG_TUNNEL, remove = mapgen.FLAG_SOLID, content = T('grey_floor')},
         perimeter_operator = { matches_all = mapgen.FLAG_SOLID, add = {mapgen.FLAG_SOLID, mapgen.FLAG_TUNNEL, mapgen.FLAG_PERIMETER}, content = T('dungeon_wall') },
 
-            rng = rng,
-                perimeter_width = 1,
+        rng = rng,
+        perimeter_width = 1,
         size_range = {1,2},
         tunnels_per_room_range = {1,2}
     }
