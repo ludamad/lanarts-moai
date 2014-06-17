@@ -243,10 +243,10 @@ create = (rng, tilemap, cameraw, camerah) ->
             inst\step(C)
         -- Synchronize data to the subsystems
         for inst in *C.instances
-            inst\update(C)
+            inst\post_step(C)
         for y=1,C.tilemap_height do for x=1,C.tilemap_width
             for inst in *C.instances 
-               if inst.seen_tile_map\get(x,y)
+               if inst.vision.seen_tile_map\get(x,y)
                     C.fov_grid\setTile(x, y, 0)
         -- Step the subsystems
         C.collision_world\step()

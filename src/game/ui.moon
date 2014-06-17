@@ -31,7 +31,7 @@ create_text = (layer) ->
 real_mouse_xy = (C) ->
     mX, mY = user_io.mouse_xy()
     cX, cY = C.camera\getLoc()
-    return mX + cX - C.vieww/2, mY + cY - C.viewh/2
+    return mX + cX - C.cameraw/2, mY + cY - C.camerah/2
 
 tile_mouse_xy = (C) ->
     rX, rY = real_mouse_xy(C)

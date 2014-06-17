@@ -17,7 +17,7 @@ MAX_SPEED = 32
 --     game subsystems.
 --  During gameplay:
 --   .step(C)
---   .update(C)
+--   .post_step(C)
 --  Object on/off-screen (TODO For optimization only):
 --   .register_prop/.unregister_prop
 --  Object destruction:
@@ -45,8 +45,8 @@ ObjectBase = with newtype()
     .step = (C) => 
     	nil
    	-- Update the various subsystems based on the current state
-    .update = (C) =>
-    	@update_prop(C)
+    .post_step = (C) =>
+    	@post_step_prop(C)
         -- For debugging purposes:
         check = C.solid_check(@)
         @prop\setColor(1,1, (if check then 0 else 1),1) 
@@ -76,7 +76,7 @@ ObjectBase = with newtype()
 
     ._create_prop = (C) =>
     	error("_create_prop: Not yet implemented!")
-    .update_prop = (prop) =>
+    .post_step_prop = (prop) =>
         if @prop 
             @prop\setLoc @x, @y
     .unregister_prop = (C) =>
@@ -103,6 +103,11 @@ Vision = with newtype()
         @fieldofview = FieldOfView.create(C.tilemap, @line_of_sight)
         @prev_seen_bounds = {0,0,0,0}
         @current_seen_bounds = {0,0,0,0}
+    .update = (x, y) =>
+        @fieldofview\calculate(x, y)
+        @fieldofview\update_seen_map(@seen_tile_map)
+        @prev_seen_bounds = @current_seen_bounds
+        @current_seen_bounds = @fieldofview\tiles_covered()
 
 Player = with newtype {parent: ObjectBase}
 	.init = (args) =>
@@ -121,10 +126,10 @@ Player = with newtype {parent: ObjectBase}
 		return with MOAIProp2D.new()
             \setDeck(quad)
             \setLoc(@x, @y)
-    .update = (C) => 
-        ObjectBase.update(@, C)
-        @fieldofview\calculate(@x/C.tile_width, @y/C.tile_height)
-        @fieldofview\update_seen_map(@seen_tile_map)
+    .post_step = (C) => 
+        ObjectBase.post_step(@, C)
+        @vision\update(@x/C.tile_width, @y/C.tile_height)
+
         if @is_focus
             view.center_on(C, @x, @y)
         if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
