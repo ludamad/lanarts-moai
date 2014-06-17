@@ -43,7 +43,7 @@ tile_mouse_xy = (C) ->
 
 -- Runs a MOAIThread for scrolling by mouse
 -- C: The level components, from load_tiled_json
-ui_ingame_scroll = (C) -> create_thread () ->
+ui_ingame_scroll = (C) -> 
     -- First, create components
     text_box = with create_text(C.ui_layer)
         \setColor(1,1,0,1)
@@ -53,8 +53,8 @@ ui_ingame_scroll = (C) -> create_thread () ->
 
     mX,mY = user_io.mouse_xy()
     dragging = false
-    while true
-        coroutine.yield()
+
+    return () ->
 
         -- Handle dragging for scroll:
         if user_io.mouse_right_pressed()
@@ -80,7 +80,7 @@ ui_ingame_scroll = (C) -> create_thread () ->
 
 -- Runs a MOAIThread for selecting squares
 -- C: The level components, from load_tiled_json
-ui_ingame_select = (C) -> create_thread () ->
+ui_ingame_select = (C) ->
 
     texture = (get_texture "highlight32x32.png")
     tilew, tileh = texture\getSize()
@@ -95,9 +95,7 @@ ui_ingame_select = (C) -> create_thread () ->
 
     C.ui_layer\insertProp(select_prop)
 
-    while true
-        coroutine.yield()
-
+    return () ->
         -- Get the mouse position
         tX,tY = tile_mouse_xy(C)
         if tX and tY

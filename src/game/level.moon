@@ -188,7 +188,12 @@ setup_level_state = (C) ->
 main_thread = (C) -> create_thread () ->
     while true
         coroutine.yield()
-        C.step()
+        for i=1,2 do C.step()
+        -- print MOAISim.getPerformance()
+        if not _SETTINGS.headless
+            for component in *C.ui_components
+                -- Step the component
+                component()
 
 -------------------------------------------------------------------------------
 -- Returns a 'components object' that holds the various parts of the 
@@ -208,8 +213,8 @@ create = (rng, tilemap, cameraw, camerah) ->
 
     -- The MOAI layers to accumulate
     C.layers = {}
-    -- The UI or animation threads to accumulate
-    C.threads = {}
+    -- The UI objects that run each step
+    C.ui_components = {}
     -- TODO: Reevaluate spread of state
     C.instances = C.tilemap.instances.instances
 
@@ -221,13 +226,14 @@ create = (rng, tilemap, cameraw, camerah) ->
 
     -- Setup function
     C.start = () -> 
-        for thread in *C.threads
-            thread.start()
          -- Begin rendering the MOAI layers
         for layer in *C.layers
            MOAISim.pushRenderPass(layer)
         for inst in *C.instances
             inst\register(C)
+        thread = main_thread(C)
+        thread.start()
+        return thread
 
     -- Tear-down function
     C.stop = () -> 
@@ -244,18 +250,24 @@ create = (rng, tilemap, cameraw, camerah) ->
         -- Synchronize data to the subsystems
         for inst in *C.instances
             inst\post_step(C)
-        for y=1,C.tilemap_height do for x=1,C.tilemap_width
-            for inst in *C.instances 
-               if inst.vision.seen_tile_map\get(x,y)
-                    C.fov_grid\setTile(x, y, 0)
+        -- Update the sight map
+        for inst in *C.instances 
+           {seen_tile_map: seen, prev_seen_bounds: prev, current_seen_bounds: curr} = inst.vision
+           {x1,y1,x2,y2} = prev
+           for y=y1,y2-1 do for x=x1,x2-1
+                if seen\get(x,y)
+                    C.fov_grid\setTile(x, y, 1) -- Previously seen
+           {x1,y1,x2,y2} = curr
+           for y=y1,y2-1 do for x=x1,x2-1
+                if seen\get(x,y)
+                    C.fov_grid\setTile(x, y, 0) -- Currently seen
+
         -- Step the subsystems
         C.collision_world\step()
         C.rvo_world\step()
 
-    -- Add the UI threads for a typical game
-    append C.threads, main_thread C
-    append C.threads, ui_ingame_scroll C
-    append C.threads, ui_ingame_select C
+    append C.ui_components, ui_ingame_select C
+    append C.ui_components, ui_ingame_scroll C
 
     return C
 

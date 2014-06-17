@@ -5,7 +5,9 @@ modules = require "game.modules"
 -- Game setup
 -------------------------------------------------------------------------------
 
-w, h = 800,600
+_G._SETTINGS = require "settings"
+
+{w, h} = _SETTINGS.window_size
 
 MOAISim.openWindow "Lanarts", w,h
 
@@ -15,8 +17,6 @@ main = () ->
 	model = modules.get_level("start").generator(rng)
     level = require 'game.level'
 	C = level.create(rng, model, w, h)
-	C.start()
-    --if user_io.key_pressed("K_ESCAPE")
-	--	C.stop()
+	thread = C.start()
 
 main()
