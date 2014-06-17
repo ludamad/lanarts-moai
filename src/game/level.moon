@@ -85,11 +85,32 @@ setup_tile_layers = (C) ->
     -- Add all the different textures to the layer
     for p in *props do layer\insertProp(p)
 
+setup_fov_layer = (C) ->
+    w,h = C.model_width, C.model_height
+    tw, th = C.tile_width, C.tile_height
+    tex = res.get_texture "fogofwar.png"
+    tex_w, tex_h = tex\getSize()
+
+    C.fov_layer = C.add_layer()
+    C.fov_grid = with MOAIGrid.new()
+        \setSize(w, h, tw, th)
+
+    C.fov_layer\insertProp with MOAIProp2D.new()
+        \setDeck with MOAITileDeck2D.new()
+            \setTexture(tex)
+            \setSize(tex_w / tw, tex_h / th)
+        \setGrid(C.fov_grid)
+
+    for y=1,h do for x=1,w 
+        -- Set to unexplored (black)
+        C.fov_grid\setTile(x,y, 2)
+
 setup_overlay_layers = (C) ->
     -- Add the object layer, which holds assorted game objects. 
     C.object_layer = C.add_layer()
     -- Add the field of view layer, which hides unexplored regions.
-    C.fov_layer = C.add_layer()
+    setup_fov_layer(C)
+
     -- Add the UI layer.
     C.ui_layer = C.add_layer()
 
@@ -128,11 +149,14 @@ setup_helpers = (C) ->
         ry = math.floor(ry / th) * th
         return rx, ry
 
-    C.tile_check = (obj) ->
-        return GameTiles.radius_test(C.model, obj.x, obj.y, obj.radius)
+    C.tile_check = (obj, dx=0, dy=0, dradius=0) ->
+        return GameTiles.radius_test(C.model, obj.x + dx, obj.y + dy, obj.radius + dradius)
 
-    C.object_check = (obj) ->
-        return C.collision_world\object_radius_test(obj.id_col)
+    C.object_check = (obj, dx=0, dy=0, dradius=0) ->
+        return C.collision_world\object_radius_test(obj.id_col, obj.x + dx, obj.y + dy, obj.radius + dradius)
+
+    C.solid_check = (obj, dx=0, dy=0, dradius=0) ->
+        return C.tile_check(obj, dx, dy, dradius) or C.object_check(obj, dx, dy, dradius)
 
     -- Create and add a layer, sorted by priority (the default sort mode):
     C.add_layer = () -> 
@@ -197,7 +221,6 @@ create = (rng, model, vieww, viewh) ->
 
     -- Setup function
     C.start = () -> 
-        -- Set up the camera & viewport
         for thread in *C.threads
             thread.start()
          -- Begin rendering the MOAI layers
@@ -221,6 +244,10 @@ create = (rng, model, vieww, viewh) ->
         -- Synchronize data to the subsystems
         for inst in *C.instances
             inst\update(C)
+        for y=1,C.model_height do for x=1,C.model_width
+            for inst in *C.instances 
+               if inst.seen_tile_map\get(x,y)
+                    C.fov_grid\setTile(x, y, 0)
         -- Step the subsystems
         C.collision_world\step()
         C.rvo_world\step()

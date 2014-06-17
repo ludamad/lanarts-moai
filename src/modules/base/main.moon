@@ -1,6 +1,6 @@
 -- By default, tiles are 32x32
 
-gen = require 'generate'
+gen = require '@generate'
 objects = require 'game.objects'
 import mapgen from require "lanarts"
 
@@ -29,11 +29,12 @@ spawn_player = (rng, model) ->
 
 	{px, py} = sqr
 
-	player = objects.Player.create{
-		x: px*32
-		y: py*32
+	player = objects.Player.create {
+		x: px*32+16
+		y: py*32+16
 		radius: 10
 		solid: true
+		is_focus: true
 	}
 
 	model.instances\add(player, sqr)
@@ -42,7 +43,6 @@ leveldef.define {
 	name: "start" 
 	generator: (rng) ->
 		model = gen.generate_test_model(rng)
-		for i=1,10
-			spawn_player(rng, model)
+		spawn_player(rng, model)
 		return model
 }

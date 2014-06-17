@@ -115,9 +115,9 @@ define_wrapper = (func) ->
 
 TILE_WIDTH, TILE_HEIGHT = 32, 32
 
-setup_define_functions = (module_name) ->
+setup_define_functions = (fenv, module_name) ->
 	-- Tile definition
-	_G.tiledef = define_wrapper (values) ->
+	fenv.tiledef = define_wrapper (values) ->
 		{:file, :solid, :name, :to} = values
 		file = res.get_resource_path(file)
 		_from = values["from"] -- skirt around Moonscript keyword
@@ -155,7 +155,7 @@ setup_define_functions = (module_name) ->
 		data.next_tilelist_id += 1
 
 	-- Sprite definition
-	_G.spritedef = define_wrapper (values) ->
+	fenv.spritedef = define_wrapper (values) ->
 		{:file, :size, :tiled, :kind, :name, :to} = values
 		{w, h} = size
 		kind = kind or variant
@@ -177,7 +177,7 @@ setup_define_functions = (module_name) ->
 		data.next_sprite_id += 1
 
 	-- Level generation data definition
-	_G.leveldef = define_wrapper (values) ->
+	fenv.leveldef = define_wrapper (values) ->
 		{:name, :generator} = values
 		level = LevelData.create(name, generator)
 		data.levels[name] = level
@@ -197,21 +197,24 @@ load = (module_name) ->
 	prev_package_paths = package.path
 	prev_package_mpaths = package.moonpath
 
-	-- Setup loading context for module, including paths
-	-- Lua path lookup:
-	package.path = 'src/modules/' .. module_name .. '/?.lua' .. ';' .. package.path
-	-- Moonscript path lookup:
-	package.moonpath = 'src/modules/' .. module_name .. '/?.moon' .. ';' .. package.moonpath
+	-- -- Setup loading context for module, including paths
+	-- -- Lua path lookup:
+	-- package.path = 'src/modules/' .. module_name .. '/?.lua' .. ';' .. package.path
+	-- -- Moonscript path lookup:
+	-- package.moonpath = 'src/modules/' .. module_name .. '/?.moon' .. ';' .. package.moonpath
 
-	setup_define_functions(module_name)
+	-- Create the function environment for the module
+	G_delegate = setmetatable {__MODULE: module_name}, __index: _G
 
-	-- Load the file
-	require 'src.modules.' .. module_name .. '.main'
+	setup_define_functions(G_delegate, module_name)
+
+	-- Run the module within the function environment
+	require module_name .. '.main', G_delegate
 
 	-- Restore previous paths
 	res.set_base_paths(prev_res_paths)
-	package.path = prev_package_paths
-	package.moonpath = prev_package_mpaths
+	-- package.path = prev_package_paths
+	-- package.moonpath = prev_package_mpaths
 
 -------------------------------------------------------------------------------
 

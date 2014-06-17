@@ -4,7 +4,7 @@ modules = require "game.modules"
 T = modules.get_tilelist_id
 
 import print_map, make_tunnel_oper, make_rectangle_criteria, make_rectangle_oper, place_instances
-    from require "map_util"
+    from require "@map_util"
 
 import FloodFillPaths, GameInstSet, GameTiles, GameView, util, mapgen
     from require "lanarts"

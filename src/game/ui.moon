@@ -1,7 +1,7 @@
 -- UI components that run on separate 'threads'.
 
 import create_thread from require 'game.util'
-import get_texture, get_json from require "resources"
+import get_texture, get_json, get_resource_path from require "resources"
 user_io = require "user_io"
 ErrorReporting = require "system.ErrorReporting"
 
@@ -16,7 +16,7 @@ SHOW_DEBUG = true
 charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,/;!?()&/-'
 
 font = with MOAIFont.new()
-    \loadFromTTF('resources/LiberationMono-Regular.ttf', charcodes, 120, 72)
+    \loadFromTTF(get_resource_path 'LiberationMono-Regular.ttf', charcodes, 120, 72)
 
 create_text = (layer) ->
     text = with MOAITextBox.new()

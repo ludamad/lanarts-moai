@@ -3,8 +3,9 @@
 -- they are loose collections of identifiers to the rest of the system.
 -------------------------------------------------------------------------------
 
-modules = require 'game.modules'
 BoolGrid = require 'BoolGrid'
+user_io = require 'user_io'
+import modules, view from require 'game'
 import FieldOfView from require "lanarts"
 
 MAX_SPEED = 32
@@ -31,6 +32,7 @@ ObjectBase = with newtype()
 		@x, @y, @radius = args.x, args.y, args.radius
 		@vx, @vy = args.vx or 0, args.vy or 0
         @target_radius, @solid = (args.target_radius or args.radius), args.solid
+        @is_focus = args.is_focus
         -- The instance table ID
         @id = false
         -- The (main) instance prop
@@ -72,7 +74,8 @@ ObjectBase = with newtype()
     ._create_prop = (C) =>
     	error("_create_prop: Not yet implemented!")
     .update_prop = (prop) =>
-    	error("update_prop: Not yet implemented!")
+        if @prop 
+            @prop\setLoc @x, @y
     .unregister_prop = (C) =>
     	if @prop 
     		C.remove_object_prop(@prop)
@@ -82,7 +85,7 @@ ObjectBase = with newtype()
 	.register_col = (C) =>
 		@id_col = C.collision_world\add_instance(@x, @y, @radius, @target_radius, @solid)
 	.register_rvo = (C) =>
-		@id_col = C.rvo_world\add_instance(@x, @y, @radius, MAX_SPEED)
+		@id_rvo = C.rvo_world\add_instance(@x, @y, @radius, MAX_SPEED)
 
     -- Subsystem updating
 	.update_col = (C) =>
@@ -97,7 +100,11 @@ Player = with newtype {parent: ObjectBase}
         ObjectBase.register(@, C)
         -- Seen tile map, defaulted to false
         @seen_tile_map = BoolGrid.create(C.model_width, C.model_height, false)
-        @fieldofview = FieldOfView.create(C.model, @seen_tile_map, @target_radius)
+        LINE_OF_SIGHT = 7
+        @fieldofview = FieldOfView.create(C.model, LINE_OF_SIGHT)
+
+    .step = (C) =>
+        ObjectBase.step(@, C)
 
 	-- Missing piece for 'register'
 	._create_prop = (C) => 
@@ -105,8 +112,24 @@ Player = with newtype {parent: ObjectBase}
 		return with MOAIProp2D.new()
             \setDeck(quad)
             \setLoc(@x, @y)
+    .update = (C) => 
+        ObjectBase.update(@, C)
+        @fieldofview\calculate(@x/C.tile_width, @y/C.tile_height)
+        @fieldofview\update_seen_map(@seen_tile_map)
+        if @is_focus
+            view.center_on(C, @x, @y)
+        if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
+            if not C.solid_check @, 0, -4 then @y -= 4
+        if (user_io.key_down "K_RIGHT") or (user_io.key_down "K_D") 
+            if not C.solid_check @, 4, 0 then @x += 4
+        if (user_io.key_down "K_DOWN") or (user_io.key_down "K_S") 
+            if not C.solid_check @, 0, 4 then @y += 4
+        if (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
+            if not C.solid_check @, -4, 0 then @x -= 4
+
     -- Missing piece for 'update'
     .update_prop = (C) =>
+        ObjectBase.update_prop(@, C)
         check = C.tile_check(@)
         @prop\setColor(1,1,if check then 0 else 1,1) 
 
