@@ -9,14 +9,9 @@ w, h = 800,600
 
 MOAISim.openWindow "Lanarts", w,h
 
--- The components of the map
---C = load_tiled_json "lanarts-test.json", w, h
--- Push the layers for rendering
---C.start()
-
 main = () ->
 	rng = (require 'mtwist').create(os.time())
-	base = modules.load "base"
+	core = modules.load "core"
 	model = modules.get_level("start").generator(rng)
     level = require 'game.level'
 	C = level.create(rng, model, w, h)

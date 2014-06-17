@@ -194,8 +194,8 @@ setup_define_functions = (fenv, module_name) ->
 load = (module_name) ->
 	-- Remember previous paths
 	prev_res_paths = res.get_base_paths()
-	prev_package_paths = package.path
-	prev_package_mpaths = package.moonpath
+	-- prev_package_paths = package.path
+	-- prev_package_mpaths = package.moonpath
 
 	-- -- Setup loading context for module, including paths
 	-- -- Lua path lookup:

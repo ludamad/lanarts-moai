@@ -1,39 +1,39 @@
-local mapgen = require "lanarts.mapgen"
+local TileMap = require "core.TileMap"
 
 local modules = require "game.modules"
 local T = modules.get_tilelist_id
 
 local function make_rectangle_criteria()
-        return mapgen.rectangle_criteria { 
-                fill_selector = { matches_all = mapgen.FLAG_SOLID, matches_none = mapgen.FLAG_PERIMETER }, 
+        return TileMap.rectangle_criteria { 
+                fill_selector = { matches_all = TileMap.FLAG_SOLID, matches_none = TileMap.FLAG_PERIMETER }, 
                 perimeter_width = 1, 
-                perimeter_selector = { matches_all = mapgen.FLAG_SOLID }
+                perimeter_selector = { matches_all = TileMap.FLAG_SOLID }
         }
 end
 
 local function make_rectangle_oper(--[[Optional]] area_query)
-    return mapgen.rectangle_operator { 
+    return TileMap.rectangle_operator { 
         area_query = area_query,
         perimeter_width = 1,
-       fill_operator = { add = {mapgen.FLAG_SEETHROUGH}, remove = {mapgen.FLAG_SOLID}, content = T('grey_floor') },
-        perimeter_operator = { add = {mapgen.FLAG_PERIMETER}, content = T('dungeon_wall') },
+       fill_operator = { add = {TileMap.FLAG_SEETHROUGH}, remove = {TileMap.FLAG_SOLID}, content = T('grey_floor') },
+        perimeter_operator = { add = {TileMap.FLAG_PERIMETER}, content = T('dungeon_wall') },
     }
 end
 
 local function make_tunnel_oper(rng) 
-    return mapgen.tunnel_operator {
+    return TileMap.tunnel_operator {
         validity_selector = { 
-            fill_selector = { matches_all = mapgen.FLAG_SOLID, matches_none = mapgen.FLAG_TUNNEL },
-            perimeter_selector = { matches_all = mapgen.FLAG_SOLID, matches_none = mapgen.FLAG_TUNNEL }
+            fill_selector = { matches_all = TileMap.FLAG_SOLID, matches_none = TileMap.FLAG_TUNNEL },
+            perimeter_selector = { matches_all = TileMap.FLAG_SOLID, matches_none = TileMap.FLAG_TUNNEL }
         },
 
         completion_selector = {
-            fill_selector = { matches_none = {mapgen.FLAG_SOLID, mapgen.FLAG_PERIMETER, mapgen.FLAG_TUNNEL} },
-            perimeter_selector = { matches_none = mapgen.FLAG_SOLID } 
+            fill_selector = { matches_none = {TileMap.FLAG_SOLID, TileMap.FLAG_PERIMETER, TileMap.FLAG_TUNNEL} },
+            perimeter_selector = { matches_none = TileMap.FLAG_SOLID } 
         },
 
-        fill_operator = { add = {mapgen.FLAG_SEETHROUGH, mapgen.FLAG_TUNNEL}, remove = mapgen.FLAG_SOLID, content = T('grey_floor')},
-        perimeter_operator = { matches_all = mapgen.FLAG_SOLID, add = {mapgen.FLAG_SOLID, mapgen.FLAG_TUNNEL, mapgen.FLAG_PERIMETER}, content = T('dungeon_wall') },
+        fill_operator = { add = {TileMap.FLAG_SEETHROUGH, TileMap.FLAG_TUNNEL}, remove = TileMap.FLAG_SOLID, content = T('grey_floor')},
+        perimeter_operator = { matches_all = TileMap.FLAG_SOLID, add = {TileMap.FLAG_SOLID, TileMap.FLAG_TUNNEL, TileMap.FLAG_PERIMETER}, content = T('dungeon_wall') },
 
         rng = rng,
         perimeter_width = 1,
@@ -43,10 +43,10 @@ local function make_tunnel_oper(rng)
 end
 
 local function place_instance(rng, map, area, type)          
-        local xy = mapgen.find_random_square { map = map, area = area, selector = {matches_none = {mapgen.FLAG_HAS_OBJECT, mapgen.FLAG_SOLID} }, rng = rng }
+        local xy = TileMap.find_random_square { map = map, area = area, selector = {matches_none = {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID} }, rng = rng }
         if xy ~= nil then
                 map.instances:add(type, xy)
-                map:square_apply(xy, {add = mapgen.FLAG_HAS_OBJECT})
+                map:square_apply(xy, {add = TileMap.FLAG_HAS_OBJECT})
         end
 end
 
@@ -73,9 +73,9 @@ local function print_map(map, instances)
             local sqr = map:get({x, y})
 
             local n, g = sqr.content, sqr.group
-            local solid = mapgen.flags_match(sqr.flags, mapgen.FLAG_SOLID)
-            local perimeter = mapgen.flags_match(sqr.flags, mapgen.FLAG_PERIMETER)
-            local tunnel = mapgen.flags_match(sqr.flags, mapgen.FLAG_TUNNEL)
+            local solid = TileMap.flags_match(sqr.flags, TileMap.FLAG_SOLID)
+            local perimeter = TileMap.flags_match(sqr.flags, TileMap.FLAG_PERIMETER)
+            local tunnel = TileMap.flags_match(sqr.flags, TileMap.FLAG_TUNNEL)
 
             if inst then 
                 add_part(inst .. " ") 

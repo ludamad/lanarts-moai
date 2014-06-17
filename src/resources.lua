@@ -3,8 +3,8 @@ local RESOURCE_PATH = {
     "./resources/",
     "./resources/game/",
     "./resources/lanarts/",
-    "./src/modules/base/",
-    "./src/modules/base/resources/",
+    "./src/modules/core/",
+    "./src/modules/core/resources/",
     "./resources/tiled-maps/",
 }
 

@@ -2,7 +2,7 @@
 
 gen = require '@generate'
 objects = require 'game.objects'
-import mapgen from require "lanarts"
+import TileMap from require "core"
 
 with tiledef file: 'floor.png', solid: false
     .define name: 'undefined', from: {1,1}, to: {2,1}
@@ -20,11 +20,11 @@ with spritedef file: 'player.png', size: {32,32}, tiled: true, kind: 'variant'
     .define name: 'player', from: {1, 1}
 
 spawn_player = (rng, model) ->
-	sqr = mapgen.find_random_square {
+	sqr = TileMap.find_random_square {
 		map: model
 		rng: rng
-		selector: matches_none: {mapgen.FLAG_SOLID, mapgen.FLAG_HAS_OBJECT}
-		operator: add: mapgen.FLAG_HAS_OBJECT
+		selector: matches_none: {TileMap.FLAG_SOLID, TileMap.FLAG_HAS_OBJECT}
+		operator: add: TileMap.FLAG_HAS_OBJECT
 	}
 
 	{px, py} = sqr

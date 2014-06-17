@@ -6,7 +6,7 @@
 BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
 import modules, view from require 'game'
-import FieldOfView from require "lanarts"
+import FieldOfView from require "core"
 
 MAX_SPEED = 32
 
@@ -47,6 +47,9 @@ ObjectBase = with newtype()
    	-- Update the various subsystems based on the current state
     .update = (C) =>
     	@update_prop(C)
+        -- For debugging purposes:
+        check = C.solid_check(@)
+        @prop\setColor(1,1, (if check then 0 else 1),1) 
 
     -- World registration functions
     .register = (C) =>
@@ -93,15 +96,21 @@ ObjectBase = with newtype()
 	.update_rvo = (C) =>
 		C.rvo_world\update_instance(@id_rvo, @x, @y, @radius, MAX_SPEED, @vx, @vy)
 
+Vision = with newtype()
+    .init = (C, line_of_sight) =>
+        @line_of_sight = line_of_sight
+        @seen_tile_map = BoolGrid.create(C.tilemap_width, C.tilemap_height, false)
+        @fieldofview = FieldOfView.create(C.tilemap, @line_of_sight)
+        @prev_seen_bounds = {0,0,0,0}
+        @current_seen_bounds = {0,0,0,0}
+
 Player = with newtype {parent: ObjectBase}
 	.init = (args) =>
 		@base_init(args)
     .register = (C) =>
         ObjectBase.register(@, C)
         -- Seen tile map, defaulted to false
-        @seen_tile_map = BoolGrid.create(C.model_width, C.model_height, false)
-        LINE_OF_SIGHT = 7
-        @fieldofview = FieldOfView.create(C.model, LINE_OF_SIGHT)
+        @vision = Vision.create(C, 7)
 
     .step = (C) =>
         ObjectBase.step(@, C)
@@ -130,8 +139,6 @@ Player = with newtype {parent: ObjectBase}
     -- Missing piece for 'update'
     .update_prop = (C) =>
         ObjectBase.update_prop(@, C)
-        check = C.tile_check(@)
-        @prop\setColor(1,1,if check then 0 else 1,1) 
 
 
 return {:ObjectBase, :Player}

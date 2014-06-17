@@ -4,8 +4,8 @@
 
 BoolGrid, mtwist = require "BoolGrid", require "mtwist" 
 
-import FloodFillPaths, GameInstSet, GameTiles, GameView, util, mapgen, RVOWorld
-    from require "lanarts"
+import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
+    from require "core"
 
 -------------------------------------------------------------------------------
 -- Other requires
@@ -19,8 +19,8 @@ res = require 'resources'
 -------------------------------------------------------------------------------
 -- Set up the camera & viewport
 -------------------------------------------------------------------------------
-setup_view = (C) ->
-    w,h = C.model_width, C.model_height
+setup_camera = (C) ->
+    w,h = C.tilemap_width, C.tilemap_height
     tw, th = C.tile_width, C.tile_height
 
     cx, cy = w * tw / 2, h * th / 2
@@ -28,15 +28,15 @@ setup_view = (C) ->
     C.camera = with MOAICamera2D.new()
         \setLoc(cx,cy)
     C.viewport = with MOAIViewport.new()
-        \setSize(C.vieww, C.viewh)
-        \setScale(C.vieww, -C.viewh)
+        \setSize(C.cameraw, C.camerah)
+        \setScale(C.cameraw, -C.camerah)
 
 -------------------------------------------------------------------------------
 -- Set up the layers for the map
 -------------------------------------------------------------------------------
 setup_tile_layers = (C) ->
     -- Map and tile dimensions
-    w,h = C.model_width, C.model_height
+    w,h = C.tilemap_width, C.tilemap_height
     tw, th = C.tile_width, C.tile_height
 
     -- Prop lists, and grid map
@@ -77,7 +77,7 @@ setup_tile_layers = (C) ->
         grid\setTile(x, y, tile.grid_id)
 
     for y=1,h do for x=1,w
-        _set_xy(x, y, C.model\get({x,y}).content)
+        _set_xy(x, y, C.tilemap\get({x,y}).content)
 
     layer = C.add_layer()
 
@@ -86,7 +86,7 @@ setup_tile_layers = (C) ->
     for p in *props do layer\insertProp(p)
 
 setup_fov_layer = (C) ->
-    w,h = C.model_width, C.model_height
+    w,h = C.tilemap_width, C.tilemap_height
     tw, th = C.tile_width, C.tile_height
     tex = res.get_texture "fogofwar.png"
     tex_w, tex_h = tex\getSize()
@@ -125,7 +125,7 @@ setup_overlay_layers = (C) ->
 -------------------------------------------------------------------------------
 
 setup_helpers = (C) ->
-    {w, h} = C.model.size
+    {w, h} = C.tilemap.size
     tw, th = C.tile_width, C.tile_height
 
     -- Function to convert a tile location to a real location
@@ -150,7 +150,7 @@ setup_helpers = (C) ->
         return rx, ry
 
     C.tile_check = (obj, dx=0, dy=0, dradius=0) ->
-        return GameTiles.radius_test(C.model, obj.x + dx, obj.y + dy, obj.radius + dradius)
+        return GameTiles.radius_test(C.tilemap, obj.x + dx, obj.y + dy, obj.radius + dradius)
 
     C.object_check = (obj, dx=0, dy=0, dradius=0) ->
         return C.collision_world\object_radius_test(obj.id_col, obj.x + dx, obj.y + dy, obj.radius + dradius)
@@ -179,7 +179,7 @@ setup_level_state = (C) ->
     -- The game collision avoidance 'world'
     C.rvo_world = RVOWorld.create()
 
-    -- C.solidity, C.seethrough = util.extract_solidity_and_seethrough_maps(C.model)
+    -- C.solidity, C.seethrough = util.extract_solidity_and_seethrough_maps(C.tilemap)
 
 -------------------------------------------------------------------------------
 -- The main stepping 'thread' (coroutine)
@@ -193,29 +193,29 @@ main_thread = (C) -> create_thread () ->
 -------------------------------------------------------------------------------
 -- Returns a 'components object' that holds the various parts of the 
 -- level's state.
--- The 'model' is created by the lanarts.mapgen module.
+-- The 'tilemap' is created by the core.TileMap module.
 -------------------------------------------------------------------------------
 
-create = (rng, model, vieww, viewh) ->
+create = (rng, tilemap, cameraw, camerah) ->
     -- Initialize our components object
-    C = { :rng, :model, :vieww, :viewh }
+    C = { :rng, :tilemap, :cameraw, :camerah }
 
     -- Hardcoded for now:
     C.tile_width,C.tile_height = 32,32
 
-    {C.model_width, C.model_height} = C.model.size
-    C.pix_width, C.pix_height = (C.tile_width*C.model_width), (C.tile_height*C.model_height)
+    {C.tilemap_width, C.tilemap_height} = C.tilemap.size
+    C.pix_width, C.pix_height = (C.tile_width*C.tilemap_width), (C.tile_height*C.tilemap_height)
 
     -- The MOAI layers to accumulate
     C.layers = {}
     -- The UI or animation threads to accumulate
     C.threads = {}
     -- TODO: Reevaluate spread of state
-    C.instances = C.model.instances.instances
+    C.instances = C.tilemap.instances.instances
 
     setup_helpers(C)
     setup_level_state(C)
-    setup_view(C)
+    setup_camera(C)
     setup_tile_layers(C)
     setup_overlay_layers(C)
 
@@ -244,7 +244,7 @@ create = (rng, model, vieww, viewh) ->
         -- Synchronize data to the subsystems
         for inst in *C.instances
             inst\update(C)
-        for y=1,C.model_height do for x=1,C.model_width
+        for y=1,C.tilemap_height do for x=1,C.tilemap_width
             for inst in *C.instances 
                if inst.seen_tile_map\get(x,y)
                     C.fov_grid\setTile(x, y, 0)
