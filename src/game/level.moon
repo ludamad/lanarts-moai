@@ -13,8 +13,12 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
 
 import create_thread from require 'game.util'
 import ui_ingame_scroll, ui_ingame_select from require "game.ui"
-modules = require 'game.modules'
+
+import modules, camera from require 'game'
+
+user_io = require 'user_io'
 res = require 'resources'
+gamestate = require 'core.gamestate'
 
 -------------------------------------------------------------------------------
 -- Set up the camera & viewport
@@ -189,6 +193,7 @@ main_thread = (C) -> create_thread () ->
     while true
         coroutine.yield()
         for i=1,2 do C.step()
+        C.pre_draw()
         -- print MOAISim.getPerformance()
         if not _SETTINGS.headless
             for component in *C.ui_components
@@ -245,26 +250,39 @@ create = (rng, tilemap, cameraw, camerah) ->
 
     -- Game step function
     C.step = () ->
+        before = MOAISim.getDeviceTime()
+        --if user_io.key_down "K_Q"
+        gamestate.push_state(C.instances)
+
+        if user_io.key_down "K_E"
+            gamestate.pop_state(C.instances)
+
         for inst in *C.instances
             inst\step(C)
         -- Synchronize data to the subsystems
         for inst in *C.instances
             inst\post_step(C)
-        -- Update the sight map
-        for inst in *C.instances 
-           {seen_tile_map: seen, prev_seen_bounds: prev, current_seen_bounds: curr} = inst.vision
-           {x1,y1,x2,y2} = prev
-           for y=y1,y2-1 do for x=x1,x2-1
-                if seen\get(x,y)
-                    C.fov_grid\setTile(x, y, 1) -- Previously seen
-           {x1,y1,x2,y2} = curr
-           for y=y1,y2-1 do for x=x1,x2-1
-                if seen\get(x,y)
-                    C.fov_grid\setTile(x, y, 0) -- Currently seen
 
         -- Step the subsystems
         C.collision_world\step()
         C.rvo_world\step()
+        print "Step took ", (MOAISim.getDeviceTime() - before) * 1000, 'ms'
+
+    C.pre_draw = () ->
+        before = MOAISim.getDeviceTime()
+        -- Update the sight map
+        for inst in *C.instances do if inst.is_focus
+           {seen_tile_map: seen, prev_seen_bounds: prev, current_seen_bounds: curr, fieldofview: fov} = inst.vision
+           x1,y1,x2,y2 = camera.tile_region_covered(C)
+           for y=y1,y2 do for x=x1,x2
+                tile = if seen\get(x,y) then 1 else 2
+                C.fov_grid\setTile(x, y, tile)
+           {x1,y1,x2,y2} = curr
+           for y=y1,y2-1 do for x=x1,x2-1
+                if fov\within_fov(x,y)
+                    C.fov_grid\setTile(x, y, 0) -- Currently seen
+
+        print "Pre-draw took ", (MOAISim.getDeviceTime() - before) * 1000, 'ms'
 
     append C.ui_components, ui_ingame_select C
     append C.ui_components, ui_ingame_scroll C

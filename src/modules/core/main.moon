@@ -19,7 +19,10 @@ with spritedef file: 'feat.png', size: {32,32}, tiled: true, kind: 'variant'
 with spritedef file: 'player.png', size: {32,32}, tiled: true, kind: 'variant'
     .define name: 'player', from: {1, 1}
 
-spawn_player = (rng, model) ->
+with spritedef file: 'monsters.png', size: {32,32}, tiled: true, kind: 'variant'
+    .define name: 'monster', from: {1, 1}
+
+spawn = (rng, model, spawner) ->
 	sqr = TileMap.find_random_square {
 		map: model
 		rng: rng
@@ -29,20 +32,26 @@ spawn_player = (rng, model) ->
 
 	{px, py} = sqr
 
-	player = objects.Player.create {
-		x: px*32+16
-		y: py*32+16
-		radius: 10
-		solid: true
-		is_focus: true
-	}
-
-	model.instances\add(player, sqr)
+	model.instances\add(spawner(px, py), sqr)
 
 leveldef.define {
 	name: "start" 
 	generator: (rng) ->
 		model = gen.generate_test_model(rng)
-		spawn_player(rng, model)
+		spawn rng, model, (px, py) ->
+			objects.Player.create {
+				x: px*32+16
+				y: py*32+16
+				radius: 10
+				solid: true
+				is_focus: true
+			}
+		for i=1,100 do spawn rng, model, (px, py) ->
+			objects.Monster.create {
+				x: px*32+16
+				y: py*32+16
+				radius: 10
+				solid: true
+			}
 		return model
 }

@@ -5,7 +5,7 @@
 
 BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
-import modules, view from require 'game'
+import modules, camera from require 'game'
 import FieldOfView from require "core"
 
 MAX_SPEED = 32
@@ -32,7 +32,7 @@ ObjectBase = with newtype()
 		@x, @y, @radius = args.x, args.y, args.radius
 		@vx, @vy = args.vx or 0, args.vy or 0
         @target_radius, @solid = (args.target_radius or args.radius), args.solid
-        @is_focus = args.is_focus
+        @is_focus = args.is_focus or false
         -- The instance table ID
         @id = false
         -- The (main) instance prop
@@ -131,7 +131,7 @@ Player = with newtype {parent: ObjectBase}
         @vision\update(@x/C.tile_width, @y/C.tile_height)
 
         if @is_focus
-            view.center_on(C, @x, @y)
+            camera.center_on(C, @x, @y)
         if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
             if not C.solid_check @, 0, -4 then @y -= 4
         if (user_io.key_down "K_RIGHT") or (user_io.key_down "K_D") 
@@ -145,5 +145,14 @@ Player = with newtype {parent: ObjectBase}
     .update_prop = (C) =>
         ObjectBase.update_prop(@, C)
 
+Monster = with newtype {parent: ObjectBase}
+    .init = (args) =>
+        @base_init(args)
+    .register = (C) =>
+        ObjectBase.register(@, C)
+    ._create_prop = (C) => 
+        return with MOAIProp2D.new()
+            \setDeck modules.get_sprite("monster")\create_quad()
+            \setLoc @x, @y
 
-return {:ObjectBase, :Player}
+return {:ObjectBase, :Player, :Monster}

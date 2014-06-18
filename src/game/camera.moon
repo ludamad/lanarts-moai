@@ -1,4 +1,4 @@
-import abs, min, max, floor from math
+import abs, min, max, floor, ceil from math
 
 CAMERA_SUBW,CAMERA_SUBH = 100, 100
 CAMERA_SPEED = 8
@@ -66,12 +66,12 @@ region_covered = (C) ->
 tile_region_covered = (C) ->
 	x,y,width,height,world_width,world_height = _get_components(C)
 
-	min_x = max(0, x / TILE_SIZE)
-	min_y = max(0, y / TILE_SIZE)
-	max_x = (min(world_width, x + width)) / TILE_SIZE
-	max_y = (min(world_height, y + height)) / TILE_SIZE
+	min_x = max(1, x / C.tile_width)
+	min_y = max(1, y / C.tile_height)
+	max_x = (min(world_width, x + width)) / C.tile_width
+	max_y = (min(world_height, y + height)) / C.tile_height
 
-	return floor min_x, floor min_y, floor max_x, floor max_y
+	return (floor min_x), (floor min_y), (ceil max_x), (ceil max_y)
 
 camera_rel_xy = (C, px, py) ->
 	x, y = C.camera\getLoc()

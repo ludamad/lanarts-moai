@@ -13,6 +13,17 @@ local function zero_row(len)
     return r
 end
 
+if not table.clear then -- Prefer luajit builtin (by a lot)
+    function table.clear(t)
+        for i=#t,1 do
+            t[i] = nil
+        end
+        for k,_ in pairs(t) do
+            t[k] = nil
+        end
+    end
+end
+
 function table.zeros(w, --[[Optional]] h)
     if h == nil then return zero_row(w) end
     local ret = {}
