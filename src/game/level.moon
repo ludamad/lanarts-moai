@@ -191,6 +191,10 @@ create_level_state = (rng, tilemap) ->
     for inst in *L.instances
         inst\register(L)
 
+    L.handle_io = () ->
+        for inst in *L.instances
+            inst\handle_io(L)
+
     L.step = () ->
         for inst in *L.instances
             inst\step(L)
@@ -279,6 +283,7 @@ main_thread = (G) -> create_thread () ->
         before = MOAISim.getDeviceTime()
         G.step()
         G.pre_draw()
+        G.handle_io()
 
 -------------------------------------------------------------------------------
 -- Returns a 'components object' that holds the various parts of the 
@@ -314,7 +319,7 @@ create_game_state = (level, cameraw, camerah) ->
         if user_io.key_down "K_E"
             gamestate.pop_state(G.level)
 
-        G.level\handle_io(G)
+        G.level\handle_io()
 
     G.pre_draw = () -> G.level_view.pre_draw()
 

@@ -12,7 +12,8 @@ _get_components = (V) ->
 -- Are we outside of the centre of the camera enough to warrant snapping the camera ?
 camera_is_off_center = (V, px, py) ->
 	x,y,width,height,world_width,world_height = _get_components(V)
-	dx.dy = px - x, py - y
+	dx, dy = px - width /2 - x, py - height/2 - y
+
 	return (abs(dx) > width / 2 or abs(dy) > height / 2)
 
 move_towards = (V, px, py) ->
@@ -41,19 +42,21 @@ center_on = (V, px, py) ->
 	move_towards(V, px - width / 2, py - height / 2)
 
 sharp_center_on = (V, px, py) ->
+	print "sharp_center_on"
 	x,y,width,height,world_width,world_height = _get_components(V)
 
-	if px < width / 2
-		px = width / 2
-	elseif px > world_width - width / 2
-		px = world_width - width / 2
+	dx,dy = px - x, py - y
+	if dx < width / 2
+		dx = width / 2
+	elseif dx > world_width - width / 2
+		dx = world_width - width / 2
 
-	if py < height / 2
-		py = height / 2
-	elseif py > world_height - height / 2
-		py = world_height - height / 2
+	if dy < height / 2
+		dy = height / 2
+	elseif dy > world_height - height / 2
+		dy = world_height - height / 2
 
-	V.camera\setLoc(px, py)
+	V.camera\setLoc(px+dx  - width / 2, py+dy - height / 2)
 
 move_delta = (V, dx, dy) ->
 	move_towards(V, x + dx, y + dy)

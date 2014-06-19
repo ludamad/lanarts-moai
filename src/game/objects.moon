@@ -70,6 +70,8 @@ ObjectBase = with newtype()
 			L.rvo_world.remove_instance(@id_col)
 			@id_rvo = false
 
+    .handle_io = (L) =>
+        nil
 	---------------------------------------------------------------------------
 	-- Implementation methods
 	---------------------------------------------------------------------------
@@ -136,6 +138,7 @@ Player = with newtype {parent: ObjectBase}
         ObjectBase.post_step(@, L)
         @vision\update(@x/L.tile_width, @y/L.tile_height)
 
+    .handle_io = (L) =>
         if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
             if not L.solid_check @, 0, -4 then @y -= 4
         if (user_io.key_down "K_RIGHT") or (user_io.key_down "K_D") 
@@ -148,7 +151,10 @@ Player = with newtype {parent: ObjectBase}
     .pre_draw = (V) =>
         ObjectBase.pre_draw(@, V)
         if @is_focus
-            camera.center_on(V, @x, @y)
+            if camera.camera_is_off_center(V, @x, @y)
+                camera.sharp_center_on(V, @x, @y)
+            else
+                camera.center_on(V, @x, @y)
 
     .update_prop = (V) =>
         ObjectBase.update_prop(@, V)
