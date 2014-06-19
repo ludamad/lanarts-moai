@@ -29,7 +29,7 @@ InstanceList =
 
 generate_test_model = (rng) ->
     padding = {10, 10}
-    size = {80, 40}
+    size = {120, 80}
     padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
     -- Uses 'InstanceList' class defined above
     map = TileMap.map_create { 

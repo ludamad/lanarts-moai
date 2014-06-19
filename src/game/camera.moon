@@ -3,20 +3,20 @@ import abs, min, max, floor, ceil from math
 CAMERA_SUBW,CAMERA_SUBH = 100, 100
 CAMERA_SPEED = 8
 
-_get_components = (C) ->
-	x, y = C.camera\getLoc()
-	w, h = C.cameraw, C.camerah
-	ww, wh = C.pix_width, C.pix_height
+_get_components = (V) ->
+	x, y = V.camera\getLoc()
+	w, h = V.cameraw, V.camerah
+	ww, wh = V.level.pix_width, V.level.pix_height
 	return x-w/2, y-h/2, w, h, ww, wh
 
 -- Are we outside of the centre of the camera enough to warrant snapping the camera ?
-camera_is_off_center = (C, px, py) ->
-	x,y,width,height,world_width,world_height = _get_components(C)
+camera_is_off_center = (V, px, py) ->
+	x,y,width,height,world_width,world_height = _get_components(V)
 	dx.dy = px - x, py - y
 	return (abs(dx) > width / 2 or abs(dy) > height / 2)
 
-move_towards = (C, px, py) ->
-	x,y,width,height,world_width,world_height = _get_components(C)
+move_towards = (V, px, py) ->
+	x,y,width,height,world_width,world_height = _get_components(V)
 
 	dx, dy = px - x, py - y
 	if (abs dx) > CAMERA_SUBW / 2 
@@ -33,15 +33,15 @@ move_towards = (C, px, py) ->
 			y = max py + CAMERA_SUBH / 2, y - CAMERA_SPEED
 		y = max 0, (min world_height - height, y)
 
-	C.camera\setLoc(x+width/2, y+height/2)
+	V.camera\setLoc(x+width/2, y+height/2)
 	
-center_on = (C, px, py) ->
-	x,y,width,height,world_width,world_height = _get_components(C)
+center_on = (V, px, py) ->
+	x,y,width,height,world_width,world_height = _get_components(V)
 
-	move_towards(C, px - width / 2, py - height / 2)
+	move_towards(V, px - width / 2, py - height / 2)
 
-sharp_center_on = (C, px, py) ->
-	x,y,width,height,world_width,world_height = _get_components(C)
+sharp_center_on = (V, px, py) ->
+	x,y,width,height,world_width,world_height = _get_components(V)
 
 	if px < width / 2
 		px = width / 2
@@ -53,28 +53,28 @@ sharp_center_on = (C, px, py) ->
 	elseif py > world_height - height / 2
 		py = world_height - height / 2
 
-	C.camera\setLoc(px, py)
+	V.camera\setLoc(px, py)
 
-move_delta = (C, dx, dy) ->
-	move_towards(C, x + dx, y + dy)
+move_delta = (V, dx, dy) ->
+	move_towards(V, x + dx, y + dy)
 
-region_covered = (C) ->
-	x,y,width,height,world_width,world_height = _get_components(C)
+region_covered = (V) ->
+	x,y,width,height,world_width,world_height = _get_components(V)
 
 	return x,y, x+width, x+height
 
-tile_region_covered = (C) ->
-	x,y,width,height,world_width,world_height = _get_components(C)
+tile_region_covered = (V) ->
+	x,y,width,height,world_width,world_height = _get_components(V)
 
-	min_x = max(1, x / C.tile_width)
-	min_y = max(1, y / C.tile_height)
-	max_x = (min(world_width, x + width)) / C.tile_width
-	max_y = (min(world_height, y + height)) / C.tile_height
+	min_x = max(1, x / V.level.tile_width)
+	min_y = max(1, y / V.level.tile_height)
+	max_x = (min(world_width, x + width)) / V.level.tile_width
+	max_y = (min(world_height, y + height)) / V.level.tile_height
 
 	return (floor min_x), (floor min_y), (ceil max_x), (ceil max_y)
 
-camera_rel_xy = (C, px, py) ->
-	x, y = C.camera\getLoc()
+camera_rel_xy = (V, px, py) ->
+	x, y = V.camera\getLoc()
 	return px - x, py - y
 
 return {:camera_is_off_center, :move_towards, :center_on, :sharp_center_on, :move_delta, :region_covered, :tile_region_covered, :camera_rel_xy}

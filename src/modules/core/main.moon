@@ -46,7 +46,7 @@ leveldef.define {
 				solid: true
 				is_focus: true
 			}
-		for i=1,100 do spawn rng, model, (px, py) ->
+		for i=1,50 do spawn rng, model, (px, py) ->
 			objects.Monster.create {
 				x: px*32+16
 				y: py*32+16

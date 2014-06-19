@@ -28,28 +28,27 @@ create_text = (layer) ->
     layer\insertProp(text)
     return text
 
-real_mouse_xy = (C) ->
+real_mouse_xy = (V) ->
     mX, mY = user_io.mouse_xy()
-    cX, cY = C.camera\getLoc()
-    return mX + cX - C.cameraw/2, mY + cY - C.camerah/2
+    cX, cY = V.camera\getLoc()
+    return mX + cX - V.cameraw/2, mY + cY - V.camerah/2
 
-tile_mouse_xy = (C) ->
-    rX, rY = real_mouse_xy(C)
-    return C.real_xy_to_tile(rX, rY)
+tile_mouse_xy = (V) ->
+    rX, rY = real_mouse_xy(V)
+    return V.level.real_xy_to_tile(rX, rY)
  
 -------------------------------------------------------------------------------
 -- UI Components
 -------------------------------------------------------------------------------
 
--- Runs a MOAIThread for scrolling by mouse
--- C: The level components, from load_tiled_json
-ui_ingame_scroll = (C) -> 
+-- V: The level view
+ui_ingame_scroll = (V) -> 
     -- First, create components
-    text_box = with create_text(C.ui_layer)
+    text_box = with create_text(V.ui_layer)
         \setColor(1,1,0,1)
 
     if SHOW_DEBUG 
-        C.ui_layer\insertProp(text_box)
+        V.ui_layer\insertProp(text_box)
 
     mX,mY = user_io.mouse_xy()
     dragging = false
@@ -63,24 +62,24 @@ ui_ingame_scroll = (C) ->
             dragging = false
         if dragging and user_io.mouse_right_down() 
             newMX,newMY = user_io.mouse_xy()
-            prevX, prevY = C.camera\getLoc()
-            C.camera\setLoc(prevX + (mX - newMX), prevY + (mY - newMY))
+            prevX, prevY = V.camera\getLoc()
+            V.camera\setLoc(prevX + (mX - newMX), prevY + (mY - newMY))
 
         -- Update last mouse-recorded mouse position:
         mX,mY = user_io.mouse_xy()
 
         -- Show coordinates, if SHOW_DEBUG is true
         if SHOW_DEBUG
-            rX,rY = real_mouse_xy(C)
-            tX,tY = tile_mouse_xy(C)
+            rX,rY = real_mouse_xy(V)
+            tX,tY = tile_mouse_xy(V)
             -- Handle nils
             tX,tY = tX or "-", tY or "-"
-            text_box\setString(rX .. ", " .. rY .. " => " .. tX .. ", " .. tY) 
+            text_box\setString(rX .. ", " .. rY .. " => " .. tX .. ", " .. tY .. "\n FPS: " .. MOAISim.getPerformance() ) 
             text_box\setLoc(rX, rY)
 
 -- Runs a MOAIThread for selecting squares
--- C: The level components, from load_tiled_json
-ui_ingame_select = (C) ->
+-- V: The level components, from load_tiled_json
+ui_ingame_select = (V) ->
 
     texture = (get_texture "highlight32x32.png")
     tilew, tileh = texture\getSize()
@@ -93,13 +92,13 @@ ui_ingame_select = (C) ->
             \setRect -tilew/2, tileh/2, 
                 tilew/2, -tileh/2
 
-    C.ui_layer\insertProp(select_prop)
+    V.ui_layer\insertProp(select_prop)
 
     return () ->
         -- Get the mouse position
-        tX,tY = tile_mouse_xy(C)
+        tX,tY = tile_mouse_xy(V)
         if tX and tY
-            sX,sY = C.tile_xy_to_real(tX, tY)
+            sX,sY = V.level.tile_xy_to_real(tX, tY)
             -- Ad-hoc adjustments
             sX,sY = sX + 0, sY + 0 
             -- Set the location
