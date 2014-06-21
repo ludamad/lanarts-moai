@@ -1,3 +1,6 @@
+-- Cache for small performance boost
+local type, select, setmetatable, getmetatable, rawget, pairs, ipairs, table, error = type, select, setmetatable, getmetatable, rawget, pairs, ipairs, table, error
+
 local nilprotect_meta = {__index = function(self, k)
     error( ("Key '%s' does not exist in table!"):format(k) )
 end}
@@ -81,10 +84,24 @@ end
 function newtype(args)
     local get, set = {}, {}
     local parent = args and args.parent
-    local type = {get = get, set = set}
+    local type = {}
+    -- 'Inherit' via simple copying.
+    -- Note fall back in __newindex anyway.
+    if parent ~= nil then
+        for k,v in pairs(parent) do type[k] = v end
+    end
+    type.get,type.set = get,set
+    type.parent = parent
 
-    if parent then
-        type.base_init = parent.init
+    function type.isinstance(obj)
+        local otype = getmetatable(obj)
+        while otype ~= nil do 
+            if otype == type then
+                return true
+            end
+            otype = otype.parent
+        end
+        return false
     end
     function type.create(...)
         local val = setmetatable({}, type)
@@ -105,6 +122,9 @@ function newtype(args)
     end
 
     function type:__newindex(k, v)
+        if v == nil then
+            assert(v ~= nil, "Writing 'nil' to class objects is dubious (because it can't normally be read back). Erroring! Key was: " .. tostring(k))
+        end
         local setter = set[k]
         if setter then
             setter(self, v)

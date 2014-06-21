@@ -66,6 +66,7 @@ M = {
 
         -- Filtering noise:
         [modulestart "ErrorReporting%.lua"] = 1,
+        [modulestart "modules%.lua"] = 1,
         [modulestart "main%.lua.*__index"] = 1,
         [modulestart "GlobalVariableLoader%.lua:.*'__index'"] = 1,
         [modulestart "ModuleSystem%.lua:.*'import.*'"] = 1,

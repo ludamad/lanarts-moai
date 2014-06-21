@@ -23,7 +23,7 @@ M.builtin_types = {}
 local PrimitiveType = newtype {parent = BaseType}
 function PrimitiveType:init(typecheck_template, default)
     self.children = 0
-    self.typecheck_template = typecheck_template
+    self.typecheck_template = typecheck_template or false
     self.default = default
 end
 function PrimitiveType:emit_default() 

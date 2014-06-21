@@ -45,7 +45,7 @@ end
 local function place_instance(rng, map, area, type)          
         local xy = TileMap.find_random_square { map = map, area = area, selector = {matches_none = {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID} }, rng = rng }
         if xy ~= nil then
-                map.instances:add(type, xy)
+                append(map.instances, type)
                 map:square_apply(xy, {add = TileMap.FLAG_HAS_OBJECT})
         end
 end
@@ -69,6 +69,7 @@ local function print_map(map, instances)
 
     for y=0,map.size[2]-1 do
         for x=0,map.size[1]-1 do
+            -- TODO: Broken
                 local inst = instances:at({x,y})
             local sqr = map:get({x, y})
 

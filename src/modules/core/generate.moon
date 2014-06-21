@@ -9,34 +9,16 @@ import print_map, make_tunnel_oper, make_rectangle_criteria, make_rectangle_oper
 import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap
     from require "core"
 
-InstanceList =
-    create: () ->
-        obj = {instances: {}, positions: {}}
- 
-        obj.add = (content, xy) =>
-            assert @\at(xy) == nil, "Overlapping instances! Some placement check failed."
-            table.insert(@instances, content) 
-            table.insert(@positions, xy) 
-
-        obj.at = (xy) =>
-            for i=1,#@instances
-                content, cxy  = @instances[i], @positions[i]
-                if cxy[1] == xy[1] and cxy[2] == xy[2] 
-                    return content 
-            return nil
-
-        return obj
-
 generate_test_model = (rng) ->
     padding = {10, 10}
     size = {120, 80}
     padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
-    -- Uses 'InstanceList' class defined above
+
     map = TileMap.map_create { 
         size: padded_size
         content: T('dungeon_wall')
         flags: TileMap.FLAG_SOLID
-        instances: InstanceList.create()
+        instances: {}
     }
 
     oper = TileMap.random_placement_operator {
@@ -66,4 +48,27 @@ generate_test_model = (rng) ->
     --print_map(map, map.instances) -- Uncomment to print
     return map
 
-return {:generate_test_model}
+-- Simple model for exemplary purposes
+generate_empty_model = (rng) ->
+    padding = {10, 10}
+    size = {120, 80}
+    padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
+    map = TileMap.map_create { 
+        size: padded_size
+        content: T('dungeon_wall')
+        flags: TileMap.FLAG_SOLID
+        instances: {}
+    }
+ 
+    TileMap.rectangle_apply {
+        map: map
+        area: bbox_create(padding, size)
+        fill_operator: add: TileMap.FLAG_SEETHROUGH, remove: TileMap.FLAG_SOLID, content: T('grey_floor')
+    }
+
+    --print_map(map, map.instances) -- Uncomment to print
+    return map
+
+
+
+return {:generate_test_model, :generate_empty_model}

@@ -1,7 +1,7 @@
 -- By default, tiles are 32x32
 
 gen = require '@generate'
-objects = require 'game.objects'
+object_types = require 'game.object_types'
 import TileMap from require "core"
 
 with tiledef file: 'floor.png', solid: false
@@ -32,26 +32,30 @@ spawn = (rng, model, spawner) ->
 
 	{px, py} = sqr
 
-	model.instances\add(spawner(px, py), sqr)
+	append model.instances, spawner(px, py)
 
 leveldef.define {
 	name: "start" 
 	generator: (rng) ->
-		model = gen.generate_test_model(rng)
-		spawn rng, model, (px, py) ->
-			objects.Player.create {
-				x: px*32+16
-				y: py*32+16
-				radius: 10
-				solid: true
-				is_focus: true
-			}
-		for i=1,50 do spawn rng, model, (px, py) ->
-			objects.Monster.create {
-				x: px*32+16
-				y: py*32+16
-				radius: 10
-				solid: true
-			}
+		model = gen.generate_empty_model(rng)
+		spawn rng, model, 
+			(px, py) -> (L) ->
+				object_types.Player.create L, {
+					x: px*32+16
+					y: py*32+16
+					radius: 10
+					solid: true
+					is_focus: true
+					speed: 4
+				}
+		for i=1,50 do spawn rng, model, 
+			(px, py) -> (L) ->
+				object_types.NPC.create L, {
+					x: px*32+16
+					y: py*32+16
+					radius: 10
+					solid: true
+					speed: 4
+				}
 		return model
 }

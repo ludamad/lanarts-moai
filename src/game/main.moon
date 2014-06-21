@@ -14,16 +14,23 @@ _G._SETTINGS = require "settings"
 _G._RNG = mtwist.create(os.time())
 
 main = () ->
+	MOAISim.setStep(1 / _SETTINGS.frames_per_second)
 	-- (require 'core.network.session').main()
 	MOAISim.openWindow "Lanarts", w,h
+    gl_set_vsync(false)
 
 	rng = mtwist.create(1)--os.time())
 	core = modules.load "core"
 	tilemap = modules.get_level("start").generator(rng)
 
     glevel = require 'game.level'
-    level = glevel.create_level_state(rng, tilemap)
-    G = glevel.create_game_state(level, w, h)
+
+    G = glevel.create_game_state(w, h)
+    L = glevel.create_level_state(G, rng, tilemap)
+    V = glevel.create_level_view(L, w, h)
+
+    G.set_level_view(V)
+
 	thread = G.start()
 
 main()

@@ -128,89 +128,23 @@ setup_overlay_layers = (V) ->
 -- Set up helper methods (closures, to be exact)
 -------------------------------------------------------------------------------
 
-setup_level_state_helpers = (L) ->
-    {w, h} = L.tilemap.size
-    tw, th = L.tile_width, L.tile_height
+create_level_state = (G, rng, tilemap) ->
+    L = {gamestate: G, :rng, :tilemap }
 
-    -- Function to convert a tile location to a real location
-    L.tile_xy_to_real = (x, y) -> 
-        return (x - .5) * tw, (y - .5) * th
-
-    -- Function to convert a real location to a tile location
-    -- Returns 'nil' if not possible
-    L.real_xy_to_tile = (rx, ry) -> 
-        -- Solve the inverse function of above
-        x = math.floor(rx / tw + .5)
-        y = math.floor(ry / th + .5)
-        if (x >= 1 and x <= w) and (y >= 1 and y <= h)
-            return x, y
-        -- Otherwise, return nils
-        return nil, nil
-
-    -- Find the nearest multiple of the tile size
-    L.real_xy_snap = (rx, ry) -> 
-        rx = math.floor(rx / tw) * tw
-        ry = math.floor(ry / th) * th
-        return rx, ry
-
-    L.tile_check = (obj, dx=0, dy=0, dradius=0) ->
-        return GameTiles.radius_test(L.tilemap, obj.x + dx, obj.y + dy, obj.radius + dradius)
-
-    L.object_check = (obj, dx=0, dy=0, dradius=0) ->
-        return L.collision_world\object_radius_test(obj.id_col, obj.x + dx, obj.y + dy, obj.radius + dradius)
-
-    L.solid_check = (obj, dx=0, dy=0, dradius=0) ->
-        return L.tile_check(obj, dx, dy, dradius) or L.object_check(obj, dx, dy, dradius)
-
-create_level_state = (rng, tilemap) ->
-    L = { :rng, :tilemap }
-
+    -- Set up level dimensions
     -- Hardcoded for now:
     L.tile_width,L.tile_height = 32,32
 
     {L.tilemap_width, L.tilemap_height} = L.tilemap.size
     L.pix_width, L.pix_height = (L.tile_width*L.tilemap_width), (L.tile_height*L.tilemap_height)
 
-    -- TODO: Reevaluate spread of state
-    L.instances = L.tilemap.instances.instances
-
-    setup_level_state_helpers(L)
-
-    -------------------------------------------------------------------------------
     -- Set up level state
-    -------------------------------------------------------------------------------
-
-    -- The game-logic objects
-    L.objects = {}
-    -- The game collision detection 'world'
-    L.collision_world = GameInstSet.create(L.pix_width, L.pix_height)
-
-    -- The game collision avoidance 'world'
-    L.rvo_world = RVOWorld.create()
-
-    for inst in *L.instances
-        inst\register(L)
-
-    L.handle_io = () ->
-        for inst in *L.instances
-            inst\handle_io(L)
-
-    L.step = () ->
-        for inst in *L.instances
-            inst\step(L)
-
-        -- Synchronize data to the subsystems
-        for inst in *L.instances
-            inst\post_step(L)
-
-        -- Step the subsystems
-        L.collision_world\step()
-        L.rvo_world\step()
+    (require 'game.level_state').setup_level_state(L)
 
     return L
 
 create_level_view = (level, cameraw, camerah) ->
-    V = {:level, :cameraw, :camerah}
+    V = {gamestate: level.gamestate, :level, :cameraw, :camerah}
 
     -- The MOAI layers to accumulate
     V.layers = {}
@@ -225,34 +159,18 @@ create_level_view = (level, cameraw, camerah) ->
         append(V.layers, layer)
         return layer
 
+    level_logic = (require 'game.level_logic')
+
     -- Setup function
     V.start = () -> 
          -- Begin rendering the MOAI layers
         for layer in *V.layers
            MOAISim.pushRenderPass(layer)
-        for inst in *V.level.instances
-            inst\register_prop(V)
+
+        level_logic.start(V)
 
     V.pre_draw = () ->
-        -- print MOAISim.getPerformance()
-        if not _SETTINGS.headless
-            for component in *V.ui_components
-                -- Step the component
-                component()
-
-        -- Update the sight map
-        for inst in *V.level.instances do 
-            inst\pre_draw(V)
-            if inst.is_focus
-               {seen_tile_map: seen, prev_seen_bounds: prev, current_seen_bounds: curr, fieldofview: fov} = inst.vision
-               x1,y1,x2,y2 = camera.tile_region_covered(V)
-               for y=y1,y2 do for x=x1,x2
-                    tile = if seen\get(x,y) then 1 else 2
-                    V.fov_grid\setTile(x, y, tile)
-               {x1,y1,x2,y2} = curr
-               for y=y1,y2-1 do for x=x1,x2-1
-                    if fov\within_fov(x,y)
-                        V.fov_grid\setTile(x, y, 0) -- Currently seen
+        level_logic.pre_draw(V)
 
     V.stop = () ->
         -- Cease rendering the MOAI layers
@@ -291,13 +209,16 @@ main_thread = (G) -> create_thread () ->
 -- The 'tilemap' is created by the core.TileMap module.
 -------------------------------------------------------------------------------
 
-create_game_state = (level, cameraw, camerah) ->
-    V = create_level_view(level, cameraw, camerah)
-    G = {level_view: V, level: level}
+create_game_state = (cameraw, camerah) ->
+    G = {}
+
+    G.set_level_view = (V) ->
+        G.level_view = V
+        G.level = V.level
 
     -- Setup function
     G.start = () -> 
-        V.start()
+        G.level_view.start()
 
         thread = main_thread(G)
         thread.start()
@@ -305,12 +226,14 @@ create_game_state = (level, cameraw, camerah) ->
 
     -- Tear-down function
     G.stop = () -> 
-        V.stop()
+        G.level_view.stop()
         for thread in *G.threads
             thread.stop()
 
     -- Game step function
-    G.step = () -> G.level.step()
+    G.step = () -> 
+        G.level.step()
+        G.level_view.pre_draw()
 
     G.handle_io = () ->
         if user_io.key_down "K_Q"

@@ -5,7 +5,7 @@ import ErrorReporting from require 'system'
 create_thread = (func) ->
     thread = MOAIThread.new()
     return {
-        start: ErrorReporting.wrap () -> thread\run(func)
+        start: () -> thread\run(ErrorReporting.wrap func)
         stop: () -> thread\stop()
     }
 
