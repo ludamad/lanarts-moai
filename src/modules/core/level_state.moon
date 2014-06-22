@@ -1,8 +1,9 @@
 
 BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
-import modules, camera, util_geometry from require 'game'
-import ObjectBase, CombatObjectBase, Player, NPC from require 'game.object_types'
+modules = require 'modules'
+import camera, util_geometry from require "core"
+import ObjectBase, CombatObjectBase, Player, NPC from require 'core.object_types'
 import FieldOfView, FloodFillPaths, GameInstSet, RVOWorld, GameTiles from require "core"
 
 MAX_SPEED = 32
@@ -139,7 +140,7 @@ setup_level_state = (L) ->
     -- For good measure, clear generation functions:
     table.clear(L.tilemap.instances)
 
-    level_logic = require 'game.level_logic'
+    level_logic = require 'core.level_logic'
 
     L.handle_io = () -> level_logic.handle_io(L)
     L.step = () -> level_logic.step(L)

@@ -1,6 +1,6 @@
 local TileMap = require "core.TileMap"
+local modules = require "modules"
 
-local modules = require "game.modules"
 local T = modules.get_tilelist_id
 
 local function make_rectangle_criteria()

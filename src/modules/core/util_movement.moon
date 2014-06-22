@@ -6,7 +6,7 @@
 -- 'px' and 'py' are the 'projection' displacements
 -- Projections are collision checks to determine how best to skirt around walls we may eventually pass
 _check_for_slide = (L, dx, dy, px, py, checkdx, checkdy) =>
-    if (not L.solid_check @, checkdx + dx, checkdy + dy) and (not L.solid_check @, checkdx + px, checkdy + py) 
+    if (not L.tile_check @, checkdx + dx, checkdy + dy) and (not L.tile_check @, checkdx + px, checkdy + py) 
         return true
     return false
 
@@ -20,7 +20,7 @@ _look_ahead_step  = (L, dist, dir_pref, dx, dy, currdx, currdy) =>
 
     -- This logic is slightly 'duplicated', but there isn't an efficient
     -- way I could think of for handling different dimensions uniformly
-    if not L.solid_check @, currdx + dx, currdy + dy
+    if not L.tile_check @, currdx + dx, currdy + dy
         return dx, dy
     if dx == 0
         p = PROJECT_MAX
@@ -40,11 +40,11 @@ _look_ahead_step  = (L, dist, dir_pref, dx, dy, currdx, currdy) =>
             p -= PROJECT_STEP
     if dx ~= 0 
         dx = (if dx > 0 then dist else -dist)
-        if not L.solid_check @, currdx + dx, currdy 
+        if not L.tile_check @, currdx + dx, currdy 
             return dx, 0
     if dy ~= 0
         dy = (if dy > 0 then dist else -dist)
-        if not L.solid_check @, currdx, currdy + dy
+        if not L.tile_check @, currdx, currdy + dy
             return 0, dy
     return nil
 

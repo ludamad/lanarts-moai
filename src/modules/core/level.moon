@@ -11,11 +11,12 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
 -- Other requires
 -------------------------------------------------------------------------------
 
-import create_thread from require 'game.util'
-import ui_ingame_scroll, ui_ingame_select from require "game.ui"
+import create_thread from require 'core.util'
+import ui_ingame_scroll, ui_ingame_select from require "core.ui"
 
-import modules, camera from require 'game'
+import camera from require "core"
 
+modules = require 'modules'
 user_io = require 'user_io'
 res = require 'resources'
 gamestate = require 'core.gamestate'
@@ -139,7 +140,7 @@ create_level_state = (G, rng, tilemap) ->
     L.pix_width, L.pix_height = (L.tile_width*L.tilemap_width), (L.tile_height*L.tilemap_height)
 
     -- Set up level state
-    (require 'game.level_state').setup_level_state(L)
+    (require 'core.level_state').setup_level_state(L)
 
     return L
 
@@ -159,7 +160,7 @@ create_level_view = (level, cameraw, camerah) ->
         append(V.layers, layer)
         return layer
 
-    level_logic = (require 'game.level_logic')
+    level_logic = (require 'core.level_logic')
 
     -- Setup function
     V.start = () -> 

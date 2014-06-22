@@ -1,6 +1,6 @@
 -- UI components that run on separate 'threads'.
 
-import create_thread from require 'game.util'
+import create_thread from require 'core.util'
 import get_texture, get_json, get_resource_path from require "resources"
 user_io = require "user_io"
 ErrorReporting = require "system.ErrorReporting"

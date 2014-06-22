@@ -1,7 +1,8 @@
 
 BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
-import modules, camera from require 'game'
+modules = require "modules"
+import camera from require "core"
 import FieldOfView, FloodFillPaths from require "core"
 
 -- Object lifecycle:
@@ -66,6 +67,7 @@ ObjectBase = with newtype()
     .update_prop = (prop) =>
         if @prop 
             @prop\setLoc @x, @y
+            @prop\setPriority @y
 
 CombatObjectBase = with newtype {parent: ObjectBase}
     .init = (L, args) =>
@@ -90,7 +92,8 @@ CombatObjectBase = with newtype {parent: ObjectBase}
 
     -- Set RVO heading
     .set_rvo = (L, dx, dy) =>
-        L.rvo_world\update_instance(@id_rvo, @x, @y, @radius, @speed, dx, dy)
+        maxspeed = if (dx == 0 and dy == 0) then 0 else @speed
+        L.rvo_world\update_instance(@id_rvo, @x, @y, @radius, maxspeed, dx, dy)
     .get_rvo_velocity = (L) =>
         return L.rvo_world\get_velocity(@id_rvo)
 

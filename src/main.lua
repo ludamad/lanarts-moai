@@ -10,6 +10,12 @@ function global_meta:__index(k)
 end
 
 -------------------------------------------------------------------------------
+-- Set modules folder as loading root. Must occur before insert_loader().
+-------------------------------------------------------------------------------
+
+package.path = package.path .. ";src/modules/?.lua"
+
+-------------------------------------------------------------------------------
 -- Define global utilities.
 -------------------------------------------------------------------------------
 
@@ -17,12 +23,6 @@ require "globals.misc"
 require "globals.table"
 require "globals.flextypes"
 require "globals.string"
-
--------------------------------------------------------------------------------
--- Set modules folder as loading root. Must occur before insert_loader().
--------------------------------------------------------------------------------
-
-package.path = package.path .. ";src/modules/?.lua"
 
 -------------------------------------------------------------------------------
 -- Ensure proper loading of moonscript files.
@@ -45,7 +45,7 @@ local ErrorReporting = require "system.ErrorReporting"
 if os.getenv("i") then
     inspect()
 else
-    local module = os.getenv("f") or "game.main"
+    local module = os.getenv("f") or "game_main"
     ErrorReporting.wrap(function()
         require(module)
     end)()

@@ -1,6 +1,32 @@
 
-import modules, camera, util_movement, util_geometry from require 'game'
+import camera, util_movement, util_geometry from require "core"
+modules = require 'modules'
 user_io = require 'user_io'
+
+-- Special movement helper
+
+_action_move = (L, dirx, diry, dist) =>
+    -- Decide on the path the maximizes distance:
+    -- Multiply by '0.72' -- adjustment for directional movement
+    total_dx, total_dy, distance = 0,0,0
+    for dir_pref=0,1
+        altdx, altdy, altdist = util_movement.look_ahead(@, L, dir_pref, dirx, diry)
+        if altdist > distance
+            total_dx, total_dy, distance = altdx, altdy, altdist
+    if dirx ~= 0 and diry ~= 0 and distance ~= @speed
+        mag_factor = math.sqrt(dirx*dirx + diry*diry) / math.abs(diry)
+        for dir_pref=0,1
+            altdx, altdy, altdist = util_movement.look_ahead(@, L, dir_pref, 0, diry * mag_factor)
+            if altdist > distance
+                total_dx, total_dy, distance = altdx, altdy, altdist
+
+    -- Finally, take that path:
+    @x += total_dx
+    @y += total_dy
+
+_action_move_with_velocity = (L, vx, vy) =>
+    mag = math.sqrt(vx*vx + vy*vy)
+    _action_move(@, L, vx / mag, vy / mag, mag)
 
 -- Step event
 
@@ -19,10 +45,11 @@ _step_objects = (L) ->
 
     -- Run the collision avoidance algorithm
     L.rvo_world\step()
-    for obj in L.object_iter()
+    for obj in L.npc_iter()
         vx, vy = obj\get_rvo_velocity(L)
         -- Advance forward
-        obj.x, obj.y = obj.x + vx, obj.y + vy
+        if vx ~= 0 or vy ~= 0
+            _action_move_with_velocity(obj, L, vx, vy)
 
     -- Sync up any data that requires copying after position changes
     for obj in L.object_iter()
@@ -37,25 +64,6 @@ step = (L) ->
 
 -- IO Handling
 
-_action_move = (L, dirx, diry, dist) =>
-    -- Decide on the path the maximizes distance:
-    -- Multiply by '0.72' -- adjustment for directional movement
-    total_dx, total_dy, distance = 0,0,0
-    correction = if dirx ~= 0 and diry ~= 0 then 0.75 else 1.0
-    for dir_pref=0,1
-        altdx, altdy, altdist = util_movement.look_ahead(@, L, dir_pref, dirx * correction, diry * correction)
-        if altdist > distance
-            total_dx, total_dy, distance = altdx, altdy, altdist
-    if dirx ~= 0 and diry ~= 0 and distance ~= @speed
-        for dir_pref=0,1
-            altdx, altdy, altdist = util_movement.look_ahead(@, L, dir_pref, 0, diry)
-            if altdist > distance
-                total_dx, total_dy, distance = altdx, altdy, altdist
-
-    -- Finally, take that path:
-    @x += total_dx
-    @y += total_dy
-
 _handle_player_io = (L) =>
     dx,dy=0,0
     if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
@@ -66,6 +74,11 @@ _handle_player_io = (L) =>
         dx = 1
     elseif (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
         dx = -1
+
+    if dx ~= 0 and dy ~= 0 then 
+        dx *= 0.75
+        dy *= 0.75
+
     _action_move(@, L, dx, dy, @speed)
 
 handle_io = (L) ->

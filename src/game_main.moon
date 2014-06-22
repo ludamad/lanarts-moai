@@ -1,5 +1,5 @@
 user_io = require "user_io"
-modules = require "game.modules"
+modules = require "modules"
 mtwist = require 'mtwist'
 
 -------------------------------------------------------------------------------
@@ -23,7 +23,7 @@ main = () ->
 	core = modules.load "core"
 	tilemap = modules.get_level("start").generator(rng)
 
-    glevel = require 'game.level'
+    glevel = require 'core.level'
 
     G = glevel.create_game_state(w, h)
     L = glevel.create_level_state(G, rng, tilemap)
