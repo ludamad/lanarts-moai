@@ -1,61 +1,64 @@
--- By default, tiles are 32x32
+user_io = require "user_io"
+modules = require "modules"
+mtwist = require 'mtwist'
+util = require 'core.util'
 
-gen = require '@generate'
-object_types = require 'core.object_types'
-import TileMap from require "core"
+import object_types from require 'core'
 
-with tiledef file: 'floor.png', solid: false
-    .define name: 'undefined', from: {1,1}, to: {2,1}
-    .define name: 'grey_floor', from: {3,1}, to: {11,1}
+-------------------------------------------------------------------------------
+-- Game setup
+-------------------------------------------------------------------------------
 
-with tiledef file: 'wall.png', solid: true
-    .define name: 'dungeon_wall', from: {1,1}, to: {32, 1}
+_G._SETTINGS = require "settings"
 
-with spritedef file: 'feat.png', size: {32,32}, tiled: true, kind: 'variant'
-    .define name: 'door_closed', from: {3, 2}
-    .define name: 'door_open',   from: {10, 2}    
-    .define name: 'shop',        from: {11,6}, to: {21,6}
+{w, h} = _SETTINGS.window_size
 
-with spritedef file: 'player.png', size: {32,32}, tiled: true, kind: 'variant'
-    .define name: 'player', from: {1, 1}
+-- Global RNG for view randomness
+_G._RNG = mtwist.create(os.time())
 
-with spritedef file: 'monsters.png', size: {32,32}, tiled: true, kind: 'variant'
-    .define name: 'monster', from: {1, 1}
+_spawn_players = (G, L) ->
+    import random_square_spawn_object from require '@util_generate'
 
-spawn = (rng, model, spawner) ->
-	sqr = TileMap.find_random_square {
-		map: model
-		rng: rng
-		selector: matches_none: {TileMap.FLAG_SOLID, TileMap.FLAG_HAS_OBJECT}
-		operator: add: TileMap.FLAG_HAS_OBJECT
-	}
+    for i=1,#G.players
+        random_square_spawn_object L, (px, py) ->
+            object_types.Player.create L, {
+                x: px*32+16
+                y: py*32+16
+                radius: 10
+                solid: true
+                id_player: i
+                speed: 4
+            }
 
-	{px, py} = sqr
+main = () ->
 
-	append model.instances, spawner(px, py)
+	MOAISim.setStep(1 / _SETTINGS.frames_per_second)
+	-- (require 'core.network.session').main()
+	MOAISim.openWindow "Lanarts", w,h
+    gl_set_vsync(false)
 
-leveldef.define {
-	name: "start" 
-	generator: (rng) ->
-		model = gen.generate_empty_model(rng)
-		spawn rng, model, 
-			(px, py) -> (L) ->
-				object_types.Player.create L, {
-					x: px*32+16
-					y: py*32+16
-					radius: 10
-					solid: true
-					is_focus: true
-					speed: 4
-				}
-		-- for i=1,50 do spawn rng, model, 
-		-- 	(px, py) -> (L) ->
-		-- 		object_types.NPC.create L, {
-		-- 			x: px*32+16
-		-- 			y: py*32+16
-		-- 			radius: 10
-		-- 			solid: true
-		-- 			speed: 4
-		-- 		}
-		return model
-}
+	-- (require 'mainmenu.Menus').start_menu_show()
+
+	rng = mtwist.create(1)--os.time())
+	require '@define_data'
+
+    glevel = require 'core.level'
+
+    G = glevel.create_game_state()
+
+    _start_game = () ->
+		tilemap = modules.get_level("start").generator(G, rng)
+
+	    L = glevel.create_level_state(G, rng, tilemap)
+	    _spawn_players(G, L)
+	    V = glevel.create_level_view(L, w, h)
+
+	    G.change_view(V)
+
+	if G.gametype == 'server' or G.gametype == 'single_player'
+		G.add_new_player(_SETTINGS.player_name, true)
+    G.change_view(glevel.create_menu_view(G, w,h, _start_game))
+
+	thread = G.start()
+
+main()

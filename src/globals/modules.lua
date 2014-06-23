@@ -32,8 +32,8 @@ function require(vpath, fenv)
     local vpath_rest = vpath:sub(2, #vpath)
     if first_chr == '@' then
         -- This is a module-local import. The name of the current module replaces '@'.
-        if rawget(caller_fenv, "__MODULE") then 
-            vpath = caller_fenv.__MODULE .. '.' .. vpath_rest
+        if called_mname then 
+            vpath = called_mname .. '.' .. vpath_rest
         else
             error("Error: 'require' needs module name for '" .. debug.getinfo(2, "S").source .. "', not provided!")
         end
@@ -55,8 +55,8 @@ function require(vpath, fenv)
             -- Chain to the 'parent' function environment
             __index = caller_fenv._G
         })
-        MNAME_TO_ENVIRONMENT[mname] = fenv 
     end
+    MNAME_TO_ENVIRONMENT[mname] = fenv 
 
     VPATH_TO_ENVIRONMENT[vpath] = fenv
 

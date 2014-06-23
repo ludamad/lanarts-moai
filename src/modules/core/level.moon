@@ -14,12 +14,13 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
 import create_thread from require 'core.util'
 import ui_ingame_scroll, ui_ingame_select from require "core.ui"
 
-import camera from require "core"
+import camera, networking, util_draw from require "core"
 
+json = require 'json'
 modules = require 'modules'
 user_io = require 'user_io'
 res = require 'resources'
-gamestate = require 'core.gamestate'
+serialization = require 'core.serialization'
 
 -------------------------------------------------------------------------------
 -- Set up the camera & viewport
@@ -162,6 +163,20 @@ create_level_view = (level, cameraw, camerah) ->
 
     level_logic = (require 'core.level_logic')
 
+    setup_camera(V)
+    setup_tile_layers(V)
+    setup_overlay_layers(V)
+
+    V.draw = () ->
+        level_logic.draw(V)
+
+    script_prop = (require 'core.util_draw').setup_script_prop(V.ui_layer, V.draw)
+
+    -- Note: uses script_prop above
+    V.pre_draw = () ->
+        script_prop\setLoc(V.camera\getLoc())
+        level_logic.pre_draw(V)
+
     -- Setup function
     V.start = () -> 
          -- Begin rendering the MOAI layers
@@ -169,9 +184,6 @@ create_level_view = (level, cameraw, camerah) ->
            MOAISim.pushRenderPass(layer)
 
         level_logic.start(V)
-
-    V.pre_draw = () ->
-        level_logic.pre_draw(V)
 
     V.stop = () ->
         -- Cease rendering the MOAI layers
@@ -181,10 +193,6 @@ create_level_view = (level, cameraw, camerah) ->
     V.clear = () ->
         for layer in *V.layers
             layer\clear()
-
-    setup_camera(V)
-    setup_tile_layers(V)
-    setup_overlay_layers(V)
 
     append V.ui_components, ui_ingame_select V
     append V.ui_components, ui_ingame_scroll V
@@ -204,18 +212,91 @@ main_thread = (G) -> create_thread () ->
         G.pre_draw()
         G.handle_io()
 
+create_menu_view = (G, w,h, continue_callback) ->
+    -- We 'cheat' with our menu level view, just point to same object
+    V = {}
+    V.level = V
+    V.layer = with MOAILayer2D.new()
+        \setViewport with MOAIViewport.new()
+            \setSize(w,h)
+            \setScale(w,-h)
+
+    V.step = () -> nil
+
+    menu_style = with MOAITextStyle.new()
+        \setColor 1,1,0 -- Yellow
+        \setFont (res.get_font 'Gudea-Regular.ttf')
+        \setSize 29
+
+    V.pre_draw = () ->
+        util_draw.reset_draw_cache()
+        info = "There are #{#G.players} players."
+        if G.gametype == 'client'
+            info ..= "\nWaiting for the server..."
+        else 
+            info ..= "\nPress ENTER to continue."
+
+        util_draw.draw_text(V.layer, menu_style, info)
+        if G.gametype == 'server' and (user_io.key_pressed("K_ENTER") or user_io.key_pressed("K_SPACE"))
+            G.message_send type: "GameStart"
+            continue_callback()
+        else if G.gametype == 'client' and G.handle_message_type "GameStart"
+            continue_callback()
+
+    V.handle_io = () -> nil
+
+    -- Setup function
+    V.start = () -> MOAISim.pushRenderPass(V.layer)
+    V.stop = () -> 
+        V.layer\clear()
+        MOAISim.removeRenderPass(V.layer)
+
+    return V
+
 -------------------------------------------------------------------------------
 -- Returns a 'components object' that holds the various parts of the 
 -- level's state.
 -- The 'tilemap' is created by the core.TileMap module.
 -------------------------------------------------------------------------------
 
-create_game_state = (cameraw, camerah) ->
+create_game_state = () ->
     G = {}
 
-    G.set_level_view = (V) ->
+    G.next_player_id = 1
+    G.players = {}
+    -- Player actions, with associated step:
+    G.player_action_queue = {}
+    -- Any unhandled messages:
+    G.network_message_queue = {}
+
+    G.gametype = _SETTINGS.gametype
+
+    require('@network_logic').setup_network_functions(G)
+
+    -- Based on game type above, and _SETTINGS object for IP (for client) & port (for both client & server)
+    G.start_connection()
+
+    -- Generally only used by the server:
+    G.add_new_player = (name, is_controlled, peer=nil) ->
+        assert(G.gametype == 'server', "Should only be called by the server!")
+        -- Peer is remembered for servers
+        append G.players, {id_player: G.next_player_id, player_name: name, :is_controlled, :peer}
+        G.next_player_id += 1
+
+    G.is_local_player = (obj) ->
+        player = G.players[obj.id_player]
+        return player.is_controlled
+
+    G.player_name = (obj) ->
+        player = G.players[obj.id_player]
+        return player.player_name
+
+    G.change_view = (V) ->
+        if G.level_view then
+            G.level_view\stop()
         G.level_view = V
         G.level = V.level
+        G.level_view.start()
 
     -- Setup function
     G.start = () -> 
@@ -233,17 +314,22 @@ create_game_state = (cameraw, camerah) ->
 
     -- Game step function
     G.step = () -> 
+        if G.connection 
+            G.connection\poll()
+            for msg in *G.connection\grab_messages()
+                G.handle_network_event(msg)
+
         G.level.step()
         G.level_view.pre_draw()
 
     G.handle_io = () ->
         if user_io.key_down "K_Q"
-            gamestate.push_state(G.level)
+            serialization.push_state(G.level)
 
         if user_io.key_down "K_E"
-            gamestate.pop_state(G.level)
+            serialization.pop_state(G.level)
 
-        G.level\handle_io()
+        G.level.handle_io()
 
     G.pre_draw = () -> G.level_view.pre_draw()
 
@@ -251,4 +337,4 @@ create_game_state = (cameraw, camerah) ->
 
     return G
 
-return {:create_game_state, :create_level_state, :create_level_view}
+return {:create_game_state, :create_level_state, :create_menu_view, :create_level_view}

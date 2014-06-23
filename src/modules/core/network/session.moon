@@ -32,18 +32,24 @@ ServerConnection = with newtype()
 		loc = ip .. ":" .. port
 		@host = enet.host_create(loc, nil, channels)
 		@peers = {}
+		-- Message queue
 		@messages = {}
 
+	.grab_messages = () ->
+		msgs,@messages = @messages,{}
+		return msgs
+
 	.poll = () =>
-		while true
-			event = host\service(0)
-			-- Continue polling until we are not receiving events
-			if not event then break
+		event = @host\service(0)
+		-- Continue polling until we are not receiving events
+		if event
 			if event.type == "connect"
+				print event.peer, " has joined!"
 				append @peers, event.peer
 			elseif event.type == "receive"
 				append @messages, event
-
+			return true
+		return false
 
 	.disconnect = () =>
 		@host\flush()
@@ -53,6 +59,23 @@ ClientConnection = with newtype()
 		loc = ip .. ":" .. port
 		@host = enet.host_create()
 		@connection = @host\connect(loc, nil, channels)
+		-- Message queue
+		@messages = {}
+
+	.grab_messages = () ->
+		msgs,@messages = @messages,{}
+		return msgs
+
+	.poll = () =>		
+		event = host\service(0)
+		-- Continue polling until we are not receiving events
+		if event
+			if event.type == "connect"
+				print "Client connected!"
+			elseif event.type == "receive"
+				append @messages, event
+			return true
+		return false
 
 	.disconnect = () =>
 		@host\flush()

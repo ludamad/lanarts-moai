@@ -5,6 +5,9 @@ local nilprotect_meta = {__index = function(self, k)
     error( ("Key '%s' does not exist in table!"):format(k) )
 end}
 
+function do_nothing()
+end
+
 -- Set to a metatable that does not allow nil accesses
 function nilprotect(t)
     return setmetatable(t, nilprotect_meta)

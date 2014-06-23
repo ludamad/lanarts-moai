@@ -25,6 +25,20 @@ function M.mouse_right_pressed()
     return mright:down()
 end
 
+-- Temporarily global! For backwards compatibility
+
+function mouse_over(xy, size)
+    local bbox = bbox_create(xy, size)
+    local mx, my = M.mouse_xy()
+    if bbox[1] > mx or bbox[3] < mx then
+        return false
+    end
+    if bbox[2] > my or bbox[4] < my then
+        return false
+    end
+    return true
+end
+
 -- Has a mouse button been released since last iteration?
 
 function M.mouse_left_released()
@@ -153,5 +167,9 @@ M.KMINUS = byte("-")
 M.K_UNDERSCORE = byte("_")
 M.K_EQUAL = byte("=")
 M.K_PLUS = byte("+")
+
+for i=1,9 do
+    M["K_F"..i] = (313 + i)
+end
 
 return M

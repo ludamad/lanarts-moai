@@ -112,6 +112,13 @@ _setup_level_state_helpers = (L) ->
     L.player_iter = () ->
         return L.objects\iter(Player)
 
+    L.local_player = () ->
+        G = L.gamestate
+        for p in L.player_iter()
+            if G.is_local_player(p)
+                return p
+        return nil
+
     L.npc_iter = () ->
         return L.objects\iter(NPC)
 

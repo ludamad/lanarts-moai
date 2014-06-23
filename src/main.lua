@@ -20,9 +20,13 @@ package.path = package.path .. ";src/modules/?.lua"
 -------------------------------------------------------------------------------
 
 require "globals.misc"
+require "globals.math"
 require "globals.table"
 require "globals.flextypes"
 require "globals.string"
+require "globals.lanarts_backcompat_globals"
+require "globals.lanarts_backcompat_draw"
+require "globals.lanarts_backcompat_textcomponent"
 
 -------------------------------------------------------------------------------
 -- Ensure proper loading of moonscript files.
@@ -45,8 +49,8 @@ local ErrorReporting = require "system.ErrorReporting"
 if os.getenv("i") then
     inspect()
 else
-    local module = os.getenv("f") or "game_main"
+	local modules = require 'modules'
     ErrorReporting.wrap(function()
-        require(module)
+		modules.load("core")
     end)()
 end

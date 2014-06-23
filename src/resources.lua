@@ -5,6 +5,7 @@ local RESOURCE_PATH = {
     "./resources/lanarts/",
     "./src/modules/core/",
     "./src/modules/core/resources/",
+    "./src/modules/core/resources/fonts/",
     "./resources/tiled-maps/",
 }
 
@@ -21,6 +22,9 @@ local function get_resource_path(ppath, --[[Optional]] soft_error)
     end
     return nil
 end
+
+-- TODO: Temporary!
+_G.path_resolve = get_resource_path
 
 local function get_stream(ppath, ...)
     local abs_path = get_resource_path(ppath)
@@ -114,6 +118,22 @@ local function set_base_paths(paths)
     RESOURCE_PATH = assert(paths, "Cannot set resource path to nil!")
 end
 
+local font_cache = {}
+
+local function get_font(ppath)
+    local abs_path = get_resource_path(ppath)
+    if font_cache[abs_path] then 
+        return font_cache[abs_path] 
+    end
+
+    local charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,/;!?()&/-'
+
+    local font = MOAIFont.new()
+    font:loadFromTTF(abs_path, charcodes, 120, 72)
+    font_cache[abs_path] = font
+    return font
+end
+
 return {
     reload_textures = reload_textures,
     get_resource_path = get_resource_path,
@@ -123,6 +143,7 @@ return {
     get_tiles_bg= get_tiles_bg,
     get_sprite_prop = get_sprite_prop,
     get_tiles_prop = get_tiles_prop,
+    get_font = get_font,
 
     -- Resource path management, for loading modules:
     get_base_paths = get_base_paths,

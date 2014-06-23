@@ -1,7 +1,7 @@
 -- UI components that run on separate 'threads'.
 
 import create_thread from require 'core.util'
-import get_texture, get_json, get_resource_path from require "resources"
+import get_texture, get_json, get_resource_path, get_font from require "resources"
 user_io = require "user_io"
 ErrorReporting = require "system.ErrorReporting"
 
@@ -12,15 +12,9 @@ SHOW_DEBUG = true
 -- Helpers
 -------------------------------------------------------------------------------
 
--- Font used in create_text
-charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,/;!?()&/-'
-
-font = with MOAIFont.new()
-    \loadFromTTF(get_resource_path 'LiberationMono-Regular.ttf', charcodes, 120, 72)
-
 create_text = (layer) ->
     text = with MOAITextBox.new()
-        \setFont( font )
+        \setFont(get_font 'LiberationMono-Regular.ttf')
         \setTextSize( 24 )
         \setString( "" )
         \setRect(-128,-128,128,128)

@@ -1,5 +1,6 @@
 
-import camera, util_movement, util_geometry from require "core"
+import camera, util_movement, util_geometry, util_draw from require "core"
+resources = require 'resources'
 modules = require 'modules'
 user_io = require 'user_io'
 
@@ -89,8 +90,22 @@ start = (V) ->
     for inst in V.level.object_iter()
         inst\register_prop(V)
 
+
+_text_style = with MOAITextStyle.new()
+    \setColor 1,1,0 -- Yellow
+    \setFont (resources.get_font 'Gudea-Regular.ttf')
+    \setSize 14
+
+_draw_text = (V, text, obj, dx, dy) ->
+    util_draw.draw_text V.ui_layer, _text_style, text, obj.x + dx, obj.y + dy
+
 -- Takes view object
 pre_draw = (V) ->
+    util_draw.reset_draw_cache()
+
+    for obj in V.level.player_iter()
+        _draw_text(V, V.gamestate.player_name(obj), obj, 0, -25)
+
     -- print MOAISim.getPerformance()
     if _SETTINGS.headless then return
 
@@ -102,22 +117,31 @@ pre_draw = (V) ->
         component()
 
     -- Update in-focus object
-    for obj in V.level.player_iter()
-        if camera.camera_is_off_center(V, obj.x, obj.y)
-            camera.sharp_center_on(V, obj.x, obj.y)
+    pobj = V.level.local_player()
+    if pobj ~= nil -- Do we have a local player?
+        if camera.camera_is_off_center(V, pobj.x, pobj.y)
+            camera.sharp_center_on(V, pobj.x, pobj.y)
         else
-            camera.center_on(V, obj.x, obj.y)
+            camera.center_on(V, pobj.x, pobj.y)
 
     -- Update the sight map
     for inst in V.level.player_iter()
-       {seen_tile_map: seen, prev_seen_bounds: prev, current_seen_bounds: curr, fieldofview: fov} = inst.vision
+       seen = inst.vision.seen_tile_map
+       fov = inst.vision.fieldofview
        x1,y1,x2,y2 = camera.tile_region_covered(V)
        for y=y1,y2 do for x=x1,x2
             tile = if seen\get(x,y) then 1 else 2
             V.fov_grid\setTile(x, y, tile)
-       {x1,y1,x2,y2} = curr
+
+    for inst in V.level.player_iter()
+       {x1,y1,x2,y2} = inst.vision.current_seen_bounds
+       fov = inst.vision.fieldofview
        for y=y1,y2-1 do for x=x1,x2-1
             if fov\within_fov(x,y)
                 V.fov_grid\setTile(x, y, 0) -- Currently seen
 
-return {:step, :handle_io, :start, :pre_draw}
+draw = (V) ->
+    -- Immediate mode drawing. TODO Reevaluate if needed
+    nil
+
+return {:step, :handle_io, :start, :pre_draw, :draw}

@@ -112,11 +112,13 @@ Vision = with newtype()
         @prev_seen_bounds = @current_seen_bounds
         @current_seen_bounds = @fieldofview\tiles_covered()
 
+
 Player = with newtype {parent: CombatObjectBase}
     .init = (L, args) =>
         CombatObjectBase.init(@, L, args)
         @vision_tile_radius = 7
         @player_path_radius = 300
+        @id_player = args.id_player
         @vision = Vision.create(L, @vision_tile_radius)
         @paths_to_player = FloodFillPaths.create(L.tilemap)
     .sync = (L) =>
