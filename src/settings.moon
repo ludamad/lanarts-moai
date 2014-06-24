@@ -1,8 +1,10 @@
 local gametype
 if os.getenv "SERVER"
 	gametype = 'server'
-else
+elseif os.getenv "CLIENT"
 	gametype = 'client'
+else
+	gametype = 'single_player'
 
 player_name = (os.getenv "player") or "DUMMY"
 

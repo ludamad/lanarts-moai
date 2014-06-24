@@ -1,5 +1,5 @@
 
-import camera, util_movement, util_geometry, util_draw from require "core"
+import camera, util_movement, util_geometry, util_draw, game_actions from require "core"
 resources = require 'resources'
 modules = require 'modules'
 user_io = require 'user_io'
@@ -25,6 +25,22 @@ _action_move = (L, dirx, diry, dist) =>
     @x += total_dx
     @y += total_dy
 
+-- Pseudomethod
+_handle_player_move = (L, dx, dy) =>
+    if dx ~= 0 and dy ~= 0 then 
+        dx *= 0.75
+        dy *= 0.75
+    _action_move(@, L, dx, dy, @speed)
+
+_handle_action = (L, obj, action) ->
+    if action.action_type == game_actions.ACTION_NONE
+        return
+    elseif action.action_type == game_actions.ACTION_MOVE
+        id_player, step_number, dx, dy = game_actions.unbox_move_action(action)
+        assert(id_player == obj.id_player)
+        assert(step_number == L.gamestate.step_number)
+        _handle_player_move(obj, L, dx, dy)
+
 _action_move_with_velocity = (L, vx, vy) =>
     mag = math.sqrt(vx*vx + vy*vy)
     _action_move(@, L, vx / mag, vy / mag, mag)
@@ -34,6 +50,8 @@ _action_move_with_velocity = (L, vx, vy) =>
 _step_objects = (L) ->
     -- Set up directions of all players
     for obj in L.player_iter()
+        action = L.gamestate.get_action(obj.id_player)
+        _handle_action(L, obj, action)
         obj\set_rvo(L, 0,0)
 
     -- Set up directions of all NPCs
@@ -76,11 +94,8 @@ _handle_player_io = (L) =>
     elseif (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
         dx = -1
 
-    if dx ~= 0 and dy ~= 0 then 
-        dx *= 0.75
-        dy *= 0.75
-
-    _action_move(@, L, dx, dy, @speed)
+    action = game_actions.make_move_action @, L.gamestate.step_number, dx, dy
+    L.gamestate.queue_action(action)
 
 handle_io = (L) ->
     for player in L.player_iter()

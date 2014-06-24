@@ -4,8 +4,8 @@
 
 BoolGrid, mtwist = require "BoolGrid", require "mtwist" 
 
-import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
-    from require "core"
+import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld,
+    game_actions from require "core"
 
 -------------------------------------------------------------------------------
 -- Other requires
@@ -131,7 +131,7 @@ setup_overlay_layers = (V) ->
 -------------------------------------------------------------------------------
 
 create_level_state = (G, rng, tilemap) ->
-    L = {gamestate: G, :rng, :tilemap }
+    L = {gamestate: G, :rng, :tilemap}
 
     -- Set up level dimensions
     -- Hardcoded for now:
@@ -208,13 +208,15 @@ main_thread = (G) -> create_thread () ->
         coroutine.yield()
 
         before = MOAISim.getDeviceTime()
+        G.handle_io()
         G.step()
         G.pre_draw()
-        G.handle_io()
+        if not G.level_view.is_menu
+            G.step_number += 1
 
 create_menu_view = (G, w,h, continue_callback) ->
     -- We 'cheat' with our menu level view, just point to same object
-    V = {}
+    V = {is_menu: true}
     V.level = V
     V.layer = with MOAILayer2D.new()
         \setViewport with MOAIViewport.new()
@@ -242,6 +244,8 @@ create_menu_view = (G, w,h, continue_callback) ->
             continue_callback()
         else if G.gametype == 'client' and G.handle_message_type "GameStart"
             continue_callback()
+        else
+            continue_callback()
 
     V.handle_io = () -> nil
 
@@ -262,10 +266,11 @@ create_menu_view = (G, w,h, continue_callback) ->
 create_game_state = () ->
     G = {}
 
+    G.step_number = 1
     G.next_player_id = 1
     G.players = {}
-    -- Player actions, with associated step:
-    G.player_action_queue = {}
+    -- Set up player actions, and associated helpers
+    game_actions.setup_action_state(G)
     -- Any unhandled messages:
     G.network_message_queue = {}
 
@@ -278,7 +283,7 @@ create_game_state = () ->
 
     -- Generally only used by the server:
     G.add_new_player = (name, is_controlled, peer=nil) ->
-        assert(G.gametype == 'server', "Should only be called by the server!")
+        assert(G.gametype ~= 'client', "Should not be called by a client!")
         -- Peer is remembered for servers
         append G.players, {id_player: G.next_player_id, player_name: name, :is_controlled, :peer}
         G.next_player_id += 1

@@ -62,7 +62,6 @@ draw_text = (layer, style, textString, x, y) ->
         textbox = TEXTBOXS_CACHED[#TEXTBOXS_CACHED]
         TEXTBOXS_CACHED[#TEXTBOXS_CACHED] = nil
     else
-        print "NEW?"
         textbox = MOAITextBox.new()
 
     with textbox

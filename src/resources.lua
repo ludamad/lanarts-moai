@@ -42,7 +42,7 @@ local function get_texture(ppath)
         texture = MOAITexture.new()
         texture:load(get_stream(ppath))
         texture_cache[abs_path] = texture
-        print("Loaded", ppath, "at", abs_path, "size", texture:getSize())
+--        print("Loaded", ppath, "at", abs_path, "size", texture:getSize())
     end 
     return texture
 end

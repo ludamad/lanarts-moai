@@ -10,38 +10,6 @@ import networking from require "core"
 DataBuffer = require 'DataBuffer'
 json = require 'json'
 
-GameAction = with newtype()
-    -- Use with either .create(buffer)
-    -- or .create(id, type, target, x, y)
-    .init = (id_player_or_buffer, action_type, id_target, x, y) ->
-        if type(id_player_or_buffer) ~= 'number'
-            -- Not the ID, read from 
-            @read(id_player_or_buffer)
-            return
-
-        -- The player sending the action, 8bit integer
-        @id_player = id_player_or_buffer
-        -- 8bit integer
-        @action_type = action_type
-        -- 32bit integer (general purpose)
-        @id_target = id_target
-        -- Two 64bit floats (general purpose)
-        @x, @y = x, y
-
-    .read = (buffer) ->
-        @id_player = buffer\read_byte()
-        @action_type = buffer\read_byte()
-        @id_target = buffer\read_int @id_target
-        @x = buffer\read_double()
-        @y = buffer\read_double()
-
-    .write = (buffer) -> with buffer
-        \write_byte @id_player
-        \write_byte @action_type
-        \write_int @id_target
-        \write_double @x
-        \write_double @y
-
 -------------------------------------------------------------------------------
 -- Message sending
 -------------------------------------------------------------------------------
