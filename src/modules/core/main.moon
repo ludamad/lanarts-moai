@@ -3,7 +3,7 @@ modules = require "modules"
 mtwist = require 'mtwist'
 util = require 'core.util'
 
-import object_types from require 'core'
+import object_types, game_state from require 'core'
 
 -------------------------------------------------------------------------------
 -- Game setup
@@ -31,7 +31,6 @@ _spawn_players = (G, L) ->
             }
 
 main = () ->
-
 	MOAISim.setStep(1 / _SETTINGS.frames_per_second)
 	-- (require 'core.network.session').main()
 	MOAISim.openWindow "Lanarts", w,h
@@ -44,7 +43,7 @@ main = () ->
 
     glevel = require 'core.level'
 
-    G = glevel.create_game_state()
+    G = game_state.create_game_state()
 
     _start_game = () ->
 		tilemap = modules.get_level("start").generator(G, rng)

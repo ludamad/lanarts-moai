@@ -1,3 +1,5 @@
+--TODO Rename view_camera
+
 import abs, min, max, floor, ceil from math
 
 CAMERA_SUBW,CAMERA_SUBH = 100, 100

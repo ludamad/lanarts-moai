@@ -11,7 +11,6 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
 -- Other requires
 -------------------------------------------------------------------------------
 
-import create_thread from require 'core.util'
 import ui_ingame_scroll, ui_ingame_select from require "core.ui"
 
 import camera, networking, util_draw from require "core"
@@ -199,21 +198,6 @@ create_level_view = (level, cameraw, camerah) ->
 
     return V
 
--------------------------------------------------------------------------------
--- The main stepping 'thread' (coroutine)
--------------------------------------------------------------------------------
-
-main_thread = (G) -> create_thread () ->
-    while true
-        coroutine.yield()
-
-        before = MOAISim.getDeviceTime()
-        G.handle_io()
-        G.step()
-        G.pre_draw()
-        if not G.level_view.is_menu
-            G.step_number += 1
-
 create_menu_view = (G, w,h, continue_callback) ->
     -- We 'cheat' with our menu level view, just point to same object
     V = {is_menu: true}
@@ -257,89 +241,4 @@ create_menu_view = (G, w,h, continue_callback) ->
 
     return V
 
--------------------------------------------------------------------------------
--- Returns a 'components object' that holds the various parts of the 
--- level's state.
--- The 'tilemap' is created by the core.TileMap module.
--------------------------------------------------------------------------------
-
-create_game_state = () ->
-    G = {}
-
-    G.step_number = 1
-    G.next_player_id = 1
-    G.players = {}
-    -- Set up player actions, and associated helpers
-    game_actions.setup_action_state(G)
-    -- Any unhandled messages:
-    G.network_message_queue = {}
-
-    G.gametype = _SETTINGS.gametype
-
-    require('@network_logic').setup_network_functions(G)
-
-    -- Based on game type above, and _SETTINGS object for IP (for client) & port (for both client & server)
-    G.start_connection()
-
-    -- Generally only used by the server:
-    G.add_new_player = (name, is_controlled, peer=nil) ->
-        assert(G.gametype ~= 'client', "Should not be called by a client!")
-        -- Peer is remembered for servers
-        append G.players, {id_player: G.next_player_id, player_name: name, :is_controlled, :peer}
-        G.next_player_id += 1
-
-    G.is_local_player = (obj) ->
-        player = G.players[obj.id_player]
-        return player.is_controlled
-
-    G.player_name = (obj) ->
-        player = G.players[obj.id_player]
-        return player.player_name
-
-    G.change_view = (V) ->
-        if G.level_view then
-            G.level_view\stop()
-        G.level_view = V
-        G.level = V.level
-        G.level_view.start()
-
-    -- Setup function
-    G.start = () -> 
-        G.level_view.start()
-
-        thread = main_thread(G)
-        thread.start()
-        return thread
-
-    -- Tear-down function
-    G.stop = () -> 
-        G.level_view.stop()
-        for thread in *G.threads
-            thread.stop()
-
-    -- Game step function
-    G.step = () -> 
-        if G.connection 
-            G.connection\poll()
-            for msg in *G.connection\grab_messages()
-                G.handle_network_event(msg)
-
-        G.level.step()
-        G.level_view.pre_draw()
-
-    G.handle_io = () ->
-        if user_io.key_down "K_Q"
-            serialization.push_state(G.level)
-
-        if user_io.key_down "K_E"
-            serialization.pop_state(G.level)
-
-        G.level.handle_io()
-
-    G.pre_draw = () -> G.level_view.pre_draw()
-
-        -- print "Pre-draw took ", (MOAISim.getDeviceTime() - before) * 1000, 'ms'
-
-    return G
-
-return {:create_game_state, :create_level_state, :create_menu_view, :create_level_view}
+return {:create_level_state, :create_menu_view, :create_level_view}

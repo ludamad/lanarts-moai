@@ -1,15 +1,3 @@
--- Implements the game networking state machine.
---
--- 2 channels are used:
---   channel 0 is used reliably for control messages, such as notifications and full-state sync's
---   channel 1 is used unreliably for low-latency communications, primarily for sending actions
---		When sending actions we know which was the last action received 'for sure' due to the game moving forward, so to speak.
--- 		Every time we would send data, or periodically if no data has been sent, resend all actions that have not been for-sure received.
-
-import networking from require "core"
-DataBuffer = require 'DataBuffer'
-json = require 'json'
-
 -------------------------------------------------------------------------------
 -- Message sending
 -------------------------------------------------------------------------------
@@ -24,11 +12,8 @@ _broadcast_player_list = (G) ->
         G.message_send {type: "PlayerList", list: list}, peer
 
 -------------------------------------------------------------------------------
--- Message handling
+-- Generic message handling
 -------------------------------------------------------------------------------
-
-_handle_player_action = (G, action) ->
-    append G.player_action_queue, action
 
 _client_handlers = {
     PlayerList: (G, msg) ->
@@ -69,8 +54,26 @@ _server_handle_message = (G, event) ->
     else -- Allow ad-hoc handling:
         append G.network_message_queue, msg
 
+-------------------------------------------------------------------------------
+-- Game action handling
+-------------------------------------------------------------------------------
+
+_handle_game_actions = (G, event) ->
+    buff\clear()
+    buff\write_raw(event.data)
+    n = buff\read_int()
+    actions = {}
+    for i=1,n
+        append actions, game_actions.GameAction(buff)
+    for action in *actions
+        if G.gamestate == 'server' and G.peer_player_id(event.peer) ~= action.id_player
+            error("Player #{G.peer_player_id(event.peer)} trying to send actions for player #{action.id_player}!")
+        G.queue_action(action)
+
 _handle_receive_event = (G, event) ->
     -- Message stream
+    if event.channel == 0
+        _handle_game_actions(G, event)
     if event.channel == 1
         -- Normal message
         if G.gametype == 'server'
@@ -78,43 +81,14 @@ _handle_receive_event = (G, event) ->
         else 
             _client_handle_message G, event
 
-setup_network_functions = (G) ->
-    G.message_buffer = DataBuffer.create()
 
-	G.start_connection = () ->
-	    if G.gametype == 'server'
-	        G.connection = networking.ServerConnection.create(3000, 2)
-	    elseif G.gametype == 'client'
-	        G.connection = networking.ClientConnection.create('localhost', 3000, 2)
-        G.accepting_connections = true
-
-    G.action_send = (action_data) ->
-        -- Send an unreliable message over channel 0
-        G.connection\send(action_data, 0)
-
-    G.message_send = (obj, peer = nil) ->
-        str = json.generate(obj)
-        print("msg_send", str)
-        -- Note: We send reliable messages over channel 1
-        if peer -- Did we specify a peer? (server-only)
-            peer\send(str,1)
-        else -- Broadcast (if server) or send to server (if client)
-            G.connection\send(str, 1)
-
-    G.handle_message_type = (type) ->
+    N.unqueue_message = (type) ->
         -- TODO: Prevent simple attacks where memory is hogged up by unexpected messages
-        for msg in *G.network_message_queue
+        for msg in *N.network_message_queue
             if msg.type == type
-                table.remove_occurrences G.network_message_queue, msg
+                table.remove_occurrences N.network_message_queue, msg
                 return msg
         return nil
 
-    -- Network message handler
-    G.handle_network_event = (event) ->
-        -- TODO: Action stream
-        if G.gametype == 'client' and event.type == 'connect'
-            G.message_send {type: 'JoinRequest', name: _SETTINGS.player_name}
-        elseif event.type == 'receive'
-            _handle_receive_event(G, event)
 
-return {:setup_network_functions}
+return {}

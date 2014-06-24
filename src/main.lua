@@ -48,6 +48,16 @@ local ErrorReporting = require "system.ErrorReporting"
 
 if os.getenv("i") then
     inspect()
+elseif os.getenv "TEST" or true then
+    local busted = require 'busted.core'
+
+    _TEST = false -- Strict-global compatibility
+    busted.run { 
+	    path = '',
+	    root_file = 'tests',
+	    output = busted.defaultoutput,
+	    excluded_tags = {}, tags = {}
+  	}
 else
 	local modules = require 'modules'
     ErrorReporting.wrap(function()

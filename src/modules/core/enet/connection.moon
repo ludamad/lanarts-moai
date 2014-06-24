@@ -15,8 +15,8 @@ ServerConnection = with newtype()
 		msgs,@messages = @messages,{}
 		return msgs
 
-	.poll = () =>
-		event = @host\service(0)
+	.poll = (wait_time = 0) =>
+		event = @host\service(wait_time)
 		-- Continue polling until we are not receiving events
 		if event
 			if event.type == "connect"

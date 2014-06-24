@@ -94,8 +94,11 @@ _handle_player_io = (L) =>
     elseif (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
         dx = -1
 
-    action = game_actions.make_move_action @, L.gamestate.step_number, dx, dy
-    L.gamestate.queue_action(action)
+    G = L.gamestate
+    action = game_actions.make_move_action @, G.step_number, dx, dy
+    G.queue_action(action)
+    if G.gametype ~= 'single_player'
+        G.actions_send {action}
 
 handle_io = (L) ->
     for player in L.player_iter()
@@ -104,7 +107,6 @@ handle_io = (L) ->
 start = (V) ->
     for inst in V.level.object_iter()
         inst\register_prop(V)
-
 
 _text_style = with MOAITextStyle.new()
     \setColor 1,1,0 -- Yellow

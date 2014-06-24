@@ -96,7 +96,7 @@ _ArrayWithOffset = with newtype()
         for i = @last(), @first(), -1
             @array[i - drop_n] = @array[i]
         @offset += drop_n
-        assert(@first == drop_i + 1)
+        assert(@first() == drop_i + 1)
 
 -- One frame of game actions
 GameActionFrame = with newtype()
@@ -150,20 +150,29 @@ GameActionFrameSet = with newtype()
             @frames\set(step_number, frame)
         return frame
 
+_ensure_player_actions = (G) ->
+    G.player_actions = G.player_actions or GameActionFrameSet.create(#G.players)
+
 setup_action_state = (G) ->
     G.player_actions = nil
 
     G.queue_action = (action) ->
-        -- Lazy create, so that number of players is correct
-        G.player_actions = G.player_actions or GameActionFrameSet.create(#G.players)
+        _ensure_player_actions(G)
         G.player_actions\add(action)
+
+    G.drop_old_actions = () ->
+        _ensure_player_actions(G)
+        G.player_actions\drop_until(G.step_number)
 
     -- Returns 'false' if no action yet queued (should never be the case for local player!)
     G.get_action = (id_player) ->
-        -- Lazy create, so that number of players is correct
-        G.player_actions = G.player_actions or GameActionFrameSet.create(#G.players)
+        _ensure_player_actions(G)
         frame = G.player_actions\get_frame(G.step_number)
         return frame\get(id_player)
+
+    G.have_all_actions_for_step = () ->
+        _ensure_player_actions(G)
+        return G.player_actions\get_frame(G.step_number)\is_complete()
 
 return {
     :GameAction, :GameActionFrame, :GameActionFrameSet, 
