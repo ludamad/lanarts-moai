@@ -8,7 +8,7 @@ DataBuffer = require 'DataBuffer'
 
 send_message_broadcast_player_list = (G) =>
     -- Inform all players about the player list:
-    for peer in *G.connection.peers do
+    for peer in *@peers() do
         -- Recreate the player list, as the receiving peer (client player) would view it:
         list = {}
         for p in *G.players
@@ -32,7 +32,7 @@ handlers_client = {
 handlers_server = {
     JoinRequest: (G, msg) =>
         G.add_new_player msg.name, false, msg.peer -- Not controlled
-        send_message_broadcast_player_list(G)
+        send_message_broadcast_player_list(@, G)
 }
 
 handle_message = (G, handlers, msg) =>
@@ -63,6 +63,7 @@ buffer_encode_actions = (buffer, actions) ->
 -- Common to both ClientMessageHandler and ServerMessageHandler
 setup_handler_base = (N) ->
     N.send_message = (obj, peer = nil) =>
+        pretty("SENDING", obj)
         N.connection\send_reliable(obj, peer)
 
     N.send_actions = (actions, peer = nil) =>
@@ -72,14 +73,16 @@ setup_handler_base = (N) ->
     N.poll = (wait_time = 0) =>
         N.connection\poll(wait_time)
 
+    N.peers = () => N.connection\peers()
+
     N.connect = () =>
         N.connection\connect()
 
     N.disconnect = () =>
         N.connection\disconnect()
 
-    N.unqueue_message = () =>
-        N.connection\unqueue_message()
+    N.unqueue_message = (type) =>
+        N.connection\unqueue_message(type)
 
     return N
 
@@ -89,6 +92,7 @@ setup_handler_base = (N) ->
 
 ClientMessageHandler = create: (G, args) ->
     {:ip, :port} = args
+    local N
     N = {
         -- Buffer for message serialization
         buffer: DataBuffer.create()
@@ -97,14 +101,17 @@ ClientMessageHandler = create: (G, args) ->
             ip: ip
             port: port
             handle_connect: () => 
-                @send_reliable {type: 'JoinRequest', name: _SETTINGS.player_name}
+                log("ClientMessageHandler.handle_connect")
+                N\send_message {type: 'JoinRequest', name: _SETTINGS.player_name}
 
             -- Returns false if message should be queued
-            handle_reliable_message: (obj) => handle_message(@, G, handlers_client, obj)
+            handle_reliable_message: (obj) => 
+                log("ClientMessageHandler.handle_reliable_message")
+                handle_message(N, G, handlers_client, obj)
 
             -- Action handler
             handle_unreliable_message: (msg) =>
-                action = buffer_decode_actions(N.buffer, msg)
+                actions = buffer_decode_actions(N.buffer, msg)
                 for action in *actions
                     G.queue_action(action)
         }
@@ -114,6 +121,7 @@ ClientMessageHandler = create: (G, args) ->
 
 ServerMessageHandler = create: (G, args) ->
     {:port} = args
+    local N
     N = {
         -- Buffer for message serialization
         buffer: DataBuffer.create()
@@ -121,14 +129,17 @@ ServerMessageHandler = create: (G, args) ->
             type: 'server'
             port: port
             handle_connect: (event) => 
+                log("ServerMessageHandler.handle_connect")
                 pretty "Server got connection", event
 
             -- Returns false if message should be queued
-            handle_reliable_message: (obj) => handle_message(@, G, handlers_server, obj)
+            handle_reliable_message: (obj) => 
+                log("ServerMessageHandler.handle_reliable_message")
+                handle_message(N, G, handlers_server, obj)
 
             -- Action handler
             handle_unreliable_message: (msg) =>
-                action = buffer_decode_actions(N.buffer, msg)
+                actions = buffer_decode_actions(N.buffer, msg)
                 for action in *actions
                     if G.peer_player_id(msg.peer) ~= action.id_player
                         error("Player #{G.peer_player_id(event.peer)} trying to send actions for player #{action.id_player}!")

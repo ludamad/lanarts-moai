@@ -36,8 +36,6 @@ main = () ->
 	MOAISim.openWindow "Lanarts", w,h
     gl_set_vsync(false)
 
-	-- (require 'mainmenu.Menus').start_menu_show()
-
 	rng = mtwist.create(1)--os.time())
 	require '@define_data'
 
@@ -45,7 +43,11 @@ main = () ->
 
     G = game_state.create_game_state()
 
+    if G.gametype == 'server' or G.gametype == 'single_player'
+        G.add_new_player(_SETTINGS.player_name, true)
+
     _start_game = () ->
+        log("game start called")
 		tilemap = modules.get_level("start").generator(G, rng)
 
 	    L = glevel.create_level_state(G, rng, tilemap)
@@ -54,8 +56,6 @@ main = () ->
 
 	    G.change_view(V)
 
-	if G.gametype == 'server' or G.gametype == 'single_player'
-		G.add_new_player(_SETTINGS.player_name, true)
     G.change_view(glevel.create_menu_view(G, w,h, _start_game))
 
 	thread = G.start()

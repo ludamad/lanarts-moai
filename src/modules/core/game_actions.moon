@@ -98,11 +98,14 @@ _ArrayWithOffset = with newtype()
         @array[i - @offset] = val
 
     .drop_until = (drop_i) =>
+        old_last = @last()
         drop_n = (drop_i - @offset)
         for i = @last(), @first(), -1
-            @array[i - drop_n] = @array[i]
+            @set(i - drop_n + 1, @get(i))
+            @set(i, nil)
         @offset += drop_n
         assert(@first() == drop_i + 1)
+        assert(@last() == old_last)
 
 -- One frame of game actions
 GameActionFrame = with newtype()
@@ -123,6 +126,8 @@ GameActionFrame = with newtype()
 -- The set of game actions that have been received
 GameActionFrameSet = with newtype()
     .init = (num_players) =>
+        assert(num_players > 0, "Cannot start a game with 0 players!")
+        log("Creating", num_players, "players")
         -- List of lists, indexed first by step number, then player id, produces a GameAction (or false)
         @frames = _ArrayWithOffset.create() -- Action list
         @num_players = num_players
@@ -163,6 +168,7 @@ setup_action_state = (G) ->
     G.player_actions = nil
 
     G.queue_action = (action) ->
+        log('Queuing action for step:', action.step_number, 'player:', action.id_player)
         _ensure_player_actions(G)
         G.player_actions\add(action)
 

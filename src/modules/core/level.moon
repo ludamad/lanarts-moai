@@ -224,11 +224,11 @@ create_menu_view = (G, w,h, continue_callback) ->
 
         util_draw.draw_text(V.layer, menu_style, info)
         if G.gametype == 'server' and (user_io.key_pressed("K_ENTER") or user_io.key_pressed("K_SPACE"))
-            G.message_send type: "GameStart"
+            G.net_handler\send_message type: "GameStart"
             continue_callback()
-        else if G.gametype == 'client' and G.net_handler\unqueue_message "GameStart"
+        elseif G.gametype == 'client' and G.net_handler\unqueue_message "GameStart"
             continue_callback()
-        else
+        elseif G.gametype == 'single_player'
             continue_callback()
 
     V.handle_io = () -> nil

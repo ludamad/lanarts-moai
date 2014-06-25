@@ -11,9 +11,16 @@ main_thread = (G) -> create_thread () ->
     while true
         coroutine.yield()
 
-        is_menu = not G.level_view.is_menu
+        is_menu = G.level_view.is_menu
         before = MOAISim.getDeviceTime()
+
         G.handle_io()
+
+        if G.net_handler
+            G.net_handler\poll()
+            while not is_menu and not G.have_all_actions_for_step()
+                G.net_handler\poll(1)
+
         G.step()
         G.pre_draw()
         if not is_menu
@@ -66,11 +73,6 @@ create_game_state = () ->
 
     -- Game step function
     G.step = () -> 
-        if G.connection 
-            G.poll()
-            while not G.have_all_actions_for_step()
-                G.poll(1)
-
         G.level.step() unless G.level == nil
         G.level_view.pre_draw() unless G.level_view == nil
 

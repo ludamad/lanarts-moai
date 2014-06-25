@@ -38,6 +38,7 @@ _handle_action = (L, obj, action) ->
     elseif action.action_type == game_actions.ACTION_MOVE
         id_player, step_number, dx, dy = game_actions.unbox_move_action(action)
         assert(id_player == obj.id_player)
+        print(step_number, L.gamestate.step_number)
         assert(step_number == L.gamestate.step_number)
         _handle_player_move(obj, L, dx, dy)
 
@@ -98,11 +99,14 @@ _handle_player_io = (L) =>
     action = game_actions.make_move_action @, G.step_number, dx, dy
     G.queue_action(action)
     if G.net_handler
+        log(L.gamestate.gametype, "Sending actions for player ", action.id_player)
         G.net_handler\send_actions {action}
 
 handle_io = (L) ->
     for player in L.player_iter()
-        _handle_player_io(player, L)
+        print(L.gamestate.gametype, player, L.gamestate.is_local_player(player))
+        if L.gamestate.is_local_player(player)
+            _handle_player_io(player, L)
 
 start = (V) ->
     for inst in V.level.object_iter()

@@ -43,11 +43,13 @@ RawNetConnection = create: (args) ->
                 N.connection\send_unreliable(data, channel)
 
     N.send_unreliable = (data, peer = nil) =>
+        -- log("RawNetConnection.send_unreliable", data)
         -- Send an unreliable message over channel 0
         _send(0, data, true, peer)
 
     N.send_reliable = (data, peer = nil) =>
         -- Send a reliable message over channel 1
+        log("RawNetConnection.send_reliable", data)
         _send(1, data, true, peer)
 
     -- Network message handler
@@ -60,6 +62,9 @@ RawNetConnection = create: (args) ->
             N\handle_reliable_message(event)
         else
             error("Network logic error!")
+
+    N.peers = () =>
+        return N.connection.peers
 
     N.poll = (wait_time = 0) =>
         N.connection\poll(wait_time)
@@ -77,9 +82,8 @@ RawNetConnection = create: (args) ->
 
 json = require 'json'
 
-NetConnection = {}
--- Ad-hoc inheritance:
-NetConnection.create = (args) ->
+-- Ad-hoc inheritance of RawNetConnection:
+NetConnection = create: (args) ->
     _msgqueue = {} -- Network message queue
 
     -- Delegates for message handling
@@ -95,7 +99,7 @@ NetConnection.create = (args) ->
             if not status then error(obj)
             obj.peer = msg.peer
             -- Try to handle message, otherwise add to the queue
-            if not _rel_f(obj)
+            if not _rel_f(@, obj)
                 append _msgqueue, obj
 
         handle_unreliable_message: args.handle_unreliable_message
@@ -105,14 +109,16 @@ NetConnection.create = (args) ->
 
     N.send_reliable = (obj, peer = nil) =>
         data = json.generate(obj)
-        raw_send_reliable(data, peer)
+        raw_send_reliable(@, data, peer)
 
-    N.unqueue_message = (type) ->
+    N.unqueue_message = (type) =>
+        assert(_G.type(type) == 'string', "Unqueue type must be a string!")
         -- TODO: Prevent simple attacks where memory is hogged up by unexpected messages
-        for msg in *_msgqueue
-            if msg.type == type
-                table.remove_occurrences _msgqueue, msg
-                return msg
+        for obj in *_msgqueue
+            if obj.type == type
+                log("NetConnection.unqueue_message: unqueing", type)
+                table.remove_occurrences _msgqueue, obj
+                return obj
         return nil
 
     return N
