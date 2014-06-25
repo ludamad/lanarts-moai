@@ -8,12 +8,12 @@
 
 import ClientConnection, ServerConnection from require "core.enet.connection"
 
-create_connection = (args) ->
+RawNetConnection = create: (args) ->
     N = {
         -- Network configuration --
-        type: args.type
-        port: args.port
-        ip: args.ip
+        type: assert(args.type, "Connection type not provided!")
+        port: assert(args.port, "Port not provided!")
+        ip: args.ip -- Only necessary if type == 'client' client specified
 
         handle_reliable_message: args.handle_reliable_message
         handle_unreliable_message: args.handle_unreliable_message
@@ -23,11 +23,11 @@ create_connection = (args) ->
         connection: false
     }
 
-	N.connect = () ->
+	N.connect = () =>
 	    if N.type == 'server'
-	        N.connection = connection.ServerConnection.create(N.port, 2)
+	        N.connection = ServerConnection.create(N.port, 2)
 	    elseif N.type == 'client'
-	        N.connection = connection.ClientConnection.create(N.ip, N.port, 2)
+	        N.connection = ClientConnection.create(N.ip, N.port, 2)
 
     _send = (channel, data, reliable = true, peer = nil) ->
         -- Note: We send reliable messages over channel 1
@@ -42,28 +42,79 @@ create_connection = (args) ->
             else
                 N.connection\send_unreliable(data, channel)
 
-    N.send_unreliable = (data, peer = nil) ->
+    N.send_unreliable = (data, peer = nil) =>
         -- Send an unreliable message over channel 0
         _send(0, data, true, peer)
 
-    N.send_reliable = (obj, peer = nil) ->
+    N.send_reliable = (data, peer = nil) =>
         -- Send a reliable message over channel 1
         _send(1, data, true, peer)
 
     -- Network message handler
     _handle_network_event = (event) ->
         if event.type == 'connect'
-            N.handle_connect(event)
+            N\handle_connect(event)
         elseif event.type == 'receive' and event.channel == 0
-            N.handle_unreliable_message(event)
+            N\handle_unreliable_message(event)
         elseif event.type == 'receive' and event.channel == 1
-            N.handle_reliable_message(event)
+            N\handle_reliable_message(event)
         else
             error("Network logic error!")
 
-    N.poll = (wait_time = 0) ->
+    N.poll = (wait_time = 0) =>
         N.connection\poll(wait_time)
         for event in *N.connection\grab_messages()
             _handle_network_event(event)
 
-return {:create_connection}
+    N.disconnect = () =>
+        N.connection\disconnect()
+
+    return N
+
+
+-- Provide a simple JSON-based convenience wrapper over RawNetConnection
+-- and a fallback message queue, and a concept of a message 'type'
+
+json = require 'json'
+
+NetConnection = {}
+-- Ad-hoc inheritance:
+NetConnection.create = (args) ->
+    _msgqueue = {} -- Network message queue
+
+    -- Delegates for message handling
+    _rel_f = args.handle_reliable_message
+
+    N = RawNetConnection.create {
+        type: args.type
+        ip: args.ip -- For server only
+        port: args.port
+        handle_connect: args.handle_connect
+        handle_reliable_message: (msg) =>
+            status, obj = json.parse(msg.data)
+            if not status then error(obj)
+            obj.peer = msg.peer
+            -- Try to handle message, otherwise add to the queue
+            if not _rel_f(obj)
+                append _msgqueue, obj
+
+        handle_unreliable_message: args.handle_unreliable_message
+    }
+
+    raw_send_reliable = N.send_reliable
+
+    N.send_reliable = (obj, peer = nil) =>
+        data = json.generate(obj)
+        raw_send_reliable(data, peer)
+
+    N.unqueue_message = (type) ->
+        -- TODO: Prevent simple attacks where memory is hogged up by unexpected messages
+        for msg in *_msgqueue
+            if msg.type == type
+                table.remove_occurrences _msgqueue, msg
+                return msg
+        return nil
+
+    return N
+
+return {:RawNetConnection, :NetConnection}

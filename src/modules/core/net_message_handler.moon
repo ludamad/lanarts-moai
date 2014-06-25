@@ -1,22 +1,26 @@
+import NetConnection from require 'core.net_connection'
+import GameAction from require "core.game_actions"
+DataBuffer = require 'DataBuffer'
+
 -------------------------------------------------------------------------------
 -- Message sending
 -------------------------------------------------------------------------------
 
-_broadcast_player_list = (G) ->
+send_message_broadcast_player_list = (G) =>
     -- Inform all players about the player list:
     for peer in *G.connection.peers do
         -- Recreate the player list, as the receiving peer (client player) would view it:
         list = {}
         for p in *G.players
             append list, {player_name: p.player_name, id_player: p.id_player, is_controlled: (peer == p.peer)}
-        G.message_send {type: "PlayerList", list: list}, peer
+        @send_message {type: "PlayerList", list: list}, peer
 
 -------------------------------------------------------------------------------
--- Generic message handling
+-- Message handling
 -------------------------------------------------------------------------------
 
-_client_handlers = {
-    PlayerList: (G, msg) ->
+handlers_client = {
+    PlayerList: (G, msg) =>
         -- Trust the server to send all the data:
         table.clear(G.players)
         -- Rebuild the player list:
@@ -25,70 +29,114 @@ _client_handlers = {
         pretty_print(G.players)
 }
 
-_client_handle_message = (G, event) ->
-    status, msg = json.parse(event.data)
-    if not status then error(msg)
-    print('client_handle_msg', event.data)
-    handler = _client_handlers[msg.type]
-    if handler ~= nil
-        handler(G, msg)
-    else -- Allow ad-hoc handling:
-        append G.network_message_queue, msg
-
-_server_handlers = {
-    JoinRequest: (G, msg) ->
-        if G.accepting_connections
-            G.add_new_player msg.name, false, msg.peer -- Not controlled
-            _broadcast_player_list(G)
+handlers_server = {
+    JoinRequest: (G, msg) =>
+        G.add_new_player msg.name, false, msg.peer -- Not controlled
+        send_message_broadcast_player_list(G)
 }
 
-_server_handle_message = (G, event) ->
-    status, msg = json.parse(event.data)
-    if not status then error(msg)
-    -- Remember the peer for determining message sender
-    msg.peer = event.peer
-    print('server_handle_msg', event.data)
-    handler = _server_handlers[msg.type]
+handle_message = (G, handlers, msg) =>
+    handler = handlers[msg.type]
     if handler ~= nil
-        handler(G, msg)
-    else -- Allow ad-hoc handling:
-        append G.network_message_queue, msg
+        handler(@, G, msg)
+        return true
+    return false
 
 -------------------------------------------------------------------------------
--- Game action handling
+-- Action serialization
 -------------------------------------------------------------------------------
 
-_handle_game_actions = (G, event) ->
-    buff\clear()
-    buff\write_raw(event.data)
-    n = buff\read_int()
-    actions = {}
-    for i=1,n
-        append actions, game_actions.GameAction(buff)
+buffer_decode_actions = (buffer, msg) ->
+    buffer\clear()
+    buffer\write_raw(msg.data)
+    n = buffer\read_int()
+    -- Note: Creating a GameAction will read the buffer
+    return [GameAction.create(buffer) for i=1,n]
+
+buffer_encode_actions = (buffer, actions) ->
+    buffer\clear()
+    buffer\write_int(#actions)
     for action in *actions
-        if G.gamestate == 'server' and G.peer_player_id(event.peer) ~= action.id_player
-            error("Player #{G.peer_player_id(event.peer)} trying to send actions for player #{action.id_player}!")
-        G.queue_action(action)
+        action\write(buffer)
+    return buffer\tostring()
 
-_handle_receive_event = (G, event) ->
-    -- Message stream
-    if event.channel == 0
-        _handle_game_actions(G, event)
-    if event.channel == 1
-        -- Normal message
-        if G.gametype == 'server'
-            _server_handle_message G, event
-        else 
-            _client_handle_message G, event
+-- Common to both ClientMessageHandler and ServerMessageHandler
+setup_handler_base = (N) ->
+    N.send_message = (obj, peer = nil) =>
+        N.connection\send_reliable(obj, peer)
+
+    N.send_actions = (actions, peer = nil) =>
+        msg = buffer_encode_actions(N.buffer, actions)
+        N.connection\send_unreliable(msg, peer)
+
+    N.poll = (wait_time = 0) =>
+        N.connection\poll(wait_time)
+
+    N.connect = () =>
+        N.connection\connect()
+
+    N.disconnect = () =>
+        N.connection\disconnect()
+
+    N.unqueue_message = () =>
+        N.connection\unqueue_message()
+
+    return N
+
+-------------------------------------------------------------------------------
+-- Client & server message handlers
+-------------------------------------------------------------------------------
+
+ClientMessageHandler = create: (G, args) ->
+    {:ip, :port} = args
+    N = {
+        -- Buffer for message serialization
+        buffer: DataBuffer.create()
+        connection: NetConnection.create {
+            type: 'client'
+            ip: ip
+            port: port
+            handle_connect: () => 
+                @send_reliable {type: 'JoinRequest', name: _SETTINGS.player_name}
+
+            -- Returns false if message should be queued
+            handle_reliable_message: (obj) => handle_message(@, G, handlers_client, obj)
+
+            -- Action handler
+            handle_unreliable_message: (msg) =>
+                action = buffer_decode_actions(N.buffer, msg)
+                for action in *actions
+                    G.queue_action(action)
+        }
+    }
+    setup_handler_base(N)
+    return N
+
+ServerMessageHandler = create: (G, args) ->
+    {:port} = args
+    N = {
+        -- Buffer for message serialization
+        buffer: DataBuffer.create()
+        connection: NetConnection.create {
+            type: 'server'
+            port: port
+            handle_connect: (event) => 
+                pretty "Server got connection", event
+
+            -- Returns false if message should be queued
+            handle_reliable_message: (obj) => handle_message(@, G, handlers_server, obj)
+
+            -- Action handler
+            handle_unreliable_message: (msg) =>
+                action = buffer_decode_actions(N.buffer, msg)
+                for action in *actions
+                    if G.peer_player_id(msg.peer) ~= action.id_player
+                        error("Player #{G.peer_player_id(event.peer)} trying to send actions for player #{action.id_player}!")
+                    G.queue_action(action)
+        }
+    }
+    setup_handler_base(N)
+    return N
 
 
-    N.unqueue_message = (type) ->
-        -- TODO: Prevent simple attacks where memory is hogged up by unexpected messages
-        for msg in *N.network_message_queue
-            if msg.type == type
-                table.remove_occurrences N.network_message_queue, msg
-                return msg
-        return nil
-
-
-return {}
+return {:ClientMessageHandler, :ServerMessageHandler}

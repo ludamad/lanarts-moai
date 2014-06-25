@@ -97,8 +97,8 @@ _handle_player_io = (L) =>
     G = L.gamestate
     action = game_actions.make_move_action @, G.step_number, dx, dy
     G.queue_action(action)
-    if G.gametype ~= 'single_player'
-        G.actions_send {action}
+    if G.net_handler
+        G.net_handler\send_actions {action}
 
 handle_io = (L) ->
     for player in L.player_iter()

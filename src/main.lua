@@ -41,26 +41,38 @@ require("moonscript.base").insert_loader()
 require "globals.modules"
 
 -------------------------------------------------------------------------------
--- Finally, if we are not a debug server, run the game.
+-- Finally, if we are not testing, run the game.
 -------------------------------------------------------------------------------
 
 local ErrorReporting = require "system.ErrorReporting"
 
 if os.getenv("i") then
     inspect()
-elseif os.getenv "TEST" or true then
-    local busted = require 'busted.core'
-
+elseif os.getenv "TEST" then
+	print "RUNNING TEST SUITE"
     _TEST = false -- Strict-global compatibility
-    busted.run { 
+    local busted = (require 'busted') 
+    -- Better error reporting for 'it'
+    local previous_it = it
+    function _G.it(str, f)
+      previous_it(str, ErrorReporting.wrap(f))
+    end
+    local status, failures = busted { 
 	    path = '',
 	    root_file = 'tests',
+	    pattern = ".*",
 	    output = busted.defaultoutput,
-	    excluded_tags = {}, tags = {}
+	    excluded_tags = {}, tags = {".*"}
   	}
+  	print(status)
+  	if failures > 0 then
+  		print("Finished with " .. failures .. " failures!")
+  	else
+  		print("Everything passed!")
+  	end
 else
 	local modules = require 'modules'
     ErrorReporting.wrap(function()
-		modules.load("core")
+		  modules.load("core")
     end)()
 end

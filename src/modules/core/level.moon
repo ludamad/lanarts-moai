@@ -13,7 +13,7 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
 
 import ui_ingame_scroll, ui_ingame_select from require "core.ui"
 
-import camera, networking, util_draw from require "core"
+import camera, util_draw from require "core"
 
 json = require 'json'
 modules = require 'modules'
@@ -226,7 +226,7 @@ create_menu_view = (G, w,h, continue_callback) ->
         if G.gametype == 'server' and (user_io.key_pressed("K_ENTER") or user_io.key_pressed("K_SPACE"))
             G.message_send type: "GameStart"
             continue_callback()
-        else if G.gametype == 'client' and G.handle_message_type "GameStart"
+        else if G.gametype == 'client' and G.net_handler\unqueue_message "GameStart"
             continue_callback()
         else
             continue_callback()

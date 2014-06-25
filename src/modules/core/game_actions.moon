@@ -29,17 +29,23 @@ GameAction = with newtype()
         @x, @y = x, y
 
     .read = (buffer) =>
+        -- For use with DataBuffer
         @id_player = buffer\read_byte()
         @action_type = buffer\read_byte()
         @step_number = buffer\read_int()
+        @genericbyte1 = buffer\read_byte()
+        @genericbyte2 = buffer\read_byte()
         @id_target = buffer\read_int()
         @x = buffer\read_double()
         @y = buffer\read_double()
 
     .write = (buffer) => with buffer
+        -- For use with DataBuffer
         \write_byte @id_player
         \write_byte @action_type
         \write_int @step_number
+        \write_byte @genericbyte1
+        \write_byte @genericbyte2
         \write_int @id_target
         \write_double @x
         \write_double @y

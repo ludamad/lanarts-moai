@@ -38,6 +38,8 @@ ServerConnection = with newtype()
 		@host\broadcast msg, channel, 'unreliable'
 
 	.disconnect = () =>
+		for peer in *@peers
+			peer\disconnect()
 		@host\flush()
 
 ClientConnection = with newtype()
@@ -77,6 +79,6 @@ ClientConnection = with newtype()
 
 	.disconnect = () =>
 		@host\flush()
-		@connection\close()
+		@connection\disconnect()
 
 return {:ServerConnection, :ClientConnection}

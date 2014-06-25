@@ -1,5 +1,6 @@
 import create_thread from require 'core.util'
 import serialization from require 'core'
+import ClientMessageHandler, ServerMessageHandler from require 'core.net_message_handler'
 user_io = require 'user_io'
 
 -------------------------------------------------------------------------------
@@ -19,6 +20,12 @@ main_thread = (G) -> create_thread () ->
             G.drop_old_actions()
             G.step_number += 1
 
+setup_network_state = (G) ->
+    if G.gametype == 'client'
+        G.net_handler = ClientMessageHandler.create G, {ip: _SETTINGS.server_ip, port: _SETTINGS.server_port}
+    elseif G.gametype == 'server'
+        G.net_handler = ServerMessageHandler.create G, {port: _SETTINGS.server_port}
+
 create_game_state = () ->
     G = {}
 
@@ -30,10 +37,11 @@ create_game_state = () ->
     -- Set up player actions, and associated helpers
     require("@game_actions").setup_action_state(G)
 
-    require('@network_logic').setup_network_state(G)
+    setup_network_state(G)
 
     -- Based on game type above, and _SETTINGS object for IP (for client) & port (for both client & server)
-    G.start_connection()
+    if G.net_handler
+        G.net_handler\connect()
 
     G.change_view = (V) ->
         if G.level_view then
