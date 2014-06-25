@@ -155,5 +155,23 @@ setup_level_state = (L) ->
     -- Set up various helper accesors
     _setup_level_state_helpers(L)
 
+-------------------------------------------------------------------------------
+-- Set up helper methods (closures, to be exact)
+-------------------------------------------------------------------------------
 
-return {:setup_level_state}
+create_level_state = (G, rng, tilemap) ->
+    L = {gamestate: G, :rng, :tilemap}
+
+    -- Set up level dimensions
+    -- Hardcoded for now:
+    L.tile_width,L.tile_height = 32,32
+
+    {L.tilemap_width, L.tilemap_height} = L.tilemap.size
+    L.pix_width, L.pix_height = (L.tile_width*L.tilemap_width), (L.tile_height*L.tilemap_height)
+
+    -- Set up level state
+    setup_level_state(L)
+
+    return L
+
+return {:create_level_state}

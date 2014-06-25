@@ -30,44 +30,19 @@ ObjectBase = with newtype()
         @is_focus = args.is_focus or false
         -- Register into world , and store the instance table ID
         @id = L.objects\add(@)
-        -- The (main) instance prop
-        @prop = args.prop or false
 
     .remove = (L) =>
         L.objects\remove(@)
 
-    .pre_draw = (V) =>
-    	@update_prop(V)
-        -- For debugging purposes:
-        checkCol = (if V.level.solid_check(@) then 0 else 1)
-        @prop\setColor(1, checkCol, checkCol, 1) 
-        @prop\setPriority(@y)
+    .pre_draw = (V) => @update_prop V.get_prop(@id)
+        -- -- For debugging purposes:
+        -- checkCol = (if V.level.solid_check(@) then 0 else 1)
+        -- @prop\setColor(1, checkCol, checkCol, 1) 
+        -- @prop\setPriority(@y)
 
     -- Note: Does not sync props
     .sync = (L) => nil
 
-	---------------------------------------------------------------------------
-	-- Prop functions
-	---------------------------------------------------------------------------
-
-    -- Prop control functions
-    .register_prop = (V) =>
-    	assert(not @prop, "Prop was already registered!")
-    	@prop = @_create_prop()
-    	V.add_object_prop(@prop)
-
-    ._create_prop = (V) =>
-    	error("_create_prop: Not yet implemented!")
-    .unregister_prop = (L) =>
-    	if @prop 
-    		L.remove_object_prop(@prop)
-    		@prop = false
-
-    -- Subsystem updating
-    .update_prop = (prop) =>
-        if @prop 
-            @prop\setLoc @x, @y
-            @prop\setPriority @y
 
 CombatObjectBase = with newtype {parent: ObjectBase}
     .init = (L, args) =>
@@ -125,17 +100,20 @@ Player = with newtype {parent: CombatObjectBase}
         CombatObjectBase.sync(@, L)
         @vision\update(@x/L.tile_width, @y/L.tile_height)
         @paths_to_player\update(@x, @y, @player_path_radius)
-    ._create_prop = () =>
-        quad = modules.get_sprite("player")\create_quad()
-        return with MOAIProp2D.new()
-            \setDeck(quad)
+
+    .quad = modules.get_sprite("player")\create_quad()
+    .update_prop = (prop) =>
+        return with prop
+            \setDeck @quad
             \setLoc(@x, @y)
+            \setPriority @y
 
 NPC = with newtype {parent: CombatObjectBase}
-    ._create_prop = () =>
-        return with MOAIProp2D.new()
-            \setDeck modules.get_sprite("monster")\create_quad()
+    .quad = modules.get_sprite("monster")\create_quad()
+    .update_prop = (prop) =>
+        return with prop
+            \setDeck @quad
             \setLoc @x, @y
-
+            \setPriority @y
 
 return {:ObjectBase, :CombatObjectBase, :Player, :NPC}

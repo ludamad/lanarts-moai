@@ -51,7 +51,8 @@ _step_objects = (L) ->
     -- Set up directions of all players
     for obj in L.player_iter()
         action = L.gamestate.get_action(obj.id_player)
-        _handle_action(L, obj, action)
+        if action
+            _handle_action(L, obj, action)
         obj\set_rvo(L, 0,0)
 
     -- Set up directions of all NPCs
@@ -89,7 +90,7 @@ _handle_player_io = (L) =>
     G = L.gamestate
     step_number = G.step_number
     while G.get_action(@id_player, step_number) 
-        -- We already have an action for this frame, move forward
+        -- We already have an action for this frame, think forward
         step_number += 1
         if step_number > G.step_number + MAX_FUTURE_STEPS
             -- We do not want to queue up a huge amount of actions to be sent
@@ -115,9 +116,9 @@ handle_io = (L) ->
         if L.gamestate.is_local_player(player)
             _handle_player_io(player, L)
 
-start = (V) ->
-    for inst in V.level.object_iter()
-        inst\register_prop(V)
+start = (V) -> nil
+    -- for inst in V.level.object_iter()
+    --     inst\register_prop(V)
 
 _text_style = with MOAITextStyle.new()
     \setColor 1,1,0 -- Yellow
@@ -138,7 +139,7 @@ pre_draw = (V) ->
     if _SETTINGS.headless then return
 
     for obj in V.level.object_iter()
-        obj\update_prop(V)
+        obj\pre_draw(V)
 
     for component in *V.ui_components
         -- Step the component

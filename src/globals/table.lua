@@ -1,7 +1,7 @@
 -- TODO: If such monolithic extension of the 'table' package is to be considered kosher, we must document this fully.
 
 -- Cache for small performance boost
-local type, select, setmetatable, getmetatable, rawget, pairs, ipairs, table = type, select, setmetatable, getmetatable, rawget, pairs, ipairs, table
+local type, select, setmetatable, getmetatable, rawget, rawset, pairs, ipairs, table = type, select, setmetatable, getmetatable, rawget, rawset, pairs, ipairs, table
 
 function table.merge(t1, t2)
     for k,v in pairs(t2) do t1[k] = v end
@@ -16,10 +16,10 @@ end
 if not table.clear then -- Prefer luajit builtin (by a lot)
     function table.clear(t)
         for i=#t,1 do
-            t[i] = nil
+            rawset(t,i,nil)
         end
         for k,_ in pairs(t) do
-            t[k] = nil
+            rawset(t,k,nil)
         end
     end
 end

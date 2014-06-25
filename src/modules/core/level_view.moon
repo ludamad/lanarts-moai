@@ -126,23 +126,8 @@ setup_overlay_layers = (V) ->
     V.remove_object_prop = (prop) -> V.object_layer\removeProp(prop)
 
 -------------------------------------------------------------------------------
--- Set up helper methods (closures, to be exact)
+-- Create a level view
 -------------------------------------------------------------------------------
-
-create_level_state = (G, rng, tilemap) ->
-    L = {gamestate: G, :rng, :tilemap}
-
-    -- Set up level dimensions
-    -- Hardcoded for now:
-    L.tile_width,L.tile_height = 32,32
-
-    {L.tilemap_width, L.tilemap_height} = L.tilemap.size
-    L.pix_width, L.pix_height = (L.tile_width*L.tilemap_width), (L.tile_height*L.tilemap_height)
-
-    -- Set up level state
-    (require 'core.level_state').setup_level_state(L)
-
-    return L
 
 create_level_view = (level, cameraw, camerah) ->
     V = {gamestate: level.gamestate, :level, :cameraw, :camerah}
@@ -151,6 +136,16 @@ create_level_view = (level, cameraw, camerah) ->
     V.layers = {}
     -- The UI objects that run each step
     V.ui_components = {}
+    V.game_props = {}
+
+    V.get_prop = (id) ->
+        prop = V.game_props[id]
+        if not prop
+            prop = MOAIProp2D.new()
+            V.add_object_prop(prop)
+            V.game_props[id] = prop
+        prop\setVisible(true)
+        return prop
 
     -- Create and add a layer, sorted by priority (the default sort mode):
     V.add_layer = () -> 
@@ -173,6 +168,7 @@ create_level_view = (level, cameraw, camerah) ->
 
     -- Note: uses script_prop above
     V.pre_draw = () ->
+        for k,v in pairs(V.game_props) do v\setVisible(false)
         script_prop\setLoc(V.camera\getLoc())
         level_logic.pre_draw(V)
 
@@ -197,6 +193,10 @@ create_level_view = (level, cameraw, camerah) ->
     append V.ui_components, ui_ingame_scroll V
 
     return V
+
+-------------------------------------------------------------------------------
+-- Create a menu view
+-------------------------------------------------------------------------------
 
 create_menu_view = (G, w,h, continue_callback) ->
     -- We 'cheat' with our menu level view, just point to same object
@@ -241,4 +241,4 @@ create_menu_view = (G, w,h, continue_callback) ->
 
     return V
 
-return {:create_level_state, :create_menu_view, :create_level_view}
+return {:create_menu_view, :create_level_view}

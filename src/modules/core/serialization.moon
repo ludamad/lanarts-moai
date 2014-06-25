@@ -23,6 +23,7 @@ FOVMeta = FieldOfView.metatable
 -- A weak cache that associates objects with their previous states
 
 STATE_LOOKUP_TABLE = {}
+EXCLUDE_TABLE = {}
 
 push_state = (_obj) -> 
 	lookup = STATE_LOOKUP_TABLE
@@ -31,6 +32,8 @@ push_state = (_obj) ->
 	-- 'saver' only concerns mutable objects
 	saver = (obj) ->
 		if type(obj) ~= 'table' and type(obj) ~= 'userdata'
+			return
+		if EXCLUDE_TABLE[obj]
 			return
 
 		data = lookup[obj]
@@ -54,6 +57,7 @@ push_state = (_obj) ->
 		data[data[0]] = statelist
 		i = 1
 		for k,v in pairs(obj)
+			saver(k)
 			saver(v)
 			statelist[i] = k
 			statelist[i+1] = v
@@ -69,6 +73,8 @@ pop_state = (_obj) ->
 	-- 'loader' only concerns mutable objects
 	loader = (obj) ->
 		if type(obj) ~= 'table' and type(obj) ~= 'userdata'
+			return
+		if EXCLUDE_TABLE[obj]
 			return
 
 		data = lookup[obj]
@@ -86,15 +92,17 @@ pop_state = (_obj) ->
 
 		-- "Plain old Lua object"
 		statelist = data[data[0]] 
-		i = 1
 		table_clear(obj)
-		while i < #statelist
+		for i=1,#statelist,2
 			k, v = statelist[i], statelist[i+1]
+			loader(k)
 			loader(v)
 			rawset(obj, k,v)
-			i += 2
 
 	-- Save the object
 	loader(_obj)
 
-return {:push_state, :pop_state}
+exclude = (obj) ->
+	EXCLUDE_TABLE[obj] = true
+
+return {:push_state, :pop_state, :exclude}

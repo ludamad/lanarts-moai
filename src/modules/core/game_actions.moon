@@ -138,10 +138,10 @@ GameActionFrameSet = with newtype()
 
     -- Note, to qualify, every frame BEFORE it must be complete
     .find_latest_complete_frame = () =>
-        best = nil
-        for frame in *@frames
-            if frame\is_complete()
-                best = frame
+        best = 0
+        for i=@frames\first(),@frames\last()
+            if @frames\get(i)\is_complete(i)
+                best = i
             else
                 return best
         return best
@@ -179,9 +179,10 @@ setup_action_state = (G) ->
         _ensure_player_actions(G)
         G.player_actions\add(action)
 
-    G.drop_old_actions = () ->
+    G.drop_old_actions = (step_number) ->
         _ensure_player_actions(G)
-        G.player_actions\drop_until(G.step_number)
+        print("DROP OLD ACTIONS", step_number)
+        G.player_actions\drop_until(step_number)
 
     -- Returns 'false' if no action yet queued (should never be the case for local player!)
     G.get_action = (id_player, step_number = G.step_number) ->

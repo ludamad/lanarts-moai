@@ -1,9 +1,12 @@
+-- Must load data -first- because it can be referenced in files
+require '@define_data'
+
 user_io = require "user_io"
 modules = require "modules"
 mtwist = require 'mtwist'
 util = require 'core.util'
 
-import object_types, game_state from require 'core'
+import object_types, game_state, level_state, level_view from require 'core'
 
 -------------------------------------------------------------------------------
 -- Game setup
@@ -37,9 +40,6 @@ main = () ->
     gl_set_vsync(false)
 
 	rng = mtwist.create(1)--os.time())
-	require '@define_data'
-
-    glevel = require 'core.level'
 
     G = game_state.create_game_state()
 
@@ -50,13 +50,13 @@ main = () ->
         log("game start called")
 		tilemap = modules.get_level("start").generator(G, rng)
 
-	    L = glevel.create_level_state(G, rng, tilemap)
+	    L = level_state.create_level_state(G, rng, tilemap)
 	    _spawn_players(G, L)
-	    V = glevel.create_level_view(L, w, h)
+	    V = level_view.create_level_view(L, w, h)
 
 	    G.change_view(V)
 
-    G.change_view(glevel.create_menu_view(G, w,h, _start_game))
+    G.change_view(level_view.create_menu_view(G, w,h, _start_game))
 
 	thread = G.start()
 

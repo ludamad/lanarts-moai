@@ -1,7 +1,6 @@
 -- By default, tiles are 32x32
 
 gen = require '@generate'
-object_types = require 'core.object_types'
 import TileMap from require "core"
 
 with tiledef file: 'floor.png', solid: false

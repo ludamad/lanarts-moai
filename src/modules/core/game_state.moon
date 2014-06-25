@@ -3,9 +3,43 @@ import serialization from require 'core'
 import ClientMessageHandler, ServerMessageHandler from require 'core.net_message_handler'
 user_io = require 'user_io'
 
+_G.perf_time = (name, f) -> 
+    before = MOAISim\getDeviceTime()
+    f()
+    after = MOAISim\getDeviceTime()
+    print "'#{name}' took #{after - before} seconds!"
+
 -------------------------------------------------------------------------------
 -- The main stepping 'thread' (coroutine)
 -------------------------------------------------------------------------------
+
+PREDICT_STEPS = 5
+
+_net_step = (G) ->
+    previous_step = G.step_number
+    -- Incorporate new information (if any) and replay actions
+    last_best = G.player_actions\find_latest_complete_frame()
+    -- Ensure we don't step past the current step
+    last_best = math.min(last_best, G.step_number)
+    -- Could we move our fork further along?
+    if last_best >= G.fork_step_number
+        G.serialize_revert()
+        -- Move our state until the point where complete information is exhausted
+        -- We should move one past from the point where we had information for forking
+        while last_best >= G.step_number and previous_step > G.step_number
+            -- Step with complete frame information
+            G.step()
+        -- Create a new fork
+        G.serialize_fork()
+        -- Move our state to our previous (potentially incomplete) position
+        while previous_step > G.step_number
+            -- Step with only client-side information
+            G.step()
+
+    -- Check that we are as advanced as we before (and not further)
+    assert(previous_step == G.step_number, "Incorporated new information incorrectly!")
+    if G.step_number < G.fork_step_number + PREDICT_STEPS
+        G.step()
 
 main_thread = (G) -> create_thread () ->
     while true
@@ -15,20 +49,23 @@ main_thread = (G) -> create_thread () ->
         is_menu = G.level_view.is_menu
         if G.net_handler
             G.net_handler\poll()
-            if not is_menu and not G.have_all_actions_for_step()
-                -- Give it some time
-                G.net_handler\poll(35)
 
-        do_step = is_menu or G.have_all_actions_for_step()
-
-        if do_step
+        if is_menu 
             G.step()
+        elseif not G.net_handler
+            G.step()
+            G.drop_old_actions(G.step_number)
+        else
+            before = MOAISim\getDeviceTime()
+
+            _net_step(G)
+
+            after = MOAISim\getDeviceTime()
+            print "'STEP' took #{(after - before)*1000} milliseconds!"
+
+            G.drop_old_actions(G.fork_step_number - 1)
 
         G.pre_draw()
-        -- If we did the step, are we aren't in a menu, step the frame count
-        if not is_menu and do_step
-            G.drop_old_actions()
-            G.step_number += 1
 
 setup_network_state = (G) ->
     if G.gametype == 'client'
@@ -58,6 +95,8 @@ create_game_state = () ->
             G.level_view\stop()
         G.level_view = V
         G.level = V.level
+        if not V.is_menu
+            G.serialize_fork()
         G.level_view.start()
 
     -- Setup function
@@ -77,10 +116,21 @@ create_game_state = () ->
     -- Game step function
     G.step = () -> 
         G.level.step() unless G.level == nil
+        G.step_number += 1 unless G.level.is_menu
+
+    G.serialize_fork = () ->
+        serialization.exclude(G)
+        serialization.push_state(G.level)
+        G.fork_step_number = G.step_number
+    G.serialize_revert = () ->
+        serialization.exclude(G)
+        serialization.pop_state(G.level)
+        G.step_number = G.fork_step_number
 
     G.handle_io = () ->
         if user_io.key_down "K_Q"
             serialization.push_state(G.level)
+            G.fork_step_number = G.step_number
 
         if user_io.key_down "K_E"
             serialization.pop_state(G.level)
