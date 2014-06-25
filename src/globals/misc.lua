@@ -8,8 +8,13 @@ end}
 function do_nothing()
 end
 
-function log(...)
-    print(...)
+if os.getenv "LOG" then
+    function log(...)
+         print(...)
+    end
+else
+    function log(...)
+    end
 end
 
 -- Set to a metatable that does not allow nil accesses

@@ -63,7 +63,6 @@ buffer_encode_actions = (buffer, actions) ->
 -- Common to both ClientMessageHandler and ServerMessageHandler
 setup_handler_base = (N) ->
     N.send_message = (obj, peer = nil) =>
-        pretty("SENDING", obj)
         N.connection\send_reliable(obj, peer)
 
     N.send_actions = (actions, peer = nil) =>
@@ -130,7 +129,6 @@ ServerMessageHandler = create: (G, args) ->
             port: port
             handle_connect: (event) => 
                 log("ServerMessageHandler.handle_connect")
-                pretty "Server got connection", event
 
             -- Returns false if message should be queued
             handle_reliable_message: (obj) => 

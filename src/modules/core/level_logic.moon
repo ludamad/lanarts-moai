@@ -38,7 +38,6 @@ _handle_action = (L, obj, action) ->
     elseif action.action_type == game_actions.ACTION_MOVE
         id_player, step_number, dx, dy = game_actions.unbox_move_action(action)
         assert(id_player == obj.id_player)
-        print(step_number, L.gamestate.step_number)
         assert(step_number == L.gamestate.step_number)
         _handle_player_move(obj, L, dx, dy)
 
@@ -84,7 +83,18 @@ step = (L) ->
 
 -- IO Handling
 
+MAX_FUTURE_STEPS = 5
+
 _handle_player_io = (L) =>
+    G = L.gamestate
+    step_number = G.step_number
+    while G.get_action(@id_player, step_number) 
+        -- We already have an action for this frame, move forward
+        step_number += 1
+        if step_number > G.step_number + MAX_FUTURE_STEPS
+            -- We do not want to queue up a huge amount of actions to be sent
+            return
+
     dx,dy=0,0
     if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
         dy = -1
@@ -95,16 +105,13 @@ _handle_player_io = (L) =>
     elseif (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
         dx = -1
 
-    G = L.gamestate
-    action = game_actions.make_move_action @, G.step_number, dx, dy
+    action = game_actions.make_move_action @, step_number, dx, dy
     G.queue_action(action)
     if G.net_handler
-        log(L.gamestate.gametype, "Sending actions for player ", action.id_player)
         G.net_handler\send_actions {action}
 
 handle_io = (L) ->
     for player in L.player_iter()
-        print(L.gamestate.gametype, player, L.gamestate.is_local_player(player))
         if L.gamestate.is_local_player(player)
             _handle_player_io(player, L)
 

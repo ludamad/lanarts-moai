@@ -90,7 +90,6 @@ _ArrayWithOffset = with newtype()
             append @array, false
 
     .get = (i) =>
-        assert(i >= @first() and i <= @last())
         return @array[i - @offset]
 
     .set = (i, val) =>
@@ -99,13 +98,16 @@ _ArrayWithOffset = with newtype()
 
     .drop_until = (drop_i) =>
         old_last = @last()
-        drop_n = (drop_i - @offset)
-        for i = @last(), @first(), -1
-            @set(i - drop_n + 1, @get(i))
-            @set(i, nil)
-        @offset += drop_n
-        assert(@first() == drop_i + 1)
-        assert(@last() == old_last)
+        assert(drop_i >= @offset)
+        _drop = (drop_i - @offset)
+        A=@array
+        for i=_drop,#A-_drop
+            A[i] = A[i + _drop]
+        for i=(#A - _drop+1),#A
+            A[i] = nil
+        @offset = drop_i
+        assert(@first() == drop_i + 1, "First != drop_i + 1")
+        -- assert(@last() == old_last or #@array == 0, "Last != old_last")
 
 -- One frame of game actions
 GameActionFrame = with newtype()
@@ -117,10 +119,11 @@ GameActionFrame = with newtype()
     .set = (id_player, action) =>
         assert(id_player >= 1 and id_player <= #@actions)
         @actions[id_player] = action
-    .is_complete = () =>
+    .is_complete = (step_number) =>
         for action in *@actions
             if not action
                 return false
+            assert(action.step_number == step_number)
         return true
 
 -- The set of game actions that have been received
@@ -145,6 +148,10 @@ GameActionFrameSet = with newtype()
 
     .add = (action) =>
         frame = @get_frame(action.step_number) 
+        if frame\get(action.id_player)
+            pretty(frame\get(action.id_player))
+            pretty(action)
+            error("Already have action for id=#{action.id_player} frame=#{action.step_number}!")
         frame\set(action.id_player, action)
 
     .drop_until = (step_number) =>
@@ -168,7 +175,7 @@ setup_action_state = (G) ->
     G.player_actions = nil
 
     G.queue_action = (action) ->
-        log('Queuing action for step:', action.step_number, 'player:', action.id_player)
+        print('Queuing action for step:', action.step_number, 'player:', action.id_player)
         _ensure_player_actions(G)
         G.player_actions\add(action)
 
@@ -177,14 +184,14 @@ setup_action_state = (G) ->
         G.player_actions\drop_until(G.step_number)
 
     -- Returns 'false' if no action yet queued (should never be the case for local player!)
-    G.get_action = (id_player) ->
+    G.get_action = (id_player, step_number = G.step_number) ->
         _ensure_player_actions(G)
-        frame = G.player_actions\get_frame(G.step_number)
+        frame = G.player_actions\get_frame(step_number)
         return frame\get(id_player)
 
     G.have_all_actions_for_step = () ->
         _ensure_player_actions(G)
-        return G.player_actions\get_frame(G.step_number)\is_complete()
+        return G.player_actions\get_frame(G.step_number)\is_complete(G.step_number)
 
 return {
     :GameAction, :GameActionFrame, :GameActionFrameSet, 

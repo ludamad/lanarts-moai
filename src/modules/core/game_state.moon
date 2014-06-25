@@ -11,19 +11,22 @@ main_thread = (G) -> create_thread () ->
     while true
         coroutine.yield()
 
-        is_menu = G.level_view.is_menu
-        before = MOAISim.getDeviceTime()
-
         G.handle_io()
-
+        is_menu = G.level_view.is_menu
         if G.net_handler
             G.net_handler\poll()
-            while not is_menu and not G.have_all_actions_for_step()
-                G.net_handler\poll(1)
+            if not is_menu and not G.have_all_actions_for_step()
+                -- Give it some time
+                G.net_handler\poll(35)
 
-        G.step()
+        do_step = is_menu or G.have_all_actions_for_step()
+
+        if do_step
+            G.step()
+
         G.pre_draw()
-        if not is_menu
+        -- If we did the step, are we aren't in a menu, step the frame count
+        if not is_menu and do_step
             G.drop_old_actions()
             G.step_number += 1
 
@@ -74,7 +77,6 @@ create_game_state = () ->
     -- Game step function
     G.step = () -> 
         G.level.step() unless G.level == nil
-        G.level_view.pre_draw() unless G.level_view == nil
 
     G.handle_io = () ->
         if user_io.key_down "K_Q"

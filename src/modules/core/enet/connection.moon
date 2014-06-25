@@ -24,7 +24,6 @@ ServerConnection = with newtype()
 				append @peers, event.peer
 				append @messages, event
 			elseif event.type == "receive"
-				pretty("Received, ", event)
 				append @messages, event
 			else
 				pretty("Server got ", event)

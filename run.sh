@@ -37,5 +37,5 @@ if handle_flag "--gdb" || handle_flag "-g" ; then
         -ex=r --args \
         "$EXECUTABLE" $FLAGS main $args
 else
-    "$EXECUTABLE" $FLAGS main $args
+    exec "$EXECUTABLE" $FLAGS main $args
 fi
