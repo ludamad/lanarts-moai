@@ -1,4 +1,7 @@
--- Must load data -first- because it can be referenced in files
+-- Must load settings early because it can be referenced in files
+_G._SETTINGS = require "settings"
+
+-- Must load data early because it can be referenced in files
 require '@define_data'
 
 user_io = require "user_io"
@@ -11,8 +14,6 @@ import object_types, game_state, level_state, level_view from require 'core'
 -------------------------------------------------------------------------------
 -- Game setup
 -------------------------------------------------------------------------------
-
-_G._SETTINGS = require "settings"
 
 {w, h} = _SETTINGS.window_size
 

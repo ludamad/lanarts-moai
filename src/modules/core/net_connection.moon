@@ -33,9 +33,9 @@ RawNetConnection = create: (args) ->
         -- Note: We send reliable messages over channel 1
         if peer -- Did we specify a peer? (server-only)
             if reliable
-                peer\send(data, channel)
+                N.connection\send(data, channel, peer)
             else
-                peer\send_unreliable(data, channel)
+                N.connection\send_unreliable(data, channel, peer)
         else -- Broadcast (if server) or send to server (if client)
             if reliable
                 N.connection\send(data, channel)
@@ -45,7 +45,7 @@ RawNetConnection = create: (args) ->
     N.send_unreliable = (data, peer = nil) =>
         -- log("RawNetConnection.send_unreliable", data)
         -- Send an unreliable message over channel 0
-        _send(0, data, true, peer)
+        _send(0, data, false, peer)
 
     N.send_reliable = (data, peer = nil) =>
         -- Send a reliable message over channel 1
@@ -117,9 +117,27 @@ NetConnection = create: (args) ->
         -- TODO: Prevent simple attacks where memory is hogged up by unexpected messages
         for obj in *_msgqueue
             if obj.type == type
-                log("NetConnection.unqueue_message: unqueing", type)
+                log("NetConnection.unqueue_message: unqueuing", type)
                 table.remove_occurrences _msgqueue, obj
                 return obj
+        return nil
+
+    -- Server only, used for a many-to-one confirmation
+    -- Eg, if server must receive a message from every client to initiate an action
+    N.unqueue_message_all = (type) =>
+        assert(_G.type(type) == 'string', "Unqueue type must be a string!")
+        messages = {}
+        for peer in *N\peers()
+            for obj in *_msgqueue
+                if obj.type == type and obj.peer == peer
+                    append messages, obj
+        -- Did we get a message from every peer?
+        if #messages == #N\peers()
+            for obj in *messages
+                table.remove_occurrences _msgqueue, obj
+            log("NetConnection.unqueue_message_all: unqueuing", type)
+            return messages
+        -- All or nothing
         return nil
 
     return N

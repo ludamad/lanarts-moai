@@ -116,7 +116,7 @@ _handle_player_io = (L) =>
     action = game_actions.make_move_action @, step_number, dx, dy
     G.queue_action(action)
     if G.net_handler
-        G.net_handler\send_actions {action}
+        G.net_handler\send_unacknowledged_actions()
 
 handle_io = (L) ->
     if (user_io.key_pressed "K_ESCAPE")

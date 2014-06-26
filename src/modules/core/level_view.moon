@@ -4,7 +4,7 @@
 
 BoolGrid, mtwist = require "BoolGrid", require "mtwist" 
 
-import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld,
+import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld, game_actions,
     game_actions from require "core"
 
 -------------------------------------------------------------------------------
@@ -214,6 +214,9 @@ create_menu_view = (G, w,h, continue_callback) ->
         \setFont (res.get_font 'Gudea-Regular.ttf')
         \setSize 29
 
+    client_starting = false
+    server_starting = false
+
     V.pre_draw = () ->
         util_draw.reset_draw_cache()
         info = "There are #{#G.players} players."
@@ -222,13 +225,41 @@ create_menu_view = (G, w,h, continue_callback) ->
         else 
             info ..= "\nPress ENTER to continue."
 
+        net_send = (type) ->
+            G.net_handler\send_message {:type}
+        net_recv = (type) ->
+            if G.gametype == 'server' 
+                G.net_handler\unqueue_message_all(type)
+            else
+                G.net_handler\unqueue_message(type)
+
+        -- At the beginning, there is a rather complicated handshake:
+        -- Server sends ServerRequestStartGame, sets up action state
+        --  -> Client receives ServerRequestStartGame, sends ClientAckStartGame, sets up action state
+        --   -> Server receives ClientAckStartGame from _all_ clients, sends ServerConfirmStartGame, starts the game
+        --    -> Client receives ServerConfirmStartGame, starts the game
+        --
+        -- Note though this handshake is completely contained within this block, and 
+        -- this guarantees that everyone is set up ready to receive game actions!
+
         util_draw.draw_text(V.layer, menu_style, info)
-        if G.gametype == 'server' and (user_io.key_pressed("K_ENTER") or user_io.key_pressed("K_SPACE"))
-            G.net_handler\send_message type: "GameStart"
-            continue_callback()
-        elseif G.gametype == 'client' and G.net_handler\unqueue_message "GameStart"
-            continue_callback()
+        if client_starting
+            if net_recv("ServerConfirmStartGame")
+                continue_callback()
+        elseif server_starting
+            if net_recv("ClientAckStartGame")
+                net_send("ServerConfirmStartGame")
+                continue_callback()
+        elseif G.gametype == 'server' and (user_io.key_pressed("K_ENTER") or user_io.key_pressed("K_SPACE"))
+            server_starting = true
+            game_actions.setup_action_state(G)
+            net_send("ServerRequestStartGame")
+        elseif G.gametype == 'client' and net_recv("ServerRequestStartGame")
+            client_starting = true
+            game_actions.setup_action_state(G)
+            net_send("ClientAckStartGame")
         elseif G.gametype == 'single_player'
+            game_actions.setup_action_state(G)
             continue_callback()
 
     V.handle_io = () -> nil

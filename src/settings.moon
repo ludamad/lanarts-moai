@@ -11,7 +11,7 @@ player_name = (os.getenv "player") or "DUMMY"
 {
 headless: false
 window_size: {800, 600}
-server_ip: '192.168.12.102'
+server_ip: (os.getenv "IP") or '192.168.12.102'
 server_port: 6112
 frames_per_second: 100
 frames_per_second_csp: 50
@@ -20,6 +20,7 @@ frames_per_second_csp: 50
 :player_name
 
 --Online settings
+network_lock_step: false
 username: 'User'
 lobby_server_url: 'http://putterson.homedns.org:8080'
 

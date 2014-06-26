@@ -8,6 +8,7 @@ ServerConnection = with newtype()
 		if host == nil
 			error(status)
 		@host = host
+		@host\compress_with_range_coder()
 		@peers = {}
 		-- Message queue
 		@messages = {}
@@ -15,27 +16,39 @@ ServerConnection = with newtype()
 	.get_queued_messages = () => @messages
 	.clear_queued_messages = () => table.clear(@messages)
 
-	.poll = (wait_time = 0) =>
-		event = @host\service(wait_time)
-		-- Continue polling until we are not receiving events
+	._handle_event = (event) =>
 		if event
 			if event.type == "connect"
-				print event.peer, " has joined!"
+				print event.peer, "has joined!"
 				append @peers, event.peer
 				append @messages, event
 			elseif event.type == "receive"
 				append @messages, event
 			else
-				pretty("Server got ", event)
-			return true
+				pretty("Client got ", event)
+
+	.poll = (wait_time = 0) =>
+		event = @host\service(wait_time)
+		-- Continue polling until we are not receiving events
+		if @_handle_event(event)
+			while true 
+				if not @_handle_event(@host\service())
+					return true
 		return false
 
-	.send = (msg,channel=0) =>
-		@host\broadcast msg, channel
+
+	.send = (msg,channel=0, peer) =>
+		if peer
+			peer\send msg, channel
+		else
+			@host\broadcast msg, channel
 		@host\flush()
 
-	.send_unreliable = (msg,channel=0) =>
-		@host\broadcast msg, channel, 'unreliable'
+	.send_unreliable = (msg,channel=0, peer) =>
+		if peer
+			peer\send msg, channel, 'unreliable'
+		else
+			@host\broadcast msg, channel, 'unreliable'
 		@host\flush()
 
 	.disconnect = () =>
@@ -48,9 +61,9 @@ ClientConnection = with newtype()
 		loc = ip .. ":" .. port
 		@host = enet.host_create()
 		@connection = @host\connect(loc, channels)
+		@host\compress_with_range_coder()
 		-- Message queue
 		@messages = {}
-		@connected = false
 
 	.get_queued_messages = () => @messages
 	.clear_queued_messages = () => table.clear(@messages)
@@ -59,13 +72,9 @@ ClientConnection = with newtype()
 		msgs,@messages = @messages,{}
 		return msgs
 
-	.poll = () =>
-		event = @host\service(0)
-		-- Continue polling until we are not receiving events
+	._handle_event = (event) =>
 		if event
 			if event.type == "connect"
-				assert not @connected
-				@connected = true
 				print "Client connected!"
 				append @messages, event
 			elseif event.type == "receive"
@@ -73,6 +82,15 @@ ClientConnection = with newtype()
 			else
 				pretty("Client got ", event)
 			return true
+		return false
+
+	.poll = (wait_time = 0) =>
+		event = @host\service(wait_time)
+		-- Continue polling until we are not receiving events
+		if @_handle_event(event)
+			while true 
+				if not @_handle_event(@host\service())
+					return true
 		return false
 
 	.send = (msg, channel=0) =>

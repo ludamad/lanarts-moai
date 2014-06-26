@@ -28,6 +28,17 @@ GameAction = with newtype()
         -- Two 64bit floats (semi-general purpose)
         @x, @y = x, y
 
+    .equals = (O) =>
+        if @id_player ~= O.id_player then return false
+        if @action_type ~= O.action_type then return false
+        if @step_number ~= O.step_number then return false
+        if @genericbyte1 ~= O.genericbyte1 then return false
+        if @genericbyte2 ~= O.genericbyte2 then return false
+        if @id_target ~= O.id_target then return false
+        if @x ~= O.x then return false
+        if @y ~= O.y then return false
+        return true
+
     .read = (buffer) =>
         -- For use with DataBuffer
         @id_player = buffer\read_byte()
@@ -93,12 +104,17 @@ _ArrayWithOffset = with newtype()
         return @array[i - @offset]
 
     .set = (i, val) =>
+        if i < @first()
+            -- Ignore 
+            return false
         @ensure_index(i)
         @array[i - @offset] = val
+        return true
 
     .drop_until = (drop_i) =>
         old_last = @last()
-        assert(drop_i >= @offset)
+        if drop_i < @offset
+            return
         _drop = (drop_i - @offset)
         A=@array
         for i=_drop+1,#A
@@ -123,7 +139,7 @@ GameActionFrame = with newtype()
         for action in *@actions
             if not action
                 return false
-            assert(action.step_number == step_number)
+            assert(step_number == nil or (action.step_number == step_number))
         return true
     ._step_number = () =>
         for action in *@actions
@@ -143,7 +159,7 @@ GameActionFrameSet = with newtype()
 
     -- Note, to qualify, every frame BEFORE it must be complete
     .find_latest_complete_frame = () =>
-        best = 0
+        best = @frames.offset
         for i=@frames\first(),@frames\last()
             if @frames\get(i)\is_complete(i)
                 best = i
@@ -152,12 +168,19 @@ GameActionFrameSet = with newtype()
         return best
 
     .add = (action) =>
+        if action.step_number < @first()
+            return false
         frame = @get_frame(action.step_number) 
-        if frame\get(action.id_player)
-            pretty(frame\get(action.id_player))
-            pretty(action)
-            error("Already have action for id=#{action.id_player} frame=#{action.step_number}!")
+        previous_action = frame\get(action.id_player)
+        if previous_action
+            if previous_action.step_number ~= action.step_number
+                pretty_print(@frames)
+                error "Previous action not appropriate!"
+            if not previous_action\equals(action)
+                error("A conflicting action was sent! Confused and bailing out, previously:\n #{pretty_tostring(previous_action)}\n vs new:\n #{pretty_tostring(action)}.")
+            return false
         frame\set(action.id_player, action)
+        return true
 
     .first = () => @frames\first()
     .last = () => @frames\last()
@@ -180,7 +203,8 @@ GameActionFrameSet = with newtype()
     -- Get by step number, and optionally also player ID
     .get_frame = (step_number) =>
         if step_number < @queue_start
-            error("Steps for before #{queue_start} (#{step_number}) not possible, already cleared!")
+            return -- Now possible, below are lies. But, can be safely ignored.
+            -- error("Steps for before #{queue_start} (#{step_number}) not possible, already cleared!")
         @frames\ensure_index(step_number)
         frame = @frames\get(step_number)
         if not frame
@@ -192,7 +216,7 @@ setup_action_state = (G) ->
     G.player_actions = GameActionFrameSet.create(#G.players)
 
     G.queue_action = (action) ->
-        G.player_actions\add(action)
+        return G.player_actions\add(action)
 
     G.drop_old_actions = (step_number) ->
         G.player_actions\drop_until(step_number)
@@ -203,6 +227,7 @@ setup_action_state = (G) ->
         return frame\get(id_player)
 
     -- Find the next action, even in the future
+    -- debug only
     G.seek_action = (id_player) ->
         A = G.player_actions
         best = nil
@@ -212,6 +237,8 @@ setup_action_state = (G) ->
             if not action return best
             else best = action
         return best
+    -- Find next action, starting from the end
+    -- debug only
     G.bseek_action = (id_player) ->
         A = G.player_actions
         for i=A\last(),A\first(),-1

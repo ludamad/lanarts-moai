@@ -26,6 +26,8 @@ handlers_client = {
         -- Rebuild the player list:
         for p in *msg.list
             append G.players, {id_player: p.id_player, player_name: p.player_name, is_controlled: p.is_controlled}
+            if p.is_controlled
+                G.local_player_id = p.id_player
         pretty_print(G.players)
 }
 
@@ -49,12 +51,16 @@ handle_message = (G, handlers, msg) =>
 buffer_decode_actions = (buffer, msg) ->
     buffer\clear()
     buffer\write_raw(msg.data)
-    n = buffer\read_int()
+    last_ack = buffer\read_int()
+    actions = {}
+    while buffer\can_read()
+        append actions, GameAction.create(buffer)
     -- Note: Creating a GameAction will read the buffer
-    return [GameAction.create(buffer) for i=1,n]
+    return last_ack, actions
 
-buffer_encode_actions = (buffer, actions) ->
+buffer_encode_actions = (last_ack, buffer, actions) ->
     buffer\clear()
+    buffer\write_int(last_ack)
     buffer\write_int(#actions)
     for action in *actions
         action\write(buffer)
@@ -64,10 +70,6 @@ buffer_encode_actions = (buffer, actions) ->
 setup_handler_base = (N) ->
     N.send_message = (obj, peer = nil) =>
         N.connection\send_reliable(obj, peer)
-
-    N.send_actions = (actions, peer = nil) =>
-        msg = buffer_encode_actions(N.buffer, actions)
-        N.connection\send_unreliable(msg, peer)
 
     N.poll = (wait_time = 0) =>
         N.connection\poll(wait_time)
@@ -93,6 +95,8 @@ ClientMessageHandler = create: (G, args) ->
     {:ip, :port} = args
     local N
     N = {
+        -- Sent from server
+        last_acknowledged_frame: 0
         -- Buffer for message serialization
         buffer: DataBuffer.create()
         connection: NetConnection.create {
@@ -110,11 +114,43 @@ ClientMessageHandler = create: (G, args) ->
 
             -- Action handler
             handle_unreliable_message: (msg) =>
-                actions = buffer_decode_actions(N.buffer, msg)
+                last_ack, actions = buffer_decode_actions(N.buffer, msg)
+                new_actions = 0
+                N.last_acknowledged_frame = math.max(last_ack, 0 or N.last_acknowledged_frame)
                 for action in *actions
-                    G.queue_action(action)
+                    if G.queue_action(action)
+                        new_actions += 1
+                -- print(">> CLIENT RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }
     }
+
+    N.min_acknowledged_frame = () => N.last_acknowledged_frame
+
+    N.send_unacknowledged_actions = () =>
+        -- The current player
+        pid = G.local_player_id
+        last_ack = N.last_acknowledged_frame
+        -- Clear the buffer for writing
+        N.buffer\clear()
+        -- Acknowledge the last full frame
+        last_full = G.player_actions\find_latest_complete_frame()
+        N.buffer\write_int(last_full)
+
+        n_actions = 0
+        -- From the last acknowledge frame, to our most recent, send
+        -- all the actions
+        for i=last_ack, G.player_actions\last()
+            frame = G.player_actions\get_frame(i)
+            if frame
+                action = frame\get(pid)
+                if action 
+                    action\write(N.buffer)
+                    n_actions +=1
+
+        -- print("CLIENT PRINTING #{n_actions} ACTIONS")
+
+        N.connection\send_unreliable(N.buffer\tostring())
+
     setup_handler_base(N)
     return N
 
@@ -122,6 +158,8 @@ ServerMessageHandler = create: (G, args) ->
     {:port} = args
     local N
     N = {
+        -- One for each peer
+        last_acknowledged_frame: {}
         -- Buffer for message serialization
         buffer: DataBuffer.create()
         connection: NetConnection.create {
@@ -137,17 +175,61 @@ ServerMessageHandler = create: (G, args) ->
 
             -- Action handler
             handle_unreliable_message: (msg) =>
-                actions = buffer_decode_actions(N.buffer, msg)
+                last_ack, actions = buffer_decode_actions(N.buffer, msg)
+                N.last_acknowledged_frame[msg.peer] = math.max(last_ack, 0 or N.last_acknowledged_frame[msg.peer])
+                new_actions = 0
                 for action in *actions
                     if G.peer_player_id(msg.peer) ~= action.id_player
-                        error("Player #{G.peer_player_id(event.peer)} trying to send actions for player #{action.id_player}!")
-                    G.queue_action(action)
-                for peer in *@peers()
-                    if peer ~= msg.peer
-                        @send_unreliable msg.data, peer
-
+                        error("Player #{G.peer_player_id(msg.peer)} trying to send actions for player #{action.id_player}!")
+                    if G.queue_action(action)
+                        new_actions += 1
+                -- print(">> SERVER RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }
     }
+
+    N.min_acknowledged_frame = () => 
+        min = math.huge
+        for k,v in pairs(N.last_acknowledged_frame)
+            min = math.min(math.huge, v)
+        return (if min == math.huge then 0 else min)
+
+    -- Basic idea: Continuously send something every frame if it was not acknowledge
+    N.send_unacknowledged_actions = () =>
+        for peer in *@peers()
+            if peer ~= msg.peer
+                N.connection\send_unreliable msg.data, peer
+
+    _send_unacknowledged_actions = (peer) ->
+        -- The current player
+        pid = G.peer_player_id(peer)
+        last_ack = N.last_acknowledged_frame[peer] or 0
+        -- Clear the buffer for writing
+        N.buffer\clear()
+        -- Acknowledge the last full frame
+        last_action = G.seek_action(pid)
+        N.buffer\write_int(if last_action then last_action.step_number else G.fork_step_number)
+
+        n_actions = 0
+        -- From the last acknowledge frame, to our most recent, send
+        -- all the actions
+        for i=last_ack, G.player_actions\last()
+            frame = G.player_actions\get_frame(i)
+            if frame and frame\is_complete()
+                for action in *frame.actions
+                    if action.id_player ~= pid
+                        action\write(N.buffer)
+                        n_actions +=1
+
+        -- print("SERVER PRINTING #{n_actions} ACTIONS")
+        N.connection\send_unreliable(N.buffer\tostring())
+
+    N.send_unacknowledged_actions = () =>
+        for peer in *@peers()
+            _send_unacknowledged_actions(peer)
+
+    N.unqueue_message_all = (type) =>
+        N.connection\unqueue_message_all(type)
+
     setup_handler_base(N)
     return N
 

@@ -13,9 +13,11 @@ _G.perf_time = (name, f) ->
 -- The main stepping 'thread' (coroutine)
 -------------------------------------------------------------------------------
 
-FORK_ADVANCE = 1000
-PREDICT_STEPS = 250
-SLOWDOWN_STEPS = 30
+DISABLE = 1000 -- Arbitrarily large
+
+FORK_ADVANCE = DISABLE
+PREDICT_STEPS = if _SETTINGS.network_lockstep then 0 else 100
+SLOWDOWN_STEPS = DISABLE
 CHECK_TIME = 0 / 1000 -- seconds
 
 last_time = MOAISim\getDeviceTime()
@@ -65,8 +67,10 @@ main_thread = (G) -> create_thread () -> profile () ->
         is_menu = G.level_view.is_menu
         if G.net_handler
             G.net_handler\poll()
-            -- while not is_menu and G.step_number > G.player_actions\find_latest_complete_frame()
-            --     G.net_handler\poll(1)
+            if not is_menu and  _SETTINGS.network_lockstep
+                if G.step_number > G.player_actions\find_latest_complete_frame()
+                    G.net_handler\poll(1)
+                    G.net_handler\send_unacknowledged_actions()
 
         if is_menu 
             G.step()
@@ -81,7 +85,8 @@ main_thread = (G) -> create_thread () -> profile () ->
             after = MOAISim\getDeviceTime()
             -- print "'STEP' took #{(after - before)*1000} milliseconds!"
 
-            G.drop_old_actions(G.fork_step_number - 1)
+            last_needed = math.min(G.fork_step_number, G.net_handler\min_acknowledged_frame())
+            G.drop_old_actions(last_needed - 1)
 
         G.pre_draw()
 
@@ -111,9 +116,6 @@ create_game_state = () ->
         G.level_view = V
         G.level = V.level
         if not V.is_menu
-            -- Set up player actions, and associated helpers
-            require("@game_actions").setup_action_state(G)
-
             G.serialize_fork()
         G.level_view.start()
 
