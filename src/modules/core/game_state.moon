@@ -15,6 +15,7 @@ _G.perf_time = (name, f) ->
 
 FORK_ADVANCE = 1000
 PREDICT_STEPS = 250
+SLOWDOWN_STEPS = 30
 CHECK_TIME = 0 / 1000 -- seconds
 
 last_time = MOAISim\getDeviceTime()
@@ -49,6 +50,10 @@ _net_step = (G) ->
 
     -- Check that we are as advanced as we before (and not further)
     assert(previous_step == G.step_number, "Incorporated new information incorrectly!")
+    if G.step_number > G.fork_step_number + SLOWDOWN_STEPS
+        MOAISim.setStep(1 / _SETTINGS.frames_per_second_csp)
+    else
+        MOAISim.setStep(1 / _SETTINGS.frames_per_second)
     if G.step_number <= G.fork_step_number + PREDICT_STEPS
         G.step()
 
