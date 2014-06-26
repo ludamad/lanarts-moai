@@ -44,7 +44,10 @@ push_state = (_obj) ->
 		meta = getmetatable(obj)
 
 		if meta == BoolGridMeta
-			data[data[0]] = obj\clone()
+			if data[data[0]] then
+				obj\copy(data[data[0]])
+			else
+				data[data[0]] = obj\clone()
 			return
 		elseif meta == FOVMeta
 			-- pass
@@ -53,8 +56,13 @@ push_state = (_obj) ->
 			return
 
 		-- "Plain old Lua object"
-		statelist = {}
-		data[data[0]] = statelist
+		statelist = data[data[0]]
+		if type(statelist) ~= 'table'
+			statelist = {}
+			data[data[0]] = statelist
+		else
+			table_clear(statelist)
+
 		i = 1
 		for k,v in pairs(obj)
 			saver(k)

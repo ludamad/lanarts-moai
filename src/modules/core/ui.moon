@@ -15,7 +15,7 @@ SHOW_DEBUG = true
 create_text = (layer) ->
     text = with MOAITextBox.new()
         \setFont(get_font 'LiberationMono-Regular.ttf')
-        \setTextSize( 24 )
+        \setTextSize( 12 )
         \setString( "" )
         \setRect(-128,-128,128,128)
         \setAlignment( MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY )
@@ -62,13 +62,21 @@ ui_ingame_scroll = (V) ->
         -- Update last mouse-recorded mouse position:
         mX,mY = user_io.mouse_xy()
 
+        G = V.gamestate
         -- Show coordinates, if SHOW_DEBUG is true
         if SHOW_DEBUG
             rX,rY = real_mouse_xy(V)
             tX,tY = tile_mouse_xy(V)
             -- Handle nils
             tX,tY = tX or "-", tY or "-"
-            text_box\setString(rX .. ", " .. rY .. " => " .. tX .. ", " .. tY .. "\n FPS: " .. MOAISim.getPerformance() ) 
+            text = rX .. ", " .. rY .. " => " .. tX .. ", " .. tY .. "\n FPS: " .. MOAISim.getPerformance()
+            text ..= "\n Current frame: #{G.step_number}"
+            for i=1,#V.gamestate.players
+                next_queued_action = V.gamestate.seek_action(i)
+                queued = if next_queued_action then next_queued_action.step_number else "<NONE>"
+                text ..= "\n Player #{i}: #{queued}"
+            text_box\setString(text) 
+
             text_box\setLoc(rX, rY)
 
 -- Runs a MOAIThread for selecting squares

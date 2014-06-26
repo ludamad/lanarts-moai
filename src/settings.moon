@@ -11,8 +11,8 @@ player_name = (os.getenv "player") or "DUMMY"
 {
 headless: false
 window_size: {800, 600}
-server_ip: 'localhost'
-server_port: 7890
+server_ip: '192.168.12.102'
+server_port: 6112
 frames_per_second: 100
 
 :gametype

@@ -142,6 +142,10 @@ ServerMessageHandler = create: (G, args) ->
                     if G.peer_player_id(msg.peer) ~= action.id_player
                         error("Player #{G.peer_player_id(event.peer)} trying to send actions for player #{action.id_player}!")
                     G.queue_action(action)
+                for peer in *@peers()
+                    if peer ~= msg.peer
+                        @send_unreliable msg.data, peer
+
         }
     }
     setup_handler_base(N)

@@ -68,8 +68,9 @@ RawNetConnection = create: (args) ->
 
     N.poll = (wait_time = 0) =>
         N.connection\poll(wait_time)
-        for event in *N.connection\grab_messages()
+        for event in *N.connection\get_queued_messages()
             _handle_network_event(event)
+        N.connection\clear_queued_messages()
 
     N.disconnect = () =>
         N.connection\disconnect()

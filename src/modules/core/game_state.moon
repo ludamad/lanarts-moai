@@ -13,20 +13,31 @@ _G.perf_time = (name, f) ->
 -- The main stepping 'thread' (coroutine)
 -------------------------------------------------------------------------------
 
-PREDICT_STEPS = 5
+FORK_ADVANCE = 1000
+PREDICT_STEPS = 250
+CHECK_TIME = 0 / 1000 -- seconds
+
+last_time = MOAISim\getDeviceTime()
 
 _net_step = (G) ->
     previous_step = G.step_number
+    -- Manage time passage
+    new_time = MOAISim\getDeviceTime()
+    time_passed = (new_time - last_time)
+
     -- Incorporate new information (if any) and replay actions
     last_best = G.player_actions\find_latest_complete_frame()
     -- Ensure we don't step past the current step
     last_best = math.min(last_best, G.step_number)
     -- Could we move our fork further along?
-    if last_best >= G.fork_step_number
+    if time_passed > CHECK_TIME and last_best >= G.fork_step_number
+        last_time = new_time
+        next_fork_target = math.min(previous_step, G.fork_step_number + FORK_ADVANCE)
+
         G.serialize_revert()
         -- Move our state until the point where complete information is exhausted
         -- We should move one past from the point where we had information for forking
-        while last_best >= G.step_number and previous_step > G.step_number
+        while last_best >= G.step_number and G.step_number < next_fork_target
             -- Step with complete frame information
             G.step()
         -- Create a new fork
@@ -38,10 +49,10 @@ _net_step = (G) ->
 
     -- Check that we are as advanced as we before (and not further)
     assert(previous_step == G.step_number, "Incorporated new information incorrectly!")
-    if G.step_number < G.fork_step_number + PREDICT_STEPS
+    if G.step_number <= G.fork_step_number + PREDICT_STEPS
         G.step()
 
-main_thread = (G) -> create_thread () ->
+main_thread = (G) -> create_thread () -> profile () ->
     while true
         coroutine.yield()
 
@@ -49,6 +60,8 @@ main_thread = (G) -> create_thread () ->
         is_menu = G.level_view.is_menu
         if G.net_handler
             G.net_handler\poll()
+            -- while not is_menu and G.step_number > G.player_actions\find_latest_complete_frame()
+            --     G.net_handler\poll(1)
 
         if is_menu 
             G.step()
@@ -61,7 +74,7 @@ main_thread = (G) -> create_thread () ->
             _net_step(G)
 
             after = MOAISim\getDeviceTime()
-            print "'STEP' took #{(after - before)*1000} milliseconds!"
+            -- print "'STEP' took #{(after - before)*1000} milliseconds!"
 
             G.drop_old_actions(G.fork_step_number - 1)
 
@@ -81,9 +94,6 @@ create_game_state = () ->
 
     require("@player_state").setup_player_state(G)
 
-    -- Set up player actions, and associated helpers
-    require("@game_actions").setup_action_state(G)
-
     setup_network_state(G)
 
     -- Based on game type above, and _SETTINGS object for IP (for client) & port (for both client & server)
@@ -96,6 +106,9 @@ create_game_state = () ->
         G.level_view = V
         G.level = V.level
         if not V.is_menu
+            -- Set up player actions, and associated helpers
+            require("@game_actions").setup_action_state(G)
+
             G.serialize_fork()
         G.level_view.start()
 

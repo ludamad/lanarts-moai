@@ -101,13 +101,13 @@ _ArrayWithOffset = with newtype()
         assert(drop_i >= @offset)
         _drop = (drop_i - @offset)
         A=@array
-        for i=_drop,#A-_drop
-            A[i] = A[i + _drop]
+        for i=_drop+1,#A
+            A[i - _drop] = A[i]
         for i=(#A - _drop+1),#A
             A[i] = nil
         @offset = drop_i
         assert(@first() == drop_i + 1, "First != drop_i + 1")
-        -- assert(@last() == old_last or #@array == 0, "Last != old_last")
+        assert(@last() == old_last or #@array == 0, "Last != old_last")
 
 -- One frame of game actions
 GameActionFrame = with newtype()
@@ -125,6 +125,11 @@ GameActionFrame = with newtype()
                 return false
             assert(action.step_number == step_number)
         return true
+    ._step_number = () =>
+        for action in *@actions
+            if action
+                return action.step_number
+        
 
 -- The set of game actions that have been received
 GameActionFrameSet = with newtype()
@@ -154,8 +159,23 @@ GameActionFrameSet = with newtype()
             error("Already have action for id=#{action.id_player} frame=#{action.step_number}!")
         frame\set(action.id_player, action)
 
+    .first = () => @frames\first()
+    .last = () => @frames\last()
+
     .drop_until = (step_number) =>
+        -- print "-- BEFORE --"
+        -- print "Offset", @frames.offset
+        -- for i=@frames\first(),@frames\last()
+        --     print "Step #{i}:", @frames\get(i)\_step_number()
+        -- print "-------------"
         @frames\drop_until(step_number)
+        -- for i=@frames\first(),@frames\last()
+        --     @frames\get(i)\is_complete(i)
+        -- print "-- AFTER --"
+        -- print "Offset", @frames.offset
+        -- for i=@frames\first(),@frames\last()
+        --     print "Step #{i}:", @frames\get(i)\_step_number()
+        -- print "-------------"
 
     -- Get by step number, and optionally also player ID
     .get_frame = (step_number) =>
@@ -168,30 +188,29 @@ GameActionFrameSet = with newtype()
             @frames\set(step_number, frame)
         return frame
 
-_ensure_player_actions = (G) ->
-    G.player_actions = G.player_actions or GameActionFrameSet.create(#G.players)
-
 setup_action_state = (G) ->
-    G.player_actions = nil
+    G.player_actions = GameActionFrameSet.create(#G.players)
 
     G.queue_action = (action) ->
-        print('Queuing action for step:', action.step_number, 'player:', action.id_player)
-        _ensure_player_actions(G)
         G.player_actions\add(action)
 
     G.drop_old_actions = (step_number) ->
-        _ensure_player_actions(G)
-        print("DROP OLD ACTIONS", step_number)
         G.player_actions\drop_until(step_number)
 
     -- Returns 'false' if no action yet queued (should never be the case for local player!)
     G.get_action = (id_player, step_number = G.step_number) ->
-        _ensure_player_actions(G)
         frame = G.player_actions\get_frame(step_number)
         return frame\get(id_player)
 
+    -- Find the next action, even in the future
+    G.seek_action = (id_player) ->
+        A = G.player_actions
+        for i=A\first(),A\last()
+            frame = A\get_frame(i)
+            action = frame\get(id_player)
+            if action then return action
+
     G.have_all_actions_for_step = () ->
-        _ensure_player_actions(G)
         return G.player_actions\get_frame(G.step_number)\is_complete(G.step_number)
 
 return {

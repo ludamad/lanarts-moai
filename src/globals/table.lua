@@ -13,6 +13,7 @@ local function zero_row(len)
     return r
 end
 
+require 'table.clear' -- Try to load luajit builtin
 if not table.clear then -- Prefer luajit builtin (by a lot)
     function table.clear(t)
         for i=#t,1 do
@@ -22,6 +23,13 @@ if not table.clear then -- Prefer luajit builtin (by a lot)
             rawset(t,k,nil)
         end
     end
+end
+
+function profile(f)
+    require("jit.p").start("vFL")
+    local ret = {f()}
+    require("jit.p").stop()
+    return unpack(ret)
 end
 
 function table.zeros(w, --[[Optional]] h)

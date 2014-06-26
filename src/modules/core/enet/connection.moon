@@ -2,7 +2,8 @@ enet = require 'enet'
 
 ServerConnection = with newtype()
 	.init = (port, channels) =>
-		loc = "localhost:" .. port
+		-- Allow connection from any address:
+		loc = "*:" .. port
 		host, status = enet.host_create(loc, nil, channels)
 		if host == nil
 			error(status)
@@ -11,9 +12,8 @@ ServerConnection = with newtype()
 		-- Message queue
 		@messages = {}
 
-	.grab_messages = () =>
-		msgs,@messages = @messages,{}
-		return msgs
+	.get_queued_messages = () => @messages
+	.clear_queued_messages = () => table.clear(@messages)
 
 	.poll = (wait_time = 0) =>
 		event = @host\service(wait_time)
@@ -49,6 +49,9 @@ ClientConnection = with newtype()
 		-- Message queue
 		@messages = {}
 		@connected = false
+
+	.get_queued_messages = () => @messages
+	.clear_queued_messages = () => table.clear(@messages)
 
 	.grab_messages = () =>
 		msgs,@messages = @messages,{}

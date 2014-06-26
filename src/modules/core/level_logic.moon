@@ -84,7 +84,9 @@ step = (L) ->
 
 -- IO Handling
 
-MAX_FUTURE_STEPS = 5
+MAX_FUTURE_STEPS = 0
+
+rdx,rdy = _RNG\random(-1,2),_RNG\random(-1,2)
 
 _handle_player_io = (L) =>
     G = L.gamestate
@@ -106,12 +108,19 @@ _handle_player_io = (L) =>
     elseif (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
         dx = -1
 
+    if dx==0 and dy==0 then 
+        dx,dy = rdx,rdy
+        if _RNG\random(15) == 1
+            rdx,rdy = _RNG\random(-1,2),_RNG\random(-1,2)
+
     action = game_actions.make_move_action @, step_number, dx, dy
     G.queue_action(action)
     if G.net_handler
         G.net_handler\send_actions {action}
 
 handle_io = (L) ->
+    if (user_io.key_pressed "K_ESCAPE")
+        os.exit()
     for player in L.player_iter()
         if L.gamestate.is_local_player(player)
             _handle_player_io(player, L)
@@ -154,20 +163,22 @@ pre_draw = (V) ->
             camera.center_on(V, pobj.x, pobj.y)
 
     -- Update the sight map
-    for inst in V.level.player_iter()
-       seen = inst.vision.seen_tile_map
-       fov = inst.vision.fieldofview
-       x1,y1,x2,y2 = camera.tile_region_covered(V)
-       for y=y1,y2 do for x=x1,x2
-            tile = if seen\get(x,y) then 1 else 2
-            V.fov_grid\setTile(x, y, tile)
 
-    for inst in V.level.player_iter()
-       {x1,y1,x2,y2} = inst.vision.current_seen_bounds
-       fov = inst.vision.fieldofview
-       for y=y1,y2-1 do for x=x1,x2-1
-            if fov\within_fov(x,y)
-                V.fov_grid\setTile(x, y, 0) -- Currently seen
+    x1,y1,x2,y2 = camera.tile_region_covered(V)
+    for y=y1,y2 do for x=x1,x2
+        tile = 0--2
+        -- for inst in V.level.player_iter()
+        --     seen = inst.vision.seen_tile_map
+        --     fov = inst.vision.fieldofview
+        --     if seen\get(x,y) then tile = 1
+        V.fov_grid\setTile(x, y, tile)
+
+    -- for inst in V.level.player_iter()
+    --    {x1,y1,x2,y2} = inst.vision.current_seen_bounds
+    --    fov = inst.vision.fieldofview
+    --    for y=y1,y2-1 do for x=x1,x2-1
+    --         if fov\within_fov(x,y)
+    --             V.fov_grid\setTile(x, y, 0) -- Currently seen
 
 draw = (V) ->
     -- Immediate mode drawing. TODO Reevaluate if needed

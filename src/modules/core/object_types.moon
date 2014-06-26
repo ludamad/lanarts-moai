@@ -63,7 +63,7 @@ CombatObjectBase = with newtype {parent: ObjectBase}
         L.collision_world\update_instance(@id_col, @x, @y, @radius, @target_radius, @solid)
     .sync = (L) =>
         ObjectBase.sync(@, L)
-        @sync_col(L)
+        -- @sync_col(L)
 
     -- Set RVO heading
     .set_rvo = (L, dx, dy) =>
@@ -98,8 +98,8 @@ Player = with newtype {parent: CombatObjectBase}
         @paths_to_player = FloodFillPaths.create(L.tilemap)
     .sync = (L) =>
         CombatObjectBase.sync(@, L)
-        @vision\update(@x/L.tile_width, @y/L.tile_height)
-        @paths_to_player\update(@x, @y, @player_path_radius)
+        -- @vision\update(@x/L.tile_width, @y/L.tile_height)
+        -- @paths_to_player\update(@x, @y, @player_path_radius)
 
     .quad = modules.get_sprite("player")\create_quad()
     .update_prop = (prop) =>
