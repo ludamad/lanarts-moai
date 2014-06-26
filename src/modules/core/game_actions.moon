@@ -205,10 +205,13 @@ setup_action_state = (G) ->
     -- Find the next action, even in the future
     G.seek_action = (id_player) ->
         A = G.player_actions
+        best = nil
         for i=A\first(),A\last()
             frame = A\get_frame(i)
             action = frame\get(id_player)
-            if action then return action
+            if not action return best
+            else best = action
+        return best
 
     G.have_all_actions_for_step = () ->
         return G.player_actions\get_frame(G.step_number)\is_complete(G.step_number)

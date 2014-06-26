@@ -72,9 +72,13 @@ ui_ingame_scroll = (V) ->
             text = rX .. ", " .. rY .. " => " .. tX .. ", " .. tY .. "\n FPS: " .. MOAISim.getPerformance()
             text ..= "\n Current frame: #{G.step_number}"
             for i=1,#V.gamestate.players
-                next_queued_action = V.gamestate.seek_action(i)
-                queued = if next_queued_action then next_queued_action.step_number else "<NONE>"
-                text ..= "\n Player #{i}: #{queued}"
+                is_local = V.gamestate.players[i].is_controlled
+                if is_local
+                    text ..= "\n Player #{i}: Local player"
+                else
+                    next_queued_action = V.gamestate.seek_action(i)
+                    queued = if next_queued_action ~= nil then next_queued_action.step_number else G.fork_step_number
+                    text ..= "\n Player #{i}: #{queued}"
             text_box\setString(text) 
 
             text_box\setLoc(rX, rY)
