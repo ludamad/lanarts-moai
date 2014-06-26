@@ -166,19 +166,19 @@ pre_draw = (V) ->
 
     x1,y1,x2,y2 = camera.tile_region_covered(V)
     for y=y1,y2 do for x=x1,x2
-        tile = 0--2
-        -- for inst in V.level.player_iter()
-        --     seen = inst.vision.seen_tile_map
-        --     fov = inst.vision.fieldofview
-        --     if seen\get(x,y) then tile = 1
+        tile = 2
+        for inst in V.level.player_iter()
+            seen = inst.vision.seen_tile_map
+            fov = inst.vision.fieldofview
+            if seen\get(x,y) then tile = 1
         V.fov_grid\setTile(x, y, tile)
 
-    -- for inst in V.level.player_iter()
-    --    {x1,y1,x2,y2} = inst.vision.current_seen_bounds
-    --    fov = inst.vision.fieldofview
-    --    for y=y1,y2-1 do for x=x1,x2-1
-    --         if fov\within_fov(x,y)
-    --             V.fov_grid\setTile(x, y, 0) -- Currently seen
+    for inst in V.level.player_iter()
+       {x1,y1,x2,y2} = inst.vision.current_seen_bounds
+       fov = inst.vision.fieldofview
+       for y=y1,y2-1 do for x=x1,x2-1
+            if fov\within_fov(x,y)
+                V.fov_grid\setTile(x, y, 0) -- Currently seen
 
 draw = (V) ->
     -- Immediate mode drawing. TODO Reevaluate if needed

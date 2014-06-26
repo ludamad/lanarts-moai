@@ -98,7 +98,7 @@ Player = with newtype {parent: CombatObjectBase}
         @paths_to_player = FloodFillPaths.create(L.tilemap)
     .sync = (L) =>
         CombatObjectBase.sync(@, L)
-        -- @vision\update(@x/L.tile_width, @y/L.tile_height)
+        @vision\update(@x/L.tile_width, @y/L.tile_height)
         -- @paths_to_player\update(@x, @y, @player_path_radius)
 
     .quad = modules.get_sprite("player")\create_quad()

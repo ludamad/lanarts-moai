@@ -24,7 +24,7 @@ with spritedef file: 'monsters.png', size: {32,32}, tiled: true, kind: 'variant'
 leveldef.define {
 	name: "start" 
 	generator: (G, rng) ->
-		model = gen.generate_empty_model(rng)
+		model = gen.generate_test_model(rng)
 		-- for i=1,50 do spawn rng, model, 
 		-- 	(px, py) -> (L) ->
 		-- 		object_types.NPC.create L, {

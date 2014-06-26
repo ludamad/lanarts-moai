@@ -32,7 +32,7 @@ ServerConnection = with newtype()
 		-- Continue polling until we are not receiving events
 		if @_handle_event(event)
 			while true 
-				if not @_handle_event(@host\service())
+				if not @_handle_event(@host\check_events())
 					return true
 		return false
 
@@ -89,7 +89,7 @@ ClientConnection = with newtype()
 		-- Continue polling until we are not receiving events
 		if @_handle_event(event)
 			while true 
-				if not @_handle_event(@host\service())
+				if not @_handle_event(@host\check_events())
 					return true
 		return false
 
