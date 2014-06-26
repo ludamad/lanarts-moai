@@ -32,14 +32,16 @@ ServerConnection = with newtype()
 
 	.send = (msg,channel=0) =>
 		@host\broadcast msg, channel
+		@host\flush()
 
 	.send_unreliable = (msg,channel=0) =>
 		@host\broadcast msg, channel, 'unreliable'
+		@host\flush()
 
 	.disconnect = () =>
+		@host\flush()
 		for peer in *@peers
 			peer\disconnect()
-		@host\flush()
 
 ClientConnection = with newtype()
 	.init = (ip, port, channels) =>
@@ -75,9 +77,11 @@ ClientConnection = with newtype()
 
 	.send = (msg, channel=0) =>
 		@connection\send msg, channel
+		@host\flush()
 
 	.send_unreliable = (msg, channel=0) =>
 		@connection\send msg, channel, 'unreliable'
+		@host\flush()
 
 	.disconnect = () =>
 		@host\flush()

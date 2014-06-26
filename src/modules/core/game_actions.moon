@@ -212,6 +212,12 @@ setup_action_state = (G) ->
             if not action return best
             else best = action
         return best
+    G.bseek_action = (id_player) ->
+        A = G.player_actions
+        for i=A\last(),A\first(),-1
+            frame = A\get_frame(i)
+            action = frame\get(id_player)
+            if action return action
 
     G.have_all_actions_for_step = () ->
         return G.player_actions\get_frame(G.step_number)\is_complete(G.step_number)
