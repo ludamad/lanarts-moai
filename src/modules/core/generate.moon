@@ -1,6 +1,6 @@
 BoolGrid = require "BoolGrid"
 mtwist = require "mtwist"
-modules = require "modules"
+modules = require "core.data"
 T = modules.get_tilelist_id
 
 import print_map, make_tunnel_oper, make_rectangle_criteria, make_rectangle_oper, place_instances

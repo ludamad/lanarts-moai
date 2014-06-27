@@ -2,6 +2,7 @@
 
 import create_thread from require 'core.util'
 import get_texture, get_json, get_resource_path, get_font from require "resources"
+import camera from require 'core'
 user_io = require "user_io"
 ErrorReporting = require "system.ErrorReporting"
 
@@ -31,6 +32,27 @@ tile_mouse_xy = (V) ->
     rX, rY = real_mouse_xy(V)
     return V.level.real_xy_to_tile(rX, rY)
  
+ -- Textbox pseudo-method
+ -- Hack to fit textbox based on its contents
+textbox_fit_text = (x, y, text, align_x = 0, align_y = 0) =>
+    -- lines = text\split '\n'
+    -- -- Find maximum line length:
+    -- max_width = 0
+    -- for line in *lines
+    --     max_width = math.max(max_width, #line)
+
+    -- Arbitrarily big
+    BIG = 1000
+    @setAlignment(MOAITextBox.LEFT_JUSTIFY, MOAITextBox.LEFT_JUSTIFY)
+    @setRect(x, y, x + BIG, y + BIG)
+    @setString(text)
+
+    x1, y1, x2, y2 = @getStringBounds(1,#text)
+    w,h = (x2 - x1), (y2 - y1)
+    a1x,a2x = align_x, 1 - align_x
+    a1y,a2y = align_y, 1 - align_y
+    @setRect(math.floor(x - w*a1x), math.floor(y - h*a1x), math.ceil(x + w*a2x), math.ceil(y + h*a2y))
+
 -------------------------------------------------------------------------------
 -- UI Components
 -------------------------------------------------------------------------------
@@ -69,21 +91,28 @@ ui_ingame_scroll = (V) ->
             tX,tY = tile_mouse_xy(V)
             -- Handle nils
             tX,tY = tX or "-", tY or "-"
-            text = rX .. ", " .. rY .. " => " .. tX .. ", " .. tY .. "\n FPS: " .. MOAISim.getPerformance()
-            text ..= "\n Current frame: #{G.step_number}"
+            text = rX .. ", " .. rY .. " => " .. tX .. ", " .. tY .. "\nFPS: " .. MOAISim.getPerformance()
+            text ..= "\nCurrent frame: #{G.step_number}"
+            text ..= "\nLast forked frame: #{G.fork_step_number}"
             for i=1,#G.players
                 is_local = G.players[i].is_controlled
                 if is_local
-                    text ..= "\n Player #{i}: Local player"
+                    text ..= "\nPlayer #{i}: Local player"
                 else
                     next_queued_action = V.gamestate.seek_action(i)
                     best_queued_action = V.gamestate.bseek_action(i)
                     queued = if next_queued_action ~= nil then next_queued_action.step_number else G.fork_step_number
                     bqueued = if best_queued_action ~= nil then best_queued_action.step_number else G.fork_step_number
-                    text ..= "\n Player #{i}: #{G.step_number - queued} and #{G.step_number - bqueued} BEHIND"
-            text_box\setString(text) 
+                    text ..= "\nPlayer #{i}: #{queued} CURRENT #{G.step_number - queued} and #{G.step_number - bqueued} BEHIND"
+            if G.net_handler and type(G.net_handler.last_acknowledged_frame) == "number"
+                text ..= "\nLAST ACK #{G.net_handler.last_acknowledged_frame}"
+            if G.net_handler and type(G.net_handler.last_acknowledged_frame) == "table"
+                for k,v in pairs(G.net_handler.last_acknowledged_frame)
+                    id = G.peer_player_id(k)
+                    text ..= "\nLAST ACK for player #{id}: #{v}"
 
-            text_box\setLoc(rX, rY)
+
+            textbox_fit_text(text_box, 0, 0, text)
 
 -- Runs a MOAIThread for selecting squares
 -- V: The level components, from load_tiled_json

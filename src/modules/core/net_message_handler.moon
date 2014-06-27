@@ -54,7 +54,7 @@ buffer_decode_actions = (buffer, msg) ->
     last_ack = buffer\read_int()
     actions = {}
     while buffer\can_read()
-        append actions, GameAction.create(buffer)
+        append actions,GameAction.create(buffer)
     -- Note: Creating a GameAction will read the buffer
     return last_ack, actions
 
@@ -85,7 +85,15 @@ setup_handler_base = (N) ->
     N.unqueue_message = (type) =>
         N.connection\unqueue_message(type)
 
+    N._prep_action_buffer = (ack_to_send) =>
+        @buffer\clear()
+        @buffer\write_int(ack_to_send)
+    N._flush_action_buffer = (channel, peer = nil) =>
+        @connection\send_unsequenced(channel, @buffer\tostring(), peer)
+
     return N
+
+MAX_PACKET_SIZE = 1200
 
 -------------------------------------------------------------------------------
 -- Client & server message handlers
@@ -113,10 +121,10 @@ ClientMessageHandler = create: (G, args) ->
                 handle_message(N, G, handlers_client, obj)
 
             -- Action handler
-            handle_unreliable_message: (msg) =>
+            handle_unsequenced_message: (msg) =>
                 last_ack, actions = buffer_decode_actions(N.buffer, msg)
                 new_actions = 0
-                N.last_acknowledged_frame = math.max(last_ack, 0 or N.last_acknowledged_frame)
+                N.last_acknowledged_frame = math.max(last_ack, N.last_acknowledged_frame)
                 for action in *actions
                     if G.queue_action(action)
                         new_actions += 1
@@ -126,30 +134,37 @@ ClientMessageHandler = create: (G, args) ->
 
     N.min_acknowledged_frame = () => N.last_acknowledged_frame
 
-    N.send_unacknowledged_actions = () =>
+    N.send_unacknowledged_actions = (lookback = nil) =>
         -- The current player
         pid = G.local_player_id
-        last_ack = N.last_acknowledged_frame
+        first_to_send = if lookback then G.step_number - lookback else N.last_acknowledged_frame + 1
         -- Clear the buffer for writing
         N.buffer\clear()
         -- Acknowledge the last full frame
-        last_full = G.player_actions\find_latest_complete_frame()
-        N.buffer\write_int(last_full)
+        ack_to_send = G.player_actions\find_latest_complete_frame()
+        -- Channel to send over
+        channel = if lookback then 1 else 2
 
-        n_actions = 0
+        -- Clear the buffer for writing
+        @_prep_action_buffer(ack_to_send)
+
         -- From the last acknowledge frame, to our most recent, send
         -- all the actions
-        for i=last_ack, G.player_actions\last()
+        for i=first_to_send, G.player_actions\last()
             frame = G.player_actions\get_frame(i)
             if frame
                 action = frame\get(pid)
                 if action 
                     action\write(N.buffer)
-                    n_actions +=1
+                    if @buffer\size() >= MAX_PACKET_SIZE
+                        @_flush_action_buffer(channel)
+                        -- Clear the buffer for writing
+                        @_prep_action_buffer(ack_to_send)
 
-        -- print("CLIENT PRINTING #{n_actions} ACTIONS")
+        -- print("CLIENT SENDING #{first_to_send}, to #{G.player_actions\last()}, #{n_actions} ACTIONS")
 
-        N.connection\send_unreliable(N.buffer\tostring())
+        if @buffer\size() > 4 -- Does it have an action?
+            @_flush_action_buffer(channel)
 
     setup_handler_base(N)
     return N
@@ -174,9 +189,9 @@ ServerMessageHandler = create: (G, args) ->
                 handle_message(N, G, handlers_server, obj)
 
             -- Action handler
-            handle_unreliable_message: (msg) =>
+            handle_unsequenced_message: (msg) =>
                 last_ack, actions = buffer_decode_actions(N.buffer, msg)
-                N.last_acknowledged_frame[msg.peer] = math.max(last_ack, 0 or N.last_acknowledged_frame[msg.peer])
+                N.last_acknowledged_frame[msg.peer] = math.max(last_ack, N.last_acknowledged_frame[msg.peer] or 0)
                 new_actions = 0
                 for action in *actions
                     if G.peer_player_id(msg.peer) ~= action.id_player
@@ -190,42 +205,50 @@ ServerMessageHandler = create: (G, args) ->
     N.min_acknowledged_frame = () => 
         min = math.huge
         for k,v in pairs(N.last_acknowledged_frame)
-            min = math.min(math.huge, v)
+            min = math.min(min, v)
         return (if min == math.huge then 0 else min)
 
     -- Basic idea: Continuously send something every frame if it was not acknowledge
     N.send_unacknowledged_actions = () =>
         for peer in *@peers()
             if peer ~= msg.peer
-                N.connection\send_unreliable msg.data, peer
+                N.connection\send_unsequenced msg.data, peer
 
-    _send_unacknowledged_actions = (peer) ->
+
+    _send_unacknowledged_actions = (peer, lookback = nil) =>
         -- The current player
         pid = G.peer_player_id(peer)
-        last_ack = N.last_acknowledged_frame[peer] or 0
-        -- Clear the buffer for writing
-        N.buffer\clear()
-        -- Acknowledge the last full frame
+        first_to_send = if lookback then G.step_number - lookback else (N.last_acknowledged_frame[peer] or 0) + 1
+        -- last_ack = G.player_actions\first()
         last_action = G.seek_action(pid)
-        N.buffer\write_int(if last_action then last_action.step_number else G.fork_step_number)
+        ack_to_send = (if last_action then last_action.step_number else G.fork_step_number - 1)
+        -- Channel to send over
+        channel = if lookback then 1 else 2
 
-        n_actions = 0
+        -- Clear the buffer for writing
+        @_prep_action_buffer(ack_to_send)
+
         -- From the last acknowledge frame, to our most recent, send
         -- all the actions
-        for i=last_ack, G.player_actions\last()
+        for i=first_to_send, G.player_actions\last()
             frame = G.player_actions\get_frame(i)
-            if frame and frame\is_complete()
+            if frame
                 for action in *frame.actions
-                    if action.id_player ~= pid
+                    if action and action.id_player ~= pid
                         action\write(N.buffer)
-                        n_actions +=1
+                        if @buffer\size() >= MAX_PACKET_SIZE
+                            @_flush_action_buffer(channel, peer)
+                            -- Clear the buffer for writing
+                            @_prep_action_buffer(ack_to_send)
 
-        -- print("SERVER PRINTING #{n_actions} ACTIONS")
-        N.connection\send_unreliable(N.buffer\tostring())
+        if @buffer\size() > 4 -- Does it have an action?
+            @_flush_action_buffer(channel, peer)
 
-    N.send_unacknowledged_actions = () =>
+        print("SERVER SENDING PEER #{peer} PID #{pid} #{first_to_send}, to #{G.player_actions\last()}")
+
+    N.send_unacknowledged_actions = (lookback = nil) =>
         for peer in *@peers()
-            _send_unacknowledged_actions(peer)
+            _send_unacknowledged_actions(@, peer, lookback)
 
     N.unqueue_message_all = (type) =>
         N.connection\unqueue_message_all(type)

@@ -1,11 +1,14 @@
 -- Must load settings early because it can be referenced in files
 _G._SETTINGS = require "settings"
 
+-- Define data loading functions
+require "@data"
+
 -- Must load data early because it can be referenced in files
 require '@define_data'
 
 user_io = require "user_io"
-modules = require "modules"
+modules = require "core.data"
 mtwist = require 'mtwist'
 util = require 'core.util'
 

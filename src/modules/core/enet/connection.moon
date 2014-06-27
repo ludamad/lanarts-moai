@@ -1,5 +1,9 @@
 enet = require 'enet'
 
+THROTTLE_INTERVAL = 1000
+THROTTLE_ACCELERATION = 2
+THROTTLE_DECELERATION = 2
+
 ServerConnection = with newtype()
 	.init = (port, channels) =>
 		-- Allow connection from any address:
@@ -8,7 +12,7 @@ ServerConnection = with newtype()
 		if host == nil
 			error(status)
 		@host = host
-		@host\compress_with_range_coder()
+		-- @host\compress_with_range_coder()
 		@peers = {}
 		-- Message queue
 		@messages = {}
@@ -20,6 +24,7 @@ ServerConnection = with newtype()
 		if event
 			if event.type == "connect"
 				print event.peer, "has joined!"
+				-- event.peer\throttle_configure(THROTTLE_INTERVAL, THROTTLE_ACCELERATION, THROTTLE_DECELERATION)
 				append @peers, event.peer
 				append @messages, event
 			elseif event.type == "receive"
@@ -37,18 +42,18 @@ ServerConnection = with newtype()
 		return false
 
 
-	.send = (msg,channel=0, peer) =>
+	.send = (msg,channel, peer) =>
 		if peer
 			peer\send msg, channel
 		else
 			@host\broadcast msg, channel
 		@host\flush()
 
-	.send_unreliable = (msg,channel=0, peer) =>
+	.send_unsequenced = (msg,channel, peer) =>
 		if peer
-			peer\send msg, channel, 'unreliable'
+			peer\send msg, channel, 'unsequenced'
 		else
-			@host\broadcast msg, channel, 'unreliable'
+			@host\broadcast msg, channel, 'unsequenced'
 		@host\flush()
 
 	.disconnect = () =>
@@ -61,7 +66,7 @@ ClientConnection = with newtype()
 		loc = ip .. ":" .. port
 		@host = enet.host_create()
 		@connection = @host\connect(loc, channels)
-		@host\compress_with_range_coder()
+		-- @host\compress_with_range_coder()
 		-- Message queue
 		@messages = {}
 
@@ -93,12 +98,12 @@ ClientConnection = with newtype()
 					return true
 		return false
 
-	.send = (msg, channel=0) =>
+	.send = (msg, channel) =>
 		@connection\send msg, channel
 		@host\flush()
 
-	.send_unreliable = (msg, channel=0) =>
-		@connection\send msg, channel, 'unreliable'
+	.send_unsequenced = (msg, channel) =>
+		@connection\send msg, channel, 'unsequenced'
 		@host\flush()
 
 	.disconnect = () =>

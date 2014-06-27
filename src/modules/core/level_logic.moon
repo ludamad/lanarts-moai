@@ -1,7 +1,7 @@
 
 import camera, util_movement, util_geometry, util_draw, game_actions from require "core"
 resources = require 'resources'
-modules = require 'modules'
+modules = require 'core.data'
 user_io = require 'user_io'
 
 -- Special movement helper
@@ -24,6 +24,8 @@ _action_move = (L, dirx, diry, dist) =>
     -- Finally, take that path:
     @x += total_dx
     @y += total_dy
+    if dirx ~= 0 or diry ~= 0
+        @frame += 0.1
 
 -- Pseudomethod
 _handle_player_move = (L, dx, dy) =>
@@ -49,7 +51,7 @@ _action_move_with_velocity = (L, vx, vy) =>
 
 _step_objects = (L) ->
     -- Set up directions of all players
-    for obj in L.player_iter()
+    for obj in *L.player_list
         action = L.gamestate.get_action(obj.id_player)
         if action
             _handle_action(L, obj, action)
@@ -65,14 +67,14 @@ _step_objects = (L) ->
 
     -- Run the collision avoidance algorithm
     L.rvo_world\step()
-    for obj in L.npc_iter()
-        vx, vy = obj\get_rvo_velocity(L)
-        -- Advance forward
-        if vx ~= 0 or vy ~= 0
-            _action_move_with_velocity(obj, L, vx, vy)
+    -- for obj in L.npc_iter()
+    --     vx, vy = obj\get_rvo_velocity(L)
+    --     -- Advance forward
+    --     if vx ~= 0 or vy ~= 0
+    --         _action_move_with_velocity(obj, L, vx, vy)
 
     -- Sync up any data that requires copying after position changes
-    for obj in L.object_iter()
+    for obj in *L.object_list
         obj\sync(L)
 
 step = (L) ->
@@ -115,18 +117,19 @@ _handle_player_io = (L) =>
 
     action = game_actions.make_move_action @, step_number, dx, dy
     G.queue_action(action)
-    if G.net_handler
-        G.net_handler\send_unacknowledged_actions()
+    -- if G.net_handler
+        -- Send last two unacknowledged actions (included the one just queued)
+        -- G.net_handler\send_unacknowledged_actions(2)
 
 handle_io = (L) ->
     if (user_io.key_pressed "K_ESCAPE")
         os.exit()
-    for player in L.player_iter()
+    for player in *L.player_list
         if L.gamestate.is_local_player(player)
             _handle_player_io(player, L)
 
 start = (V) -> nil
-    -- for inst in V.level.object_iter()
+    -- for inst in *V.level.object_list
     --     inst\register_prop(V)
 
 _text_style = with MOAITextStyle.new()
@@ -135,24 +138,20 @@ _text_style = with MOAITextStyle.new()
     \setSize 14
 
 _draw_text = (V, text, obj, dx, dy) ->
-    util_draw.draw_text V.ui_layer, _text_style, text, obj.x + dx, obj.y + dy
+    util_draw.put_text V.ui_layer, _text_style, text, obj.x + dx, obj.y + dy
 
 -- Takes view object
 pre_draw = (V) ->
     util_draw.reset_draw_cache()
 
-    for obj in V.level.player_iter()
+    for obj in *V.level.player_list
         _draw_text(V, V.gamestate.player_name(obj), obj, 0, -25)
 
     -- print MOAISim.getPerformance()
     if _SETTINGS.headless then return
 
-    for obj in V.level.object_iter()
+    for obj in *V.level.object_list
         obj\pre_draw(V)
-
-    for component in *V.ui_components
-        -- Step the component
-        component()
 
     -- Update in-focus object
     pobj = V.level.local_player()
@@ -167,18 +166,22 @@ pre_draw = (V) ->
     x1,y1,x2,y2 = camera.tile_region_covered(V)
     for y=y1,y2 do for x=x1,x2
         tile = 2
-        for inst in V.level.player_iter()
+        for inst in *V.level.player_list
             seen = inst.vision.seen_tile_map
             fov = inst.vision.fieldofview
             if seen\get(x,y) then tile = 1
         V.fov_grid\setTile(x, y, tile)
 
-    for inst in V.level.player_iter()
+    for inst in *V.level.player_list
        {x1,y1,x2,y2} = inst.vision.current_seen_bounds
        fov = inst.vision.fieldofview
        for y=y1,y2-1 do for x=x1,x2-1
             if fov\within_fov(x,y)
                 V.fov_grid\setTile(x, y, 0) -- Currently seen
+
+    for component in *V.ui_components
+        -- Step the component
+        component()
 
 draw = (V) ->
     -- Immediate mode drawing. TODO Reevaluate if needed

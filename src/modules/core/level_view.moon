@@ -16,7 +16,7 @@ import ui_ingame_scroll, ui_ingame_select from require "core.ui"
 import camera, util_draw from require "core"
 
 json = require 'json'
-modules = require 'modules'
+modules = require 'core.data'
 user_io = require 'user_io'
 res = require 'resources'
 serialization = require 'core.serialization'
@@ -117,7 +117,10 @@ setup_overlay_layers = (V) ->
     setup_fov_layer(V)
 
     -- Add the UI layer.
-    V.ui_layer = V.add_layer()
+    V.ui_layer = V.add_layer MOAICamera2D.new(), with MOAIViewport.new()
+        \setOffset(-1, 1)
+        \setSize(V.cameraw, V.camerah)
+        \setScale(V.cameraw, -V.camerah)
 
     -- Helpers for layer management
     V.add_ui_prop = (prop) -> V.ui_layer\insertProp(prop)
@@ -136,22 +139,12 @@ create_level_view = (level, cameraw, camerah) ->
     V.layers = {}
     -- The UI objects that run each step
     V.ui_components = {}
-    V.game_props = {}
-
-    V.get_prop = (id) ->
-        prop = V.game_props[id]
-        if not prop
-            prop = MOAIProp2D.new()
-            V.add_object_prop(prop)
-            V.game_props[id] = prop
-        prop\setVisible(true)
-        return prop
 
     -- Create and add a layer, sorted by priority (the default sort mode):
-    V.add_layer = () -> 
+    V.add_layer = (camera = V.camera, viewport = V.viewport) -> 
         layer = with MOAILayer2D.new()
-            \setCamera(V.camera) -- All layers use the same camera
-            \setViewport(V.viewport) -- All layers use the same viewport
+            \setCamera(camera) -- All layers use the same camera
+            \setViewport(viewport) -- All layers use the same viewport
         append(V.layers, layer)
         return layer
 
@@ -168,7 +161,6 @@ create_level_view = (level, cameraw, camerah) ->
 
     -- Note: uses script_prop above
     V.pre_draw = () ->
-        for k,v in pairs(V.game_props) do v\setVisible(false)
         script_prop\setLoc(V.camera\getLoc())
         level_logic.pre_draw(V)
 
@@ -189,8 +181,8 @@ create_level_view = (level, cameraw, camerah) ->
         for layer in *V.layers
             layer\clear()
 
-    append V.ui_components, ui_ingame_select V
     append V.ui_components, ui_ingame_scroll V
+    append V.ui_components, ui_ingame_select V
 
     return V
 
@@ -242,7 +234,8 @@ create_menu_view = (G, w,h, continue_callback) ->
         -- Note though this handshake is completely contained within this block, and 
         -- this guarantees that everyone is set up ready to receive game actions!
 
-        util_draw.draw_text(V.layer, menu_style, info)
+        util_draw.put_text(V.layer, menu_style, info, 0, 0, 0.5, 0.5, "center")
+
         if client_starting
             if net_recv("ServerConfirmStartGame")
                 continue_callback()

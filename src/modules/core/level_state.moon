@@ -1,7 +1,7 @@
 
 BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
-modules = require 'modules'
+modules = require 'core.data'
 import camera, util_geometry from require "core"
 import ObjectBase, CombatObjectBase, Player, NPC from require 'core.object_types'
 import FieldOfView, FloodFillPaths, GameInstSet, RVOWorld, GameTiles from require "core"
@@ -103,18 +103,18 @@ _setup_level_state_helpers = (L) ->
     L.solid_check = (obj, dx=0, dy=0, dradius=0) ->
         return L.tile_check(obj, dx, dy, dradius) or L.object_check(obj, dx, dy, dradius)
 
-    L.object_iter = () ->
-        return L.objects\iter()
+    -- L.object_iter = () ->
+    --     return L.objects\iter()
 
-    L.combat_object_iter = () ->
-        return L.objects\iter(CombatObjectBase)
+    -- L.combat_object_iter = () ->
+    --     return L.objects\iter(CombatObjectBase)
 
-    L.player_iter = () ->
-        return L.objects\iter(Player)
+    -- L.player_iter = () ->
+    --     return L.objects\iter(Player)
 
     L.local_player = () ->
         G = L.gamestate
-        for p in L.player_iter()
+        for p in *L.player_list
             if G.is_local_player(p)
                 return p
         return nil
@@ -128,6 +128,8 @@ _setup_level_state_helpers = (L) ->
 setup_level_state = (L) ->
     -- The object store and ID allocator
     L.objects = LevelObjectStore.create()
+    L.object_list = L.objects.list
+    L.player_list = {}
 
     -- The game collision detection 'world'
     L.collision_world = GameInstSet.create(L.pix_width, L.pix_height)

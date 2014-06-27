@@ -1,12 +1,13 @@
 -- Implements the game networking connection object.
 --
--- 2 channels are used:
---   channel 0 is used unreliably for low-latency communications, intended for sending actions
---   channel 1 is used reliably for control messages, such as notifications and full-state sync's
+--   channel 0 is used reliably for control messages, such as notifications and full-state sync's 
+--   The remaining channels are used for unreliably for low-latency communications, intended for sending actions
 --
 -- Purposely separate from any game logic, or representation concerns.
 
 import ClientConnection, ServerConnection from require "core.enet.connection"
+
+N_CHANNELS = 3
 
 RawNetConnection = create: (args) ->
     N = {
@@ -16,7 +17,7 @@ RawNetConnection = create: (args) ->
         ip: args.ip -- Only necessary if type == 'client' client specified
 
         handle_reliable_message: args.handle_reliable_message
-        handle_unreliable_message: args.handle_unreliable_message
+        handle_unsequenced_message: args.handle_unsequenced_message
         handle_connect: args.handle_connect
 
         -- Network state --
@@ -25,9 +26,9 @@ RawNetConnection = create: (args) ->
 
 	N.connect = () =>
 	    if N.type == 'server'
-	        N.connection = ServerConnection.create(N.port, 2)
+	        N.connection = ServerConnection.create(N.port, N_CHANNELS)
 	    elseif N.type == 'client'
-	        N.connection = ClientConnection.create(N.ip, N.port, 2)
+	        N.connection = ClientConnection.create(N.ip, N.port, N_CHANNELS)
 
     _send = (channel, data, reliable = true, peer = nil) ->
         -- Note: We send reliable messages over channel 1
@@ -35,31 +36,32 @@ RawNetConnection = create: (args) ->
             if reliable
                 N.connection\send(data, channel, peer)
             else
-                N.connection\send_unreliable(data, channel, peer)
+                N.connection\send_unsequenced(data, channel, peer)
         else -- Broadcast (if server) or send to server (if client)
             if reliable
                 N.connection\send(data, channel)
             else
-                N.connection\send_unreliable(data, channel)
+                N.connection\send_unsequenced(data, channel)
 
-    N.send_unreliable = (data, peer = nil) =>
-        -- log("RawNetConnection.send_unreliable", data)
-        -- Send an unreliable message over channel 0
-        _send(0, data, false, peer)
+    N.send_unsequenced = (channel, data, peer = nil) =>
+        -- log("RawNetConnection.send_unsequenced", data)
+        -- Send an unsequenced message over the specified channel
+        assert(channel > 0)
+        _send(channel, data, false, peer)
 
     N.send_reliable = (data, peer = nil) =>
-        -- Send a reliable message over channel 1
+        -- Send a reliable message over channel 0
         log("RawNetConnection.send_reliable", data)
-        _send(1, data, true, peer)
+        _send(0, data, true, peer)
 
     -- Network message handler
     _handle_network_event = (event) ->
         if event.type == 'connect'
             N\handle_connect(event)
         elseif event.type == 'receive' and event.channel == 0
-            N\handle_unreliable_message(event)
-        elseif event.type == 'receive' and event.channel == 1
             N\handle_reliable_message(event)
+        elseif event.type == 'receive' and event.channel > 0
+            N\handle_unsequenced_message(event)
         else
             error("Network logic error!")
 
@@ -103,7 +105,7 @@ NetConnection = create: (args) ->
             if not _rel_f(@, obj)
                 append _msgqueue, obj
 
-        handle_unreliable_message: args.handle_unreliable_message
+        handle_unsequenced_message: args.handle_unsequenced_message
     }
 
     raw_send_reliable = N.send_reliable

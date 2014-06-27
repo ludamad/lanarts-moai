@@ -1,8 +1,8 @@
 
 BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
-modules = require "modules"
-import camera from require "core"
+data = require "core.data"
+import camera, util_draw from require "core"
 import FieldOfView, FloodFillPaths from require "core"
 
 -- Object lifecycle:
@@ -30,15 +30,14 @@ ObjectBase = with newtype()
         @is_focus = args.is_focus or false
         -- Register into world , and store the instance table ID
         @id = L.objects\add(@)
+        @frame = 0
 
     .remove = (L) =>
         L.objects\remove(@)
 
-    .pre_draw = (V) => @update_prop V.get_prop(@id)
-        -- -- For debugging purposes:
-        -- checkCol = (if V.level.solid_check(@) then 0 else 1)
-        -- @prop\setColor(1, checkCol, checkCol, 1) 
-        -- @prop\setPriority(@y)
+    .pre_draw = (V) => 
+        -- Last number is priority
+        @sprite\put_prop(V.object_layer, @x, @y, @frame, @y)
 
     -- Note: Does not sync props
     .sync = (L) => nil
@@ -89,6 +88,24 @@ Vision = with newtype()
 
 
 Player = with newtype {parent: CombatObjectBase}
+    .sprite = data.get_sprite("player-human")
+    .equip_sprites = {
+        { -- Player 1, temporary
+            data.get_sprite("sa-archer")
+            data.get_sprite("sl-green-shorts")
+            data.get_sprite("sw-brown-bow")
+            data.get_sprite("ss-small-shield")
+            data.get_sprite("sb-boots")
+        }
+        { -- Player 2, temporary
+            data.get_sprite("sa-spiky")
+            data.get_sprite("sl-green-shorts")
+            data.get_sprite("sw-long-bow")
+            data.get_sprite("sg-claws")
+            data.get_sprite("sb-boots")
+        }
+    }
+
     .init = (L, args) =>
         CombatObjectBase.init(@, L, args)
         @vision_tile_radius = 7
@@ -96,24 +113,25 @@ Player = with newtype {parent: CombatObjectBase}
         @id_player = args.id_player
         @vision = Vision.create(L, @vision_tile_radius)
         @paths_to_player = FloodFillPaths.create(L.tilemap)
+        append L.player_list, @
+
+    .remove = (L) =>
+        table.remove_occurrences L.players, @
+
+    .pre_draw = (V) => 
+        -- Last number is priority
+        index = (@id_player-1) %2 +1
+        for i,equip in ipairs @equip_sprites[index]
+            equip\put_prop(V.object_layer, @x, @y, @frame, @y + i)
+        CombatObjectBase.pre_draw(@, V)
+
     .sync = (L) =>
         CombatObjectBase.sync(@, L)
         @vision\update(@x/L.tile_width, @y/L.tile_height)
         -- @paths_to_player\update(@x, @y, @player_path_radius)
 
-    .quad = modules.get_sprite("player")\create_quad()
-    .update_prop = (prop) =>
-        return with prop
-            \setDeck @quad
-            \setLoc(@x, @y)
-            \setPriority @y
 
 NPC = with newtype {parent: CombatObjectBase}
-    .quad = modules.get_sprite("monster")\create_quad()
-    .update_prop = (prop) =>
-        return with prop
-            \setDeck @quad
-            \setLoc @x, @y
-            \setPriority @y
+    .sprite_name = "monster"
 
 return {:ObjectBase, :CombatObjectBase, :Player, :NPC}

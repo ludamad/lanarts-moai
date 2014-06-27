@@ -1,5 +1,7 @@
 cd ..
-for i in 1 ; do
-    IP='localhost' CLIENT=1 konsole --noclose -e /home/adomurad/sources/moai-game/run.sh
+#RUN='konsole --noclose -e /home/adomurad/sources/moai-game/run.sh'
+RUN='/home/adomurad/sources/moai-game/run.sh'
+for i in {1..4}; do
+    IP='localhost' CLIENT=1 $RUN &
 done
-SERVER=1 konsole --noclose -e /home/adomurad/sources/moai-game/run.sh
+SERVER=1 $RUN

@@ -82,4 +82,9 @@ camera_rel_xy = (V, px, py) ->
 	x, y = V.camera\getLoc()
 	return px - x, py - y
 
-return {:camera_is_off_center, :move_towards, :center_on, :sharp_center_on, :move_delta, :region_covered, :tile_region_covered, :camera_rel_xy}
+camera_xy = (V) ->
+	x, y = V.camera\getLoc()
+	w, h = V.cameraw, V.camerah
+	return x - w/2, y - h/2
+
+return {:camera_is_off_center, :move_towards, :center_on, :sharp_center_on, :move_delta, :region_covered, :tile_region_covered, :camera_rel_xy, :camera_xy}

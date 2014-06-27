@@ -16,8 +16,8 @@ _G.perf_time = (name, f) ->
 DISABLE = 1000 -- Arbitrarily large
 
 FORK_ADVANCE = DISABLE
-PREDICT_STEPS = if _SETTINGS.network_lockstep then 0 else 100
-SLOWDOWN_STEPS = DISABLE
+PREDICT_STEPS = if _SETTINGS.network_lockstep then 0 else 60
+SLOWDOWN_STEPS = 50
 CHECK_TIME = 0 / 1000 -- seconds
 
 last_time = MOAISim\getDeviceTime()
@@ -53,13 +53,15 @@ _net_step = (G) ->
     -- Check that we are as advanced as we before (and not further)
     assert(previous_step == G.step_number, "Incorporated new information incorrectly!")
     if G.step_number > G.fork_step_number + SLOWDOWN_STEPS
-        MOAISim.setStep(1 / _SETTINGS.frames_per_second_csp)
+        MOAISim.setStep(1 / _SETTINGS.frames_per_second_csp / 2)
     else
         MOAISim.setStep(1 / _SETTINGS.frames_per_second)
     if G.step_number <= G.fork_step_number + PREDICT_STEPS
         G.step()
 
 main_thread = (G) -> create_thread () -> profile () ->
+    last_full_send_time = MOAISim\getDeviceTime()
+    last_part_send_time = MOAISim\getDeviceTime()
     while true
         coroutine.yield()
 
@@ -67,16 +69,25 @@ main_thread = (G) -> create_thread () -> profile () ->
         is_menu = G.level_view.is_menu
         if G.net_handler
             G.net_handler\poll()
-            if not is_menu and  _SETTINGS.network_lockstep
-                if G.step_number > G.player_actions\find_latest_complete_frame()
+            if not is_menu and _SETTINGS.network_lockstep
+                -- G.net_handler\send_unacknowledged_actions()
+                while G.step_number > G.player_actions\find_latest_complete_frame()
                     G.net_handler\poll(1)
-                    G.net_handler\send_unacknowledged_actions()
+                    -- G.net_handler\send_unacknowledged_actions()
+
+            if not is_menu and MOAISim\getDeviceTime() > last_full_send_time + (100/1000)
+                G.net_handler\send_unacknowledged_actions()
+                last_full_send_timem = MOAISim\getDeviceTime()
+
+            -- if not is_menu and MOAISim\getDeviceTime() > last_part_send_time + (25/1000)
+            --     G.net_handler\send_unacknowledged_actions(2) -- Only 2 frames back in time
+            --     last_part_send_time = MOAISim\getDeviceTime()
 
         if is_menu 
             G.step()
         elseif not G.net_handler
             G.step()
-            G.drop_old_actions(G.step_number)
+            G.drop_old_actions(G.step_number - 1)
         else
             before = MOAISim\getDeviceTime()
 
@@ -89,6 +100,7 @@ main_thread = (G) -> create_thread () -> profile () ->
             G.drop_old_actions(last_needed - 1)
 
         G.pre_draw()
+        -- MOAISim.forceGC()
 
 setup_network_state = (G) ->
     if G.gametype == 'client'

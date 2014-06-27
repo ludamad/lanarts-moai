@@ -1,5 +1,5 @@
 local TileMap = require "core.TileMap"
-local modules = require "modules"
+local modules = require "core.data"
 
 local T = modules.get_tilelist_id
 

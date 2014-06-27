@@ -10,7 +10,7 @@ player_name = (os.getenv "player") or "DUMMY"
 
 {
 headless: false
-window_size: {800, 600}
+window_size: {400, 400}
 server_ip: (os.getenv "IP") or '192.168.12.102'
 server_port: 6112
 frames_per_second: 100

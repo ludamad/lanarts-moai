@@ -71,8 +71,7 @@ elseif os.getenv "TEST" then
   		print("Everything passed!")
   	end
 else
-	local modules = require 'modules'
     ErrorReporting.wrap(function()
-		  modules.load("core")
+		    require("core.main")
     end)()
 end

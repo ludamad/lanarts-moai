@@ -22,6 +22,7 @@ end
 
 -- Data is defined on a per-submodule basis
 function data_load(key, default, --[[Optional]] vpath)
+    do return default end -- TODO Implement
     -- Make a safe & (almost) guaranteed unique key 
     local global_key = (vpath or virtual_path(2)) .. ':' .. key
     local val = GlobalData[global_key]

@@ -39,16 +39,18 @@ GameAction = with newtype()
         if @y ~= O.y then return false
         return true
 
+    .serialization_size = 26
+
     .read = (buffer) =>
         -- For use with DataBuffer
-        @id_player = buffer\read_byte()
-        @action_type = buffer\read_byte()
-        @step_number = buffer\read_int()
-        @genericbyte1 = buffer\read_byte()
-        @genericbyte2 = buffer\read_byte()
-        @id_target = buffer\read_int()
-        @x = buffer\read_double()
-        @y = buffer\read_double()
+        @id_player = buffer\read_byte() -- +1
+        @action_type = buffer\read_byte() -- +1 = 2
+        @step_number = buffer\read_int() -- + 4 == 6
+        @genericbyte1 = buffer\read_byte() -- + 1 == 7
+        @genericbyte2 = buffer\read_byte() -- + 1 == 8
+        @id_target = buffer\read_int() -- + 4 == 12
+        @x = buffer\read_double() -- + 8 = 20
+        @y = buffer\read_double() -- + 8 = 26
 
     .write = (buffer) => with buffer
         -- For use with DataBuffer
@@ -159,9 +161,10 @@ GameActionFrameSet = with newtype()
 
     -- Note, to qualify, every frame BEFORE it must be complete
     .find_latest_complete_frame = () =>
-        best = @frames.offset
+        best = @frames.offset -  1
         for i=@frames\first(),@frames\last()
-            if @frames\get(i)\is_complete(i)
+            frame = @frames\get(i)
+            if frame and frame\is_complete(i)
                 best = i
             else
                 return best
