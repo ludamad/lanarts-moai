@@ -29,6 +29,7 @@ _spawn_players = (G, L) ->
     for i=1,#G.players
         random_square_spawn_object L, (px, py) ->
             object_types.Player.create L, {
+                name: G.players[i].name
                 x: px*32+16
                 y: py*32+16
                 radius: 10

@@ -35,12 +35,6 @@ tile_mouse_xy = (V) ->
  -- Textbox pseudo-method
  -- Hack to fit textbox based on its contents
 textbox_fit_text = (x, y, text, align_x = 0, align_y = 0) =>
-    -- lines = text\split '\n'
-    -- -- Find maximum line length:
-    -- max_width = 0
-    -- for line in *lines
-    --     max_width = math.max(max_width, #line)
-
     -- Arbitrarily big
     BIG = 1000
     @setAlignment(MOAITextBox.LEFT_JUSTIFY, MOAITextBox.LEFT_JUSTIFY)

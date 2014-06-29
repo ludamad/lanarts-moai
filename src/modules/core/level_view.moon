@@ -157,11 +157,10 @@ create_level_view = (level, cameraw, camerah) ->
     V.draw = () ->
         level_logic.draw(V)
 
-    script_prop = (require 'core.util_draw').setup_script_prop(V.ui_layer, V.draw)
+    script_prop = (require 'core.util_draw').setup_script_prop(V.object_layer, V.draw, V.level.pix_width, V.level.pix_height)
 
     -- Note: uses script_prop above
     V.pre_draw = () ->
-        script_prop\setLoc(V.camera\getLoc())
         level_logic.pre_draw(V)
 
     -- Setup function

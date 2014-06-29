@@ -1,4 +1,4 @@
-local Apts = require "@stats.AptitudeTypes"
+    local Apts = require "@stats.AptitudeTypes"
 local spell_define = (require "@spells.SpellDefineUtils").spell_define
 local StatusType = require "@StatusType"
 

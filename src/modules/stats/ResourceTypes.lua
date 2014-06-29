@@ -49,6 +49,10 @@ function M.type_create(--[[Optional]] resource_creation_function, --[[Optional]]
         end
     end
 
+    function R.lookup_id(key)
+        return R.lookup(key).id
+    end
+
     -- Like 'lookup', but returns tables as they are.
     function R.resolve(key)
         if type(key) == "table" then return key end

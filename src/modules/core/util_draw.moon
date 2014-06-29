@@ -1,7 +1,6 @@
 resources = require 'resources'
 
-setup_script_prop = (layer, draw_func) ->
-    {w,h} = _SETTINGS.window_size
+setup_script_prop = (layer, draw_func, w, h) ->
     -- Step until the draw loop returns false
     _step_loop = () ->
         if draw_func() == false
@@ -11,6 +10,7 @@ setup_script_prop = (layer, draw_func) ->
         \setDeck with MOAIScriptDeck.new()
             \setDrawCallback _step_loop
             \setRect 0,0,w,h
+        \setPriority 999999999 -- Arbitrarily large, at front
     layer\insertProp script_prop
     return script_prop
 

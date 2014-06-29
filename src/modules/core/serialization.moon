@@ -25,8 +25,12 @@ FOVMeta = FieldOfView.metatable
 STATE_LOOKUP_TABLE = {}
 EXCLUDE_TABLE = {}
 
+PASS = 0
+
 push_state = (_obj) -> 
 	lookup = STATE_LOOKUP_TABLE
+
+	PASS += 1
 
 	-- Set up the 'saver' closure
 	-- 'saver' only concerns mutable objects
@@ -38,16 +42,20 @@ push_state = (_obj) ->
 
 		data = lookup[obj]
 		if data == nil 
-			data = {[0]: 1}
+			data = {[0]: PASS}
 			lookup[obj] = data
+		-- Did we already serialize this?
+		else
+			if data[0] == PASS then return
+			data[0] = PASS
 
 		meta = getmetatable(obj)
 
 		if meta == BoolGridMeta
-			if data[data[0]] then
-				obj\copy(data[data[0]])
+			if data[1] then
+				obj\copy(data[1])
 			else
-				data[data[0]] = obj\clone()
+				data[1] = obj\clone()
 			return
 		elseif meta == FOVMeta
 			-- pass
@@ -56,10 +64,10 @@ push_state = (_obj) ->
 			return
 
 		-- "Plain old Lua object"
-		statelist = data[data[0]]
+		statelist = data[1]
 		if type(statelist) ~= 'table'
 			statelist = {}
-			data[data[0]] = statelist
+			data[1] = statelist
 		else
 			table_clear(statelist)
 
@@ -77,6 +85,8 @@ push_state = (_obj) ->
 pop_state = (_obj) ->
 	lookup = STATE_LOOKUP_TABLE
 
+	PASS += 1
+
 	-- Set up the 'loader' closure
 	-- 'loader' only concerns mutable objects
 	loader = (obj) ->
@@ -86,11 +96,15 @@ pop_state = (_obj) ->
 			return
 
 		data = lookup[obj]
+		-- Did we already deserialize this?
+		if data[0] == PASS
+			return
+		data[0] = PASS
 
 		meta = getmetatable(obj)
 
 		if meta == BoolGridMeta
-			data[data[0]]\copy(obj)
+			data[1]\copy(obj)
 			return
 		elseif meta == FOVMeta
 			-- pass
@@ -99,7 +113,7 @@ pop_state = (_obj) ->
 			return
 
 		-- "Plain old Lua object"
-		statelist = data[data[0]] 
+		statelist = data[1] 
 		table_clear(obj)
 		for i=1,#statelist,2
 			k, v = statelist[i], statelist[i+1]

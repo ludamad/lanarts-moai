@@ -185,6 +185,7 @@ pre_draw = (V) ->
 
 draw = (V) ->
     -- Immediate mode drawing. TODO Reevaluate if needed
-    nil
+    for inst in *V.level.object_list
+        inst\draw(V)
 
 return {:step, :handle_io, :start, :pre_draw, :draw}

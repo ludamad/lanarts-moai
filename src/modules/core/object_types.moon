@@ -5,6 +5,15 @@ data = require "core.data"
 import camera, util_draw from require "core"
 import FieldOfView, FloodFillPaths from require "core"
 
+import Relations, RaceType, MonsterType, StatContext from require "stats"
+
+make_stats = (race, name, _class) ->
+    stats = RaceType.resolve(race).on_create(name)
+    if _class
+        context = StatContext.stat_context_create(stats)
+        _class:on_map_init(context)
+    return stats
+
 -- Object lifecycle:
 --  Object creation:
 --   .init(args) -> Create the game object with parameters.
@@ -39,18 +48,30 @@ ObjectBase = with newtype()
         -- Last number is priority
         @sprite\put_prop(V.object_layer, @x, @y, @frame, @y)
 
+    .draw = (V) => nil
+
     -- Note: Does not sync props
     .sync = (L) => nil
 
 
+draw_statbar = (x,y,w,h, ratio) ->
+    MOAIGfxDevice.setPenColor(1, 0, 0)
+    MOAIDraw.fillRect(x,y,x+w,y+h)
+    MOAIGfxDevice.setPenColor(0, 1, 0)
+    MOAIDraw.fillRect(x,y,x+w*ratio,y+h)
+
+
 CombatObjectBase = with newtype {parent: ObjectBase}
-    .init = (L, args) =>
+    .init = (L, args, stats) =>
         ObjectBase.init(@, L, args)
         -- The collision detection component
         -- Subsystem registration
         @id_col = L.collision_world\add_instance(@x, @y, @radius, @target_radius, @solid)
         -- The collision evasion component
         @id_rvo = L.rvo_world\add_instance(@x, @y, @radius, @speed)
+        statcopy = table.deep_clone(stats)
+        @stat_context = StatContext.stat_context_create(stats, statcopy, @)
+        @base_stats, @stats = @stat_context.base, @stat_context.derived
 
     .remove = (L) =>
         ObjectBase.remove(@, L)
@@ -70,6 +91,17 @@ CombatObjectBase = with newtype {parent: ObjectBase}
         L.rvo_world\update_instance(@id_rvo, @x, @y, @radius, maxspeed, dx, dy)
     .get_rvo_velocity = (L) =>
         return L.rvo_world\get_velocity(@id_rvo)
+
+    .draw = (V) =>
+
+        healthbar_offsety = 20
+        if @target_radius > 16
+            healthbar_offsety = @target_radius + 8
+        if @stats.hp < @stats.max_hp
+            x,y = @x - 10, @y - healthbar_offsety
+            w, h = 20, 5
+            draw_statbar(x,y,w,h, @stats.hp / @stats.max_hp)
+
 
 -- NB: Controlling logic in level_logic
 
@@ -107,7 +139,9 @@ Player = with newtype {parent: CombatObjectBase}
     }
 
     .init = (L, args) =>
-        CombatObjectBase.init(@, L, args)
+        stats = make_stats "Undead", args.name
+        CombatObjectBase.init(@, L, args, stats)
+        @stats.hp -= 10
         @vision_tile_radius = 7
         @player_path_radius = 300
         @id_player = args.id_player
@@ -132,6 +166,9 @@ Player = with newtype {parent: CombatObjectBase}
 
 
 NPC = with newtype {parent: CombatObjectBase}
-    .sprite_name = "monster"
+    .init = (L, args) =>
+        @npc_type_id = MonsterType.lookup_id("Giant Rat")
+        npc_type = MonsterType.lookup(@npc_type_id)
+        CombatObjectBase.init(@, L, args, npc_type.base_stats)
 
 return {:ObjectBase, :CombatObjectBase, :Player, :NPC}
