@@ -1,7 +1,7 @@
 -- Convenient framework for dealing with actions with respect to the context they were used in.
 
 local StatContext = require "@StatContext"
-local Actions = require "@stats.Actions"
+local Actions = require "@Actions"
 local ItemTraits = require "@items.ItemTraits"
 
 local M = nilprotect {} -- Submodule

@@ -5,7 +5,7 @@ local StatContext = require "@StatContext"
 local CodeGeneration = require "core.CodeGeneration"
 local CooldownTypes = require "@stats.CooldownTypes"
 local ExperienceCalculation = require "@stats.ExperienceCalculation"
-local C = require "terminal.AnsiColors"
+local C = require "system.AnsiColors"
 
 local M = nilprotect {} -- Submodule
 

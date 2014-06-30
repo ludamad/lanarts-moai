@@ -8,7 +8,7 @@ CAMERA_SPEED = 8
 _get_components = (V) ->
 	x, y = V.camera\getLoc()
 	w, h = V.cameraw, V.camerah
-	ww, wh = V.level.pix_width, V.level.pix_height
+	ww, wh = V.map.pix_width, V.map.pix_height
 	return x-w/2, y-h/2, w, h, ww, wh
 
 -- Are we outside of the centre of the camera enough to warrant snapping the camera ?
@@ -71,10 +71,10 @@ region_covered = (V) ->
 tile_region_covered = (V) ->
 	x,y,width,height,world_width,world_height = _get_components(V)
 
-	min_x = max(1, x / V.level.tile_width)
-	min_y = max(1, y / V.level.tile_height)
-	max_x = (min(world_width, x + width)) / V.level.tile_width
-	max_y = (min(world_height, y + height)) / V.level.tile_height
+	min_x = max(1, x / V.map.tile_width)
+	min_y = max(1, y / V.map.tile_height)
+	max_x = (min(world_width, x + width)) / V.map.tile_width
+	max_y = (min(world_height, y + height)) / V.map.tile_height
 
 	return (floor min_x), (floor min_y), (ceil max_x), (ceil max_y)
 

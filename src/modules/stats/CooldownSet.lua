@@ -47,6 +47,10 @@ function CooldownSet:apply_cooldown(type, cooldown, --[[Optional]] f)
     self.cooldowns[type] = f(self.cooldowns[type] or 0, cooldown) 
 end
 
+function CooldownSet:set_cooldown(type, cooldown)
+    self.cooldowns[type] = cooldown
+end
+
 function CooldownSet:add_cooldown(type, cooldown)
     local amount = cooldown * (self.cooldown_rates[type] or 1)
     self.cooldowns[type] = (self.cooldowns[type] or 0) + amount

@@ -258,6 +258,10 @@ function M.add_cooldown(context, type, amount)
     context.base.cooldowns:add_cooldown(type, amount)
 end
 
+function M.get_cooldown(context, type)
+    return context.derived.cooldowns:get_cooldown(type)
+end
+
 function M.has_cooldown(context, type)
     return context.derived.cooldowns:has_cooldown(type)
 end

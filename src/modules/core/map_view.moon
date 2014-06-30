@@ -12,6 +12,7 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
 -------------------------------------------------------------------------------
 
 import ui_ingame_scroll, ui_ingame_select from require "core.ui"
+import ui_sidebar from require "core"
 
 import camera, util_draw from require "core"
 
@@ -25,24 +26,24 @@ serialization = require 'core.serialization'
 -- Set up the camera & viewport
 -------------------------------------------------------------------------------
 setup_camera = (V) ->
-    w,h = V.level.tilemap_width, V.level.tilemap_height
-    tw, th = V.level.tile_width, V.level.tile_height
+    w,h = V.map.tilemap_width, V.map.tilemap_height
+    tw, th = V.map.tile_width, V.map.tile_height
 
     cx, cy = w * tw / 2, h * th / 2
     assert(not V.camera and not V.viewport, "Double call to setup_view!")
     V.camera = with MOAICamera2D.new()
         \setLoc(cx,cy)
     V.viewport = with MOAIViewport.new()
-        \setSize(V.cameraw, V.camerah)
-        \setScale(V.cameraw, -V.camerah)
+        \setSize(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, V.camerah)
+        \setScale(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, -V.camerah)
 
 -------------------------------------------------------------------------------
 -- Set up the layers for the map
 -------------------------------------------------------------------------------
 setup_tile_layers = (V) ->
     -- Map and tile dimensions
-    w,h = V.level.tilemap_width, V.level.tilemap_height
-    tw, th = V.level.tile_width, V.level.tile_height
+    w,h = V.map.tilemap_width, V.map.tilemap_height
+    tw, th = V.map.tile_width, V.map.tile_height
 
     -- Prop lists, and grid map
     -- There :is one prop and grid for each tile texture used
@@ -82,7 +83,7 @@ setup_tile_layers = (V) ->
         grid\setTile(x, y, tile.grid_id)
 
     for y=1,h do for x=1,w
-        _set_xy(x, y, V.level.tilemap\get({x,y}).content)
+        _set_xy(x, y, V.map.tilemap\get({x,y}).content)
 
     layer = V.add_layer()
 
@@ -91,8 +92,8 @@ setup_tile_layers = (V) ->
     for p in *props do layer\insertProp(p)
 
 setup_fov_layer = (V) ->
-    w,h = V.level.tilemap_width, V.level.tilemap_height
-    tw, th = V.level.tile_width, V.level.tile_height
+    w,h = V.map.tilemap_width, V.map.tilemap_height
+    tw, th = V.map.tile_width, V.map.tile_height
     tex = res.get_texture "fogofwar.png"
     tex_w, tex_h = tex\getSize()
 
@@ -129,11 +130,11 @@ setup_overlay_layers = (V) ->
     V.remove_object_prop = (prop) -> V.object_layer\removeProp(prop)
 
 -------------------------------------------------------------------------------
--- Create a level view
+-- Create a map view
 -------------------------------------------------------------------------------
 
-create_level_view = (level, cameraw, camerah) ->
-    V = {gamestate: level.gamestate, :level, :cameraw, :camerah}
+create_map_view = (map, cameraw, camerah) ->
+    V = {gamestate: map.gamestate, :map, :cameraw, :camerah}
 
     -- The MOAI layers to accumulate
     V.layers = {}
@@ -148,20 +149,20 @@ create_level_view = (level, cameraw, camerah) ->
         append(V.layers, layer)
         return layer
 
-    level_logic = (require 'core.level_logic')
+    map_logic = (require 'core.map_logic')
 
     setup_camera(V)
     setup_tile_layers(V)
     setup_overlay_layers(V)
 
     V.draw = () ->
-        level_logic.draw(V)
+        map_logic.draw(V)
 
-    script_prop = (require 'core.util_draw').setup_script_prop(V.object_layer, V.draw, V.level.pix_width, V.level.pix_height)
+    script_prop = (require 'core.util_draw').setup_script_prop(V.object_layer, V.draw, V.map.pix_width, V.map.pix_height)
 
     -- Note: uses script_prop above
     V.pre_draw = () ->
-        level_logic.pre_draw(V)
+        map_logic.pre_draw(V)
 
     -- Setup function
     V.start = () -> 
@@ -169,7 +170,7 @@ create_level_view = (level, cameraw, camerah) ->
         for layer in *V.layers
            MOAISim.pushRenderPass(layer)
 
-        level_logic.start(V)
+        map_logic.start(V)
 
     V.stop = () ->
         -- Cease rendering the MOAI layers
@@ -180,8 +181,10 @@ create_level_view = (level, cameraw, camerah) ->
         for layer in *V.layers
             layer\clear()
 
+    V.sidebar = ui_sidebar.sidebar_create(V)
     append V.ui_components, ui_ingame_scroll V
     append V.ui_components, ui_ingame_select V
+    append V.ui_components, () -> V.sidebar\predraw()
 
     return V
 
@@ -190,9 +193,9 @@ create_level_view = (level, cameraw, camerah) ->
 -------------------------------------------------------------------------------
 
 create_menu_view = (G, w,h, continue_callback) ->
-    -- We 'cheat' with our menu level view, just point to same object
+    -- We 'cheat' with our menu map view, just point to same object
     V = {is_menu: true}
-    V.level = V
+    V.map = V
     V.layer = with MOAILayer2D.new()
         \setViewport with MOAIViewport.new()
             \setSize(w,h)
@@ -264,4 +267,4 @@ create_menu_view = (G, w,h, continue_callback) ->
 
     return V
 
-return {:create_menu_view, :create_level_view}
+return {:create_menu_view, :create_map_view}

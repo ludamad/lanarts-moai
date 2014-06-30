@@ -8,9 +8,9 @@ import FieldOfView, FloodFillPaths, GameInstSet, RVOWorld, GameTiles from requir
 
 MAX_SPEED = 32
 
--- Stores all objects for a given level, providing convenience 
+-- Stores all objects for a given map, providing convenience 
 -- methods for accessing subsets of the active objects
-LevelObjectStore = with newtype()
+MapObjectStore = with newtype()
     .init = () =>
         @list = {}
         @map = {}
@@ -69,17 +69,17 @@ LevelObjectStore = with newtype()
         for obj in @iter(filter) do append ret, obj
         return ret
 
-_setup_level_state_helpers = (L) ->
-    {w, h} = L.tilemap.size
-    tw, th = L.tile_width, L.tile_height
+_setup_map_state_helpers = (M) ->
+    {w, h} = M.tilemap.size
+    tw, th = M.tile_width, M.tile_height
 
     -- Function to convert a tile location to a real location
-    L.tile_xy_to_real = (x, y) -> 
+    M.tile_xy_to_real = (x, y) -> 
         return (x - .5) * tw, (y - .5) * th
 
     -- Function to convert a real location to a tile location
     -- Returns 'nil' if not possible
-    L.real_xy_to_tile = (rx, ry) -> 
+    M.real_xy_to_tile = (rx, ry) -> 
         -- Solve the inverse function of above
         x = math.floor(rx / tw + .5)
         y = math.floor(ry / th + .5)
@@ -89,91 +89,92 @@ _setup_level_state_helpers = (L) ->
         return nil, nil
 
     -- Find the nearest multiple of the tile size
-    L.real_xy_snap = (rx, ry) -> 
+    M.real_xy_snap = (rx, ry) -> 
         rx = math.floor(rx / tw) * tw
         ry = math.floor(ry / th) * th
         return rx, ry
 
-    L.tile_check = (obj, dx=0, dy=0, dradius=0) ->
-        return GameTiles.radius_test(L.tilemap, obj.x + dx, obj.y + dy, obj.radius + dradius)
+    M.tile_check = (obj, dx=0, dy=0, dradius=0) ->
+        return GameTiles.radius_test(M.tilemap, obj.x + dx, obj.y + dy, obj.radius + dradius)
 
-    L.object_check = (obj, dx=0, dy=0, dradius=0) ->
-        return L.collision_world\object_radius_test(obj.id_col, obj.x + dx, obj.y + dy, obj.radius + dradius)
+    M.object_check = (obj, dx=0, dy=0, dradius=0) ->
+        return M.collision_world\object_radius_test(obj.id_col, obj.x + dx, obj.y + dy, obj.radius + dradius)
 
-    L.solid_check = (obj, dx=0, dy=0, dradius=0) ->
-        return L.tile_check(obj, dx, dy, dradius) or L.object_check(obj, dx, dy, dradius)
+    M.solid_check = (obj, dx=0, dy=0, dradius=0) ->
+        return M.tile_check(obj, dx, dy, dradius) or M.object_check(obj, dx, dy, dradius)
 
-    -- L.object_iter = () ->
-    --     return L.objects\iter()
+    -- M.object_iter = () ->
+    --     return M.objects\iter()
 
-    -- L.combat_object_iter = () ->
-    --     return L.objects\iter(CombatObjectBase)
+    -- M.combat_object_iter = () ->
+    --     return M.objects\iter(CombatObjectBase)
 
-    -- L.player_iter = () ->
-    --     return L.objects\iter(Player)
+    -- M.player_iter = () ->
+    --     return M.objects\iter(Player)
 
-    L.local_player = () ->
-        G = L.gamestate
-        for p in *L.player_list
+    M.local_player = () ->
+        G = M.gamestate
+        for p in *M.player_list
             if G.is_local_player(p)
                 return p
         return nil
 
-    L.npc_iter = () ->
-        return L.objects\iter(NPC)
+    M.npc_iter = () ->
+        return M.objects\iter(NPC)
 
-    L.closest_player = (obj) ->
-        return L.objects\closest(obj, Player)
+    M.closest_player = (obj) ->
+        return M.objects\closest(obj, Player)
 
-setup_level_state = (L) ->
+setup_map_state = (M) ->
     -- The object store and ID allocator
-    L.objects = LevelObjectStore.create()
-    L.object_list = L.objects.list
-    L.player_list = {}
+    M.objects = MapObjectStore.create()
+    M.object_list = M.objects.list
+    M.player_list = {}
+    M.combat_object_list = {}
 
     -- The game collision detection 'world'
-    L.collision_world = GameInstSet.create(L.pix_width, L.pix_height)
+    M.collision_world = GameInstSet.create(M.pix_width, M.pix_height)
 
     -- The game collision avoidance 'world'
-    L.rvo_world = RVOWorld.create()
+    M.rvo_world = RVOWorld.create()
 
-    L.step = () ->
-        L.players\step(L)
-        L.npcs\step(L)
+    M.step = () ->
+        M.players\step(M)
+        M.npcs\step(M)
 
     -- Run the generation functions that were delayed until
-    -- the level creation (mainly instance spawning):
-    for gen_func in *L.tilemap.instances
-        gen_func(L)
+    -- the map creation (mainly instance spawning):
+    for gen_func in *M.tilemap.instances
+        gen_func(M)
 
     -- For good measure, clear generation functions:
-    table.clear(L.tilemap.instances)
+    table.clear(M.tilemap.instances)
 
-    level_logic = require 'core.level_logic'
+    map_logic = require 'core.map_logic'
 
-    L.handle_io = () -> level_logic.handle_io(L)
-    L.step = () -> level_logic.step(L)
+    M.handle_io = () -> map_logic.handle_io(M)
+    M.step = () -> map_logic.step(M)
 
     -- Set up various helper accesors
-    _setup_level_state_helpers(L)
+    _setup_map_state_helpers(M)
 
 -------------------------------------------------------------------------------
 -- Set up helper methods (closures, to be exact)
 -------------------------------------------------------------------------------
 
-create_level_state = (G, rng, tilemap) ->
-    L = {gamestate: G, :rng, :tilemap}
+create_map_state = (G, id, rng, tilemap) ->
+    M = {gamestate: G, :id, :rng, :tilemap}
 
-    -- Set up level dimensions
+    -- Set up map dimensions
     -- Hardcoded for now:
-    L.tile_width,L.tile_height = 32,32
+    M.tile_width,M.tile_height = 32,32
 
-    {L.tilemap_width, L.tilemap_height} = L.tilemap.size
-    L.pix_width, L.pix_height = (L.tile_width*L.tilemap_width), (L.tile_height*L.tilemap_height)
+    {M.tilemap_width, M.tilemap_height} = M.tilemap.size
+    M.pix_width, M.pix_height = (M.tile_width*M.tilemap_width), (M.tile_height*M.tilemap_height)
 
-    -- Set up level state
-    setup_level_state(L)
+    -- Set up map state
+    setup_map_state(M)
 
-    return L
+    return M
 
-return {:create_level_state}
+return {:create_map_state}

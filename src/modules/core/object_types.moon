@@ -5,10 +5,11 @@ data = require "core.data"
 import camera, util_draw from require "core"
 import FieldOfView, FloodFillPaths from require "core"
 
-import Relations, RaceType, MonsterType, StatContext from require "stats"
+import Relations, RaceType, MonsterType, StatContext, ActionContext from require "stats"
+import add_hp, add_mp, add_cooldown, set_cooldown, temporary_add, permanent_add from require "stats.StatContext"
 
 make_stats = (race, name, _class) ->
-    stats = RaceType.resolve(race).on_create(name)
+    stats = race.on_create(name)
     if _class
         context = StatContext.stat_context_create(stats)
         _class:on_map_init(context)
@@ -62,21 +63,29 @@ draw_statbar = (x,y,w,h, ratio) ->
 
 
 CombatObjectBase = with newtype {parent: ObjectBase}
-    .init = (L, args, stats) =>
+    .init = (L, args) =>
         ObjectBase.init(@, L, args)
         -- The collision detection component
         -- Subsystem registration
         @id_col = L.collision_world\add_instance(@x, @y, @radius, @target_radius, @solid)
         -- The collision evasion component
         @id_rvo = L.rvo_world\add_instance(@x, @y, @radius, @speed)
-        statcopy = table.deep_clone(stats)
-        @stat_context = StatContext.stat_context_create(stats, statcopy, @)
-        @base_stats, @stats = @stat_context.base, @stat_context.derived
+        append L.combat_object_list, @
 
+    -- Call by child class, separated from init() for cleanliness
+    .init_stats = (base_stats, unarmed_action, race = nil) =>
+        -- Set up stats
+        @base_stats = base_stats
+        @stats = table.deep_clone(@base_stats)
+        @stat_context = StatContext.stat_context_create(@base_stats, @stats, @)
+        @unarmed_action = unarmed_action
+        @unarmed_action_context = ActionContext.action_context_create(@unarmed_action, @stat_context, race or @)
+        print (require "stats.stats.StatUtils").stats_to_string(@stats)
     .remove = (L) =>
         ObjectBase.remove(@, L)
         L.collision_world.remove_instance(@id_col)
         L.rvo_world.remove_instance(@id_col)
+        table.remove_occurrences L.combat_object_list, @
 
     -- Subsystem synchronization
     .sync_col = (L) =>
@@ -103,7 +112,7 @@ CombatObjectBase = with newtype {parent: ObjectBase}
             draw_statbar(x,y,w,h, @stats.hp / @stats.max_hp)
 
 
--- NB: Controlling logic in level_logic
+-- NB: Controlling logic in map_logic
 
 Vision = with newtype()
     .init = (L, line_of_sight) =>
@@ -117,7 +126,6 @@ Vision = with newtype()
         @fieldofview\update_seen_map(@seen_tile_map)
         @prev_seen_bounds = @current_seen_bounds
         @current_seen_bounds = @fieldofview\tiles_covered()
-
 
 Player = with newtype {parent: CombatObjectBase}
     .sprite = data.get_sprite("player-human")
@@ -139,9 +147,10 @@ Player = with newtype {parent: CombatObjectBase}
     }
 
     .init = (L, args) =>
-        stats = make_stats "Undead", args.name
-        CombatObjectBase.init(@, L, args, stats)
-        @stats.hp -= 10
+        CombatObjectBase.init(@, L, args)
+        race = RaceType.lookup "Human"
+        @init_stats(make_stats(race, args.name), race.unarmed_action, race)
+        add_hp @stat_context, -50
         @vision_tile_radius = 7
         @player_path_radius = 300
         @id_player = args.id_player
@@ -150,7 +159,7 @@ Player = with newtype {parent: CombatObjectBase}
         append L.player_list, @
 
     .remove = (L) =>
-        table.remove_occurrences L.players, @
+        table.remove_occurrences L.player_list, @
 
     .pre_draw = (V) => 
         -- Last number is priority
@@ -167,8 +176,9 @@ Player = with newtype {parent: CombatObjectBase}
 
 NPC = with newtype {parent: CombatObjectBase}
     .init = (L, args) =>
+        CombatObjectBase.init(@, L, args)
         @npc_type_id = MonsterType.lookup_id("Giant Rat")
         npc_type = MonsterType.lookup(@npc_type_id)
-        CombatObjectBase.init(@, L, args, npc_type.base_stats)
+        @init_stats(table.deep_clone(npc_type.base_stats), npc_type.unarmed_action)
 
 return {:ObjectBase, :CombatObjectBase, :Player, :NPC}

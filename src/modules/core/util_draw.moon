@@ -1,16 +1,13 @@
 resources = require 'resources'
 
-setup_script_prop = (layer, draw_func, w, h) ->
+-- Default priority is arbitrarily large, at front
+setup_script_prop = (layer, draw_func, w, h, priority = 999999999) ->
     -- Step until the draw loop returns false
-    _step_loop = () ->
-        if draw_func() == false
-            V.stop()
-
-    script_prop =with MOAIProp2D.new()
+    script_prop = with MOAIProp2D.new()
         \setDeck with MOAIScriptDeck.new()
-            \setDrawCallback _step_loop
+            \setDrawCallback draw_func
             \setRect 0,0,w,h
-        \setPriority 999999999 -- Arbitrarily large, at front
+        \setPriority priority 
     layer\insertProp script_prop
     return script_prop
 
@@ -119,6 +116,8 @@ put_text = (layer, style, textString, x, y, align_x = 0, align_y = 0, text_align
     layer\insertProp(textbox)
     return textbox
 
+put_text_center = (layer, style, textString, x, y) -> put_text(layer, style, textString, x, y, 0.5, 0.5, "center")
+
 get_quad = () -> MOAI_QUAD_CACHE.get()
 
 put_prop = (layer) -> 
@@ -127,4 +126,4 @@ put_prop = (layer) ->
     layer\insertProp(prop)
     return prop
 
-return {:setup_script_prop, :setup_draw_loop, :put_text, :get_quad, :put_prop, :textbox_fit_text, :reset_draw_cache}
+return {:setup_script_prop, :setup_draw_loop, :put_text, :put_text_center, :get_quad, :put_prop, :textbox_fit_text, :reset_draw_cache}

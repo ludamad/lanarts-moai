@@ -17,9 +17,9 @@ data = {
 	next_tilelist_id: 1, 
 
 	-- Level data
-	levels: {}, 
-	id_to_level: {}
-	next_level_id: 1, 
+	maps: {}, 
+	id_to_map: {}
+	next_map_id: 1, 
 }
 
 -------------------------------------------------------------------------------
@@ -184,14 +184,14 @@ setup_define_functions = (fenv, module_name) ->
 		data.next_sprite_id += 1
 
 	-- Level generation data definition
-	fenv.leveldef = define_wrapper (values) ->
+	fenv.mapdef = define_wrapper (values) ->
 		{:name, :generator} = values
-		level = LevelData.create(name, generator)
-		data.levels[name] = level
-		data.id_to_level[data.next_sprite_id] = level
+		map = LevelData.create(name, generator)
+		data.maps[name] = map
+		data.id_to_map[data.next_sprite_id] = map
 
 		-- Increment sprite number
-		data.next_level_id += 1
+		data.next_map_id += 1
 
 -- TODO: Actually setup by-module searching
 setup_define_functions(_G, "NotUsedYet")
@@ -208,5 +208,5 @@ return {
 
 	get_tilelist_id: (name) -> assert(data.tiles[name].id)
 	get_sprite: (name) -> assert(data.sprites[name])
-	get_level: (name) -> assert(data.levels[name])
+	get_map: (name) -> assert(data.maps[name])
 }

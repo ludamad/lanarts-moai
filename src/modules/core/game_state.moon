@@ -66,7 +66,7 @@ main_thread = (G) -> create_thread () -> profile () ->
         coroutine.yield()
 
         G.handle_io()
-        is_menu = G.level_view.is_menu
+        is_menu = G.map_view.is_menu
         if G.net_handler
             G.net_handler\poll()
             if not is_menu and _SETTINGS.network_lockstep
@@ -111,6 +111,7 @@ setup_network_state = (G) ->
 create_game_state = () ->
     G = {}
 
+    G.maps = {}
     G.step_number = 1
     G.gametype = _SETTINGS.gametype
 
@@ -123,17 +124,17 @@ create_game_state = () ->
         G.net_handler\connect()
 
     G.change_view = (V) ->
-        if G.level_view then
-            G.level_view\stop()
-        G.level_view = V
-        G.level = V.level
+        if G.map_view then
+            G.map_view\stop()
+        G.map_view = V
+        G.map = V.map
         if not V.is_menu
             G.serialize_fork()
-        G.level_view.start()
+        G.map_view.start()
 
     -- Setup function
     G.start = () -> 
-        G.level_view.start() unless G.level_view == nil
+        G.map_view.start() unless G.map_view == nil
 
         thread = main_thread(G)
         thread.start()
@@ -141,35 +142,35 @@ create_game_state = () ->
 
     -- Tear-down function
     G.stop = () -> 
-        G.level_view.stop() unless G.level_view == nil
+        G.map_view.stop() unless G.map_view == nil
         for thread in *G.threads
             thread.stop()
 
     -- Game step function
     G.step = () -> 
-        G.level.step() unless G.level == nil
-        G.step_number += 1 unless G.level.is_menu
+        G.map.step() unless G.map == nil
+        G.step_number += 1 unless G.map.is_menu
 
     G.serialize_fork = () ->
         serialization.exclude(G)
-        serialization.push_state(G.level)
+        serialization.push_state(G.map)
         G.fork_step_number = G.step_number
     G.serialize_revert = () ->
         serialization.exclude(G)
-        serialization.pop_state(G.level)
+        serialization.pop_state(G.map)
         G.step_number = G.fork_step_number
 
     G.handle_io = () ->
         if user_io.key_down "K_Q"
-            serialization.push_state(G.level)
+            serialization.push_state(G.map)
             G.fork_step_number = G.step_number
 
         if user_io.key_down "K_E"
-            serialization.pop_state(G.level)
+            serialization.pop_state(G.map)
 
-        G.level.handle_io() unless G.level == nil
+        G.map.handle_io() unless G.map == nil
 
-    G.pre_draw = () -> G.level_view.pre_draw() unless G.level_view == nil
+    G.pre_draw = () -> G.map_view.pre_draw() unless G.map_view == nil
 
         -- print "Pre-draw took ", (MOAISim.getDeviceTime() - before) * 1000, 'ms'
 

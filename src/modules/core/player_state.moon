@@ -21,6 +21,11 @@ setup_player_state = (G) ->
     			return player.id_player
     	return nil
 
+    G.local_player = () -> 
+        for L in *G.maps do for player in *L.player_list
+            if G.is_local_player(player)
+                return player
+
     G.is_local_player = (obj) ->
         player = G.players[obj.id_player]
         return player.is_controlled

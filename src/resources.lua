@@ -129,8 +129,24 @@ local function get_font(ppath)
     local charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,/;!?()&/-'
 
     local font = MOAIFont.new()
-    font:loadFromTTF(abs_path, charcodes, 120, 72)
+    font:load(abs_path)
+    font:setFlags(0)
+    font:preloadGlyphs(charcodes, 11)
     font_cache[abs_path] = font
+    return font
+end
+
+local bmfont_cache = {}
+
+local function get_bmfont(ppath)
+    local abs_path = get_resource_path(ppath)
+    if bmfont_cache[abs_path] then 
+        return bmfont_cache[abs_path] 
+    end
+
+    local font = MOAIFont.new()
+    font:loadFromBMFont(abs_path)
+    
     return font
 end
 
@@ -144,6 +160,7 @@ return {
     get_sprite_prop = get_sprite_prop,
     get_tiles_prop = get_tiles_prop,
     get_font = get_font,
+    get_bmfont = get_bmfont,
 
     -- Resource path management, for loading modules:
     get_base_paths = get_base_paths,

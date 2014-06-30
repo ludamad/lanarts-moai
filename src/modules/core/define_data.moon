@@ -60,7 +60,7 @@ with spritedef file: 'crawl-hand2.png', size: {32,32}, tiled: true, kind: 'varia
 with spritedef file: 'monsters.png', size: {32,32}, tiled: true, kind: 'variant'
     .define name: 'monster', from: {1, 1}
 
-leveldef.define {
+mapdef.define {
 	name: "start" 
 	generator: (G, rng) ->
 		model = gen.generate_test_model(rng)

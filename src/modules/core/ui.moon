@@ -30,7 +30,7 @@ real_mouse_xy = (V) ->
 
 tile_mouse_xy = (V) ->
     rX, rY = real_mouse_xy(V)
-    return V.level.real_xy_to_tile(rX, rY)
+    return V.map.real_xy_to_tile(rX, rY)
  
  -- Textbox pseudo-method
  -- Hack to fit textbox based on its contents
@@ -51,7 +51,7 @@ textbox_fit_text = (x, y, text, align_x = 0, align_y = 0) =>
 -- UI Components
 -------------------------------------------------------------------------------
 
--- V: The level view
+-- V: The map view
 ui_ingame_scroll = (V) -> 
     -- First, create components
     text_box = with create_text(V.ui_layer)
@@ -109,7 +109,7 @@ ui_ingame_scroll = (V) ->
             textbox_fit_text(text_box, 0, 0, text)
 
 -- Runs a MOAIThread for selecting squares
--- V: The level components, from load_tiled_json
+-- V: The map components, from load_tiled_json
 ui_ingame_select = (V) ->
 
     texture = (get_texture "highlight32x32.png")
@@ -129,7 +129,7 @@ ui_ingame_select = (V) ->
         -- Get the mouse position
         tX,tY = tile_mouse_xy(V)
         if tX and tY
-            sX,sY = V.level.tile_xy_to_real(tX, tY)
+            sX,sY = V.map.tile_xy_to_real(tX, tY)
             -- Ad-hoc adjustments
             sX,sY = sX + 0, sY + 0 
             -- Set the location
