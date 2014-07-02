@@ -12,7 +12,8 @@ modules = require "core.data"
 mtwist = require 'mtwist'
 util = require 'core.util'
 
-import object_types, game_state, map_state, map_view from require 'core'
+import RaceType, ClassType from require "stats"
+import map_object_types, game_state, map_state, map_view from require 'core'
 
 -------------------------------------------------------------------------------
 -- Game setup
@@ -23,30 +24,32 @@ import object_types, game_state, map_state, map_view from require 'core'
 -- Global RNG for view randomness
 _G._RNG = mtwist.create(os.time())
 
-_spawn_players = (G, L) ->
+_spawn_players = (G, M) ->
     import random_square_spawn_object from require '@util_generate'
 
     for i=1,#G.players
-        random_square_spawn_object L, (px, py) ->
-            object_types.Player.create L, {
-                name: G.players[i].name
+        random_square_spawn_object M, (px, py) ->
+            map_object_types.Player.create M, {
+                name: G.players[i].player_name
                 x: px*32+16
                 y: py*32+16
                 radius: 10
+                race: RaceType.lookup "Undead"
+                class: ClassType.lookup "Knight"
                 solid: true
                 id_player: i
                 speed: 4
             }
 
-_spawn_monsters = (G, L) ->
+_spawn_monsters = (G, M) ->
     import random_square_spawn_object from require '@util_generate'
 
-    for i=1,#G.players
-        random_square_spawn_object L, (px, py) ->
-            object_types.NPC.create L, {
-                name: G.players[i].name
+    for i=1,200
+        random_square_spawn_object M, (px, py) ->
+            map_object_types.NPC.create M, {
                 x: px*32+16
                 y: py*32+16
+                type: "Giant Rat"
                 radius: 10
                 solid: true
                 id_player: i
@@ -59,7 +62,7 @@ main = () ->
 	MOAISim.openWindow "Lanarts", w,h
     gl_set_vsync(false)
 
-	rng = mtwist.create(1)--os.time())
+	rng = mtwist.create(2)--os.time())
 
     G = game_state.create_game_state()
 
@@ -70,10 +73,14 @@ main = () ->
         log("game start called")
 		tilemap = modules.get_map("start").generator(G, rng)
 
-	    L = map_state.create_map_state(G, 1, rng, tilemap)
-        append G.maps, L
-	    _spawn_players(G, L)
-	    V = map_view.create_map_view(L, w, h)
+	    M = map_state.create_map_state(G, 1, rng, tilemap)
+        append G.maps, M
+
+        -- Set the current map as a global variable:
+        _G._MAP = M
+	    _spawn_players(G, M)
+        _spawn_monsters(G, M)
+	    V = map_view.create_map_view(M, w, h)
 
 	    G.change_view(V)
 

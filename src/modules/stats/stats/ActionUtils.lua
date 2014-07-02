@@ -214,20 +214,21 @@ function M.derive_action(args, --[[Optional]] options, --[[Optional, default fal
         args.cooldown_offensive = args.cooldown_offensive or (DEFAULT_MELEE_COOLDOWN * (args.delay or 1))
         add_prereq_and_effect(action, M.derive_cooldowns(args, cleanup_members))
     end
-    if options.derive_sound_play and args.sound then
-        if type(args.sound) == "string" then
-            args.sound = {Sounds.lookup(args.sound)}
-        end
-        for i,sound in ipairs(args.sound) do
-            if type(sound) == "string" then
-                args.sound[i] = Sounds.lookup(sound)
-            end
-        end
-        add_effect(action, M.CustomEffect.create {
-            sound = args.sound,
-            apply = function(self) random_choice(self.sound):play() end
-        })
-    end
+    -- TODO: Reimplement sound
+    -- if options.derive_sound_play and args.sound then
+    --     if type(args.sound) == "string" then
+    --         args.sound = {Sounds.lookup(args.sound)}
+    --     end
+    --     for i,sound in ipairs(args.sound) do
+    --         if type(sound) == "string" then
+    --             args.sound[i] = Sounds.lookup(sound)
+    --         end
+    --     end
+    --     add_effect(action, M.CustomEffect.create {
+    --         sound = args.sound,
+    --         apply = function(self) random_choice(self.sound):play() end
+    --     })
+    -- end
     -- Stat costs and cooldowns
     if options.derive_stat_cost then
         add_prereq_and_effect(action, M.derive_stat_costs(args, cleanup_members))

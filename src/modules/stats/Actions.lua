@@ -19,7 +19,7 @@ M.TARGET_TYPES = {
 }
 
 -- Expose target types:
-for v in values(M.TARGET_TYPES) do
+for _, v in ipairs(M.TARGET_TYPES) do
     M[v] = v
 end
 

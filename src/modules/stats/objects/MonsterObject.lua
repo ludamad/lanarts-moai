@@ -40,7 +40,7 @@ end
 
 function MonsterObject:on_death(attacker_obj)
     local xp = ExperienceCalculation.challenge_rating_to_xp_gain(attacker_obj.base_stats.level, self.challenge_rating)
-    xp = random_round(xp)
+    xp = _MAP.rng:random_round((xp)
     attacker_obj:gain_xp(xp)
     if self.destroyed then return end
 

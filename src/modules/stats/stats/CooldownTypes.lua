@@ -10,7 +10,7 @@ M.default_cooldown_table = {
     SPELL_ACTIONS = 45,
     ITEM_ACTIONS = 45,
     ABILITY_ACTIONS = 45,
-    REST_ACTION = 20
+    REST_ACTION = 300
 }
 
 -- Cooldown types

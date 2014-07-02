@@ -3,7 +3,7 @@ BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
 modules = require 'core.data'
 import camera, util_geometry from require "core"
-import ObjectBase, CombatObjectBase, Player, NPC from require 'core.object_types'
+import ObjectBase, CombatObjectBase, Player, NPC from require 'core.map_object_types'
 import FieldOfView, FloodFillPaths, GameInstSet, RVOWorld, GameTiles from require "core"
 
 MAX_SPEED = 32
@@ -94,14 +94,20 @@ _setup_map_state_helpers = (M) ->
         ry = math.floor(ry / th) * th
         return rx, ry
 
-    M.tile_check = (obj, dx=0, dy=0, dradius=0) ->
-        return GameTiles.radius_test(M.tilemap, obj.x + dx, obj.y + dy, obj.radius + dradius)
+    M.tile_check = (obj, dx=0, dy=0, radius=obj.radius) ->
+        return GameTiles.radius_test(M.tilemap, obj.x + dx, obj.y + dy, radius)
 
-    M.object_check = (obj, dx=0, dy=0, dradius=0) ->
-        return M.collision_world\object_radius_test(obj.id_col, obj.x + dx, obj.y + dy, obj.radius + dradius)
+    M.object_check = (obj, dx=0, dy=0, radius=obj.target_radius) ->
+        return M.collision_world\object_radius_test(obj.id_col, obj.x + dx, obj.y + dy, radius)
 
-    M.solid_check = (obj, dx=0, dy=0, dradius=0) ->
-        return M.tile_check(obj, dx, dy, dradius) or M.object_check(obj, dx, dy, dradius)
+    _OBJ_BUFFER = {}
+    M.object_query = (obj, dx=0, dy=0, radius=obj.target_radius) ->
+        table.clear(_OBJ_BUFFER)
+        M.collision_world\object_radius_query(obj.id_col, _OBJ_BUFFER, obj.x + dx, obj.y + dy, radius)
+        return _OBJ_BUFFER
+
+    M.solid_check = (obj, dx=0, dy=0, radius=nil) ->
+        return M.tile_check(obj, dx, dy, dradius) or M.object_check(obj, dx, dy, radius)
 
     -- M.object_iter = () ->
     --     return M.objects\iter()
@@ -128,9 +134,20 @@ _setup_map_state_helpers = (M) ->
 setup_map_state = (M) ->
     -- The object store and ID allocator
     M.objects = MapObjectStore.create()
+    -- Various object lists:
     M.object_list = M.objects.list
-    M.player_list = {}
     M.combat_object_list = {}
+    M.npc_list = {}
+    M.player_list = {}
+    M.projectile_list = {}
+    M.animation_list = {}
+    M.item_list = {}
+    -- Features include any interactable dungeon element
+    M.feature_list = {}
+    -- Map from a collision ID to an active object
+    M.col_id_to_object = {}
+    -- Objects to be removed
+    M.removal_list = {}
 
     -- The game collision detection 'world'
     M.collision_world = GameInstSet.create(M.pix_width, M.pix_height)

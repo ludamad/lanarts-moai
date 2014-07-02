@@ -61,6 +61,7 @@ function M.stats_create(--[[Optional]] params, --[[Optional]] add_skills)
     return {
         name = params.name,
         team = params.team,
+        gold = params.gold or 0,
 
         level = params.level or 1,
         xp = params.xp or 0, -- Note, XP needed is a function of level

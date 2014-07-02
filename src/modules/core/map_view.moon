@@ -5,7 +5,7 @@
 BoolGrid, mtwist = require "BoolGrid", require "mtwist" 
 
 import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld, game_actions,
-    game_actions from require "core"
+    ui_minimap, menu_start from require "core"
 
 -------------------------------------------------------------------------------
 -- Other requires
@@ -196,7 +196,7 @@ create_menu_view = (G, w,h, continue_callback) ->
     -- We 'cheat' with our menu map view, just point to same object
     V = {is_menu: true}
     V.map = V
-    V.layer = with MOAILayer2D.new()
+    V.ui_layer = with MOAILayer2D.new()
         \setViewport with MOAIViewport.new()
             \setSize(w,h)
             \setScale(w,-h)
@@ -211,21 +211,22 @@ create_menu_view = (G, w,h, continue_callback) ->
     client_starting = false
     server_starting = false
 
+    net_send = (type) ->
+        G.net_handler\send_message {:type}
+    net_recv = (type) ->
+        if G.gametype == 'server' 
+            G.net_handler\unqueue_message_all(type)
+        else
+            G.net_handler\unqueue_message(type)
+
     V.pre_draw = () ->
         util_draw.reset_draw_cache()
+        menu_start.draw_setup(V.ui_layer, w, h)
         info = "There are #{#G.players} players."
         if G.gametype == 'client'
             info ..= "\nWaiting for the server..."
         else 
             info ..= "\nPress ENTER to continue."
-
-        net_send = (type) ->
-            G.net_handler\send_message {:type}
-        net_recv = (type) ->
-            if G.gametype == 'server' 
-                G.net_handler\unqueue_message_all(type)
-            else
-                G.net_handler\unqueue_message(type)
 
         -- At the beginning, there is a rather complicated handshake:
         -- Server sends ServerRequestStartGame, sets up action state
@@ -236,7 +237,7 @@ create_menu_view = (G, w,h, continue_callback) ->
         -- Note though this handshake is completely contained within this block, and 
         -- this guarantees that everyone is set up ready to receive game actions!
 
-        util_draw.put_text(V.layer, menu_style, info, 0, 0, 0.5, 0.5, "center")
+        util_draw.put_text(V.ui_layer, menu_style, info, 0, 0, 0.5, 0.5, "center")
 
         if client_starting
             if net_recv("ServerConfirmStartGame")
@@ -260,10 +261,10 @@ create_menu_view = (G, w,h, continue_callback) ->
     V.handle_io = () -> nil
 
     -- Setup function
-    V.start = () -> MOAISim.pushRenderPass(V.layer)
+    V.start = () -> MOAISim.pushRenderPass(V.ui_layer)
     V.stop = () -> 
-        V.layer\clear()
-        MOAISim.removeRenderPass(V.layer)
+        V.ui_layer\clear()
+        MOAISim.removeRenderPass(V.ui_layer)
 
     return V
 

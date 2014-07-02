@@ -92,6 +92,10 @@ function Inventory:values()
     return values(self.items)
 end
 
+function Inventory:pairs()
+    return ipairs(self.items)
+end
+
 function Inventory:on_step(stats)
     for _, item in ipairs(self.items)  do
         if item.equipped then

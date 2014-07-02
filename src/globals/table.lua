@@ -216,8 +216,11 @@ function table.remove_occurrences(t, val)
             new_len = new_len + 1
         end
     end
-    for i = new_len, #t do
+    for i = #t, new_len, -1 do
         t[i] = nil -- delete values at end
+    end
+    for i =1,#t do
+        assert(t[i] ~= nil, "WHAT")
     end
 end
 

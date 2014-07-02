@@ -6,6 +6,10 @@
 
 local M = nilprotect {} -- submodule
 
+local RESOURCE_META = {
+    __constant = true
+}
+
 --- Create functions for operating on global, mutable tables.
 -- @param resource_creation_function Optional, the function which creates the resource, given a table of values. Returns the same table by default.
 -- @param provide_name_lookup Optional, whether to allow for lookup by name. True by default.
@@ -29,6 +33,9 @@ function M.type_create(--[[Optional]] resource_creation_function, --[[Optional]]
     	end
     	-- Call the resource creation function, if one was provided.
         local entry = resource_creation_function and resource_creation_function(table) or table
+        if not getmetatable(entry) then
+            setmetatable(entry, RESOURCE_META)
+        end
         entry.id = #R.list + 1
         R.list[entry.id] = entry
         if provide_name_lookup then

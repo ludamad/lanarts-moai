@@ -10,6 +10,7 @@ return {
 
 	COL_MUTED_GREEN: {0.2, 1, 0.2}
 	COL_PALE_GREEN: {0.7, 1, 0.7}
+	COL_DARK_GREEN: {25/255, 50/255, 10/255}
 	COL_GREEN: {0, 1, 0}
 
 	COL_LIGHT_BLUE: {0.2, 0.2, 1}

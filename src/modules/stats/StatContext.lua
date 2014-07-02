@@ -108,7 +108,7 @@ end
 
 function M.on_death(context, attacker)
     context.derived.hooks:on_event("on_death", context, attacker)
-    context.obj:on_death(attacker.obj)
+    context.obj:on_death(_G._MAP, attacker.obj)
 end
 
 --------------------------------------
@@ -148,6 +148,13 @@ function M.add_cooldown(context, type, amount)
     local A, B = context.base, context.derived
     A.cooldowns:add_cooldown(type, amount)    
     B.cooldowns:add_cooldown(type, amount)    
+end
+
+--- Apply a cooldown of a certain cooldown type (permanently)
+function M.apply_cooldown(context, type, amount, --[[Optional]] f)
+    local A, B = context.base, context.derived
+    A.cooldowns:apply_cooldown(type, amount, f)    
+    B.cooldowns:apply_cooldown(type, amount, f)    
 end
 
 --- Set a cooldown of a certain cooldown type (permanently)

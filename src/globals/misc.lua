@@ -104,6 +104,9 @@ function newtype(args)
     end
     type.get,type.set = get,set
     type.parent = parent
+    if type.init == nil then
+        type.init = do_nothing
+    end
 
     function type.isinstance(obj)
         local otype = getmetatable(obj)

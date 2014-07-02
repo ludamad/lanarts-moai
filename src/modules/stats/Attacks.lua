@@ -12,7 +12,7 @@ M.AttackEffect = newtype()
 function M.AttackEffect:apply(attacker, target)
     assert(target.base and target.derived, "Stat context expected as target parameter (probably wrong target type)")
     local dmg = AttackResolution.damage_calc(self, attacker, target)
-    StatContext.add_hp(target, -random_round(dmg))
+    StatContext.add_hp(target, -_MAP.rng:random_round(dmg))
     LogUtils.event_log_resolved(attacker.obj, "{The }$You deal{s} " ..dmg .. " damage!", COL_GREEN)
     LogUtils.event_log_resolved(target.obj, "{The }$You [have]{has} " .. math.ceil(target.base.hp) .. "HP left.", COL_PALE_BLUE)
     return dmg

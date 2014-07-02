@@ -220,11 +220,11 @@ local function give_all_items(player)
         local function is(trait) return table.contains(item.traits, trait) end
  
         if table.contains(item.traits, ItemTraits.WEAPON) then
-            StatContext.add_item(player, {type = item, effectiveness_bonus = random(-2,4), damage_bonus = random(-2,4)})
+            StatContext.add_item(player, {type = item, effectiveness_bonus = _MAP.rng\_MAP.rng:random(-2,4), damage_bonus = _MAP.rng\_MAP.rng:random(-2,4)})
         elseif is(IT.BODY_ARMOUR) or is(IT.BRACERS) or is(IT.BOOTS) or is(IT.HEADGEAR) or is(IT.GLOVES) then
-            StatContext.add_item(player, {type = item, bonus = random(1,3)})
+            StatContext.add_item(player, {type = item, bonus = _MAP.rng\_MAP.rng:random(1,3)})
         else 
-            StatContext.add_item(player, {type = item, bonus = random(1,5)})
+            StatContext.add_item(player, {type = item, bonus = _MAP.rng\_MAP.rng:random(1,5)})
         end
     end
 end

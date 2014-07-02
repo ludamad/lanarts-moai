@@ -186,8 +186,8 @@ end
 function M.resolve_weapon_bonuses(self)
     M.resolve_weapon_name(self)
     local b1, b2 = self.effectiveness_bonus or 0, self.damage_bonus or 0
-    local difficulty = ((b1*b1+b2*b2) ^ 0.75) + random(-1,3) + (self.difficulty or 0)
-    init_identify_requirements(self, {Apts.WEAPON_IDENTIFICATION}, random_round(difficulty))
+    local difficulty = ((b1*b1+b2*b2) ^ 0.75) + _MAP.rng:random(-1,3) + (self.difficulty or 0)
+    init_identify_requirements(self, {Apts.WEAPON_IDENTIFICATION}, _MAP.rng:random_round(difficulty))
     self.action_wield = table.deep_clone(self.action_wield)
     local attack = Actions.get_effect(self.action_wield, Attacks.AttackEffect)
     if not attack then
@@ -247,11 +247,11 @@ function M.resolve_armour_bonuses(self)
     self.name =  bonus_str1(b) .. ' ' .. self.type.name
     if self.mini_sprite then
         self.on_draw_args = self.on_draw_args or {}
-        self.on_draw_args.frame = random(0, self.mini_sprite.duration)
+        self.on_draw_args.frame = _MAP.rng:random(0, self.mini_sprite.duration or 1)
     end
 
-    local difficulty = (self.bonus ^ 1.5) + random(-1,3) + (self.difficulty or 0)
-    init_identify_requirements(self, {Apts.ARMOUR}, random_round(difficulty))
+    local difficulty = (self.bonus ^ 1.5) + _MAP.rng:random(-1,3) + (self.difficulty or 0)
+    init_identify_requirements(self, {Apts.ARMOUR}, _MAP.rng:random_round(difficulty))
     -- Twice as much resistance as defence allocated
     local res_b, def_b = math.ceil(b * 2 / 3), math.floor(b / 3)
     self.equipment_bonuses = {

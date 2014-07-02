@@ -5,7 +5,36 @@
 -------------------------------------------------------------------------------
 
 -- Action type enumeration
-ACTION_NONE, ACTION_MOVE = unpack [i for i=1,2]
+ACTION_NONE, ACTION_MOVE, ACTION_USE_SPELL, ACTION_USE_ITEM, ACTION_USE_WEAPON = unpack [i for i=1,4]
+
+-- Forward-declare
+local GameAction
+
+-------------------------------------------------------------------------------
+-- Helpers for representing various actions
+-------------------------------------------------------------------------------
+
+-- TODO combine moves into ALL actions -- it only makes sense
+
+make_none_action = (pobj, step_number) ->
+    return GameAction.create pobj.id_player, ACTION_NONE,
+        0,0, step_number, 0, pobj.x, pobj.y
+
+make_move_action = (pobj, step_number, dirx, diry) -> 
+    -- Add 3 to directions to force them into the 0-255 range
+    return GameAction.create pobj.id_player, ACTION_MOVE, 
+        dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
+
+-- make_spell_action = (pobj, step_number, dirx, diry) -> 
+--     -- Add 3 to directions to force them into the 0-255 range
+--     return GameAction.create pobj.id_player, ACTION_MOVE, 
+--         dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
+
+unbox_move_action = (action) ->
+    assert(action.action_type == ACTION_MOVE)
+    {:id_player, :step_number, :genericbyte1, :genericbyte2} = action
+    -- Subtract 3 to recreate the directions from make_move_action
+    return id_player, step_number, genericbyte1 - 3, genericbyte2 - 3
 
 GameAction = with newtype()
     -- Use with either .create(buffer)
@@ -62,26 +91,6 @@ GameAction = with newtype()
         \write_int @id_target
         \write_double @x
         \write_double @y
-
-
--------------------------------------------------------------------------------
--- Helpers for representing various actions
--------------------------------------------------------------------------------
-
-make_none_action = (pobj, step_number) ->
-    return GameAction.create pobj.id_player, ACTION_NONE,
-        0,0, step_number, 0, pobj.x, pobj.y
-
-make_move_action = (pobj, step_number, dirx, diry) -> 
-    -- Add 3 to directions to force them into the 0-255 range
-    return GameAction.create pobj.id_player, ACTION_MOVE, 
-        dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
-
-unbox_move_action = (action) ->
-    assert(action.action_type == ACTION_MOVE)
-    {:id_player, :step_number, :genericbyte1, :genericbyte2} = action
-    -- Subtract 3 to recreate the directions from make_move_action
-    return id_player, step_number, genericbyte1 - 3, genericbyte2 - 3
 
 -------------------------------------------------------------------------------
 -- Implementation of GameActionFrameSet and related helpers that form a buffer

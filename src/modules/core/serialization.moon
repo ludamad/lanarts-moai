@@ -40,6 +40,11 @@ push_state = (_obj) ->
 		if EXCLUDE_TABLE[obj]
 			return
 
+		meta = getmetatable(obj)
+
+		if meta ~= nil and meta.__constant == true
+			return
+
 		data = lookup[obj]
 		if data == nil 
 			data = {[0]: PASS}
@@ -48,8 +53,6 @@ push_state = (_obj) ->
 		else
 			if data[0] == PASS then return
 			data[0] = PASS
-
-		meta = getmetatable(obj)
 
 		if meta == BoolGridMeta
 			if data[1] then
@@ -95,13 +98,16 @@ pop_state = (_obj) ->
 		if EXCLUDE_TABLE[obj]
 			return
 
+		meta = getmetatable(obj)
+
+		if meta ~= nil and meta.__constant == true
+			return
+
 		data = lookup[obj]
 		-- Did we already deserialize this?
 		if data[0] == PASS
 			return
 		data[0] = PASS
-
-		meta = getmetatable(obj)
 
 		if meta == BoolGridMeta
 			data[1]\copy(obj)

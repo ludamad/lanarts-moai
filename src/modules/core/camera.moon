@@ -36,7 +36,8 @@ move_towards = (V, px, py) ->
 			y = max py + CAMERA_SUBH / 2, y - CAMERA_SPEED
 		y = max 0, (min world_height - height, y)
 
-	V.camera\setLoc(x+width/2, y+height/2)
+	-- Note, it is very bad to have the camera not on an integral boundary
+	V.camera\setLoc(math.floor(x+width/2), math.floor(y+height/2))
 	
 center_on = (V, px, py) ->
 	x,y,width,height,world_width,world_height = _get_components(V)
@@ -58,7 +59,8 @@ sharp_center_on = (V, px, py) ->
 	elseif dy > world_height - height / 2
 		dy = world_height - height / 2
 
-	V.camera\setLoc(px+dx  - width / 2, py+dy - height / 2)
+	-- Note, it is very bad to have the camera not on an integral boundary
+	V.camera\setLoc(math.floor(px+dx  - width / 2), math.floor(py+dy - height / 2))
 
 move_delta = (V, dx, dy) ->
 	move_towards(V, x + dx, y + dy)

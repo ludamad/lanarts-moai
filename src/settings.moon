@@ -6,14 +6,14 @@ elseif os.getenv "CLIENT"
 else
 	gametype = 'single_player'
 
-player_name = (os.getenv "player") or "DUMMY"
+player_name = (os.getenv "player") or "ludamad"
 
 {
 headless: false
 window_size: {800, 600}
 server_ip: (os.getenv "IP") or '192.168.12.102'
 server_port: 6112
-frames_per_second: 100
+frames_per_second: 200
 frames_per_second_csp: 50
 
 :gametype

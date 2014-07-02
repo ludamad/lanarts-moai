@@ -16,7 +16,7 @@ data = {
 	id_to_tilelist: {},
 	next_tilelist_id: 1, 
 
-	-- Level data
+	-- Map data
 	maps: {}, 
 	id_to_map: {}
 	next_map_id: 1, 
@@ -51,15 +51,18 @@ TexPart = with newtype()
 
 -- Represents a single tile
 Tile = with newtype()
+	__constant = true -- For serialization
 	.init = (id, grid_id, solid) => 
 		@id, @grid_id, @solid= id, grid_id, solid 
 
 -- Represents a list of variant tiles (from same tile-set)
 TileList = with newtype()
+	__constant = true -- For serialization
 	.init = (id, name, tiles, texfile) => 
 		@id, @name, @tiles, @texfile = id, name, tiles, texfile
 
 Sprite = with newtype()
+	__constant = true -- For serialization
 	.init = (tex_parts, kind, w, h) => 
 		@tex_parts, @kind, @w, @h = tex_parts, kind, w, h
 	.update_quad = (quad, frame = 1) =>
@@ -70,17 +73,18 @@ Sprite = with newtype()
 		quad = util_draw.get_quad()
 		@update_quad(quad, (math.floor(frame)-1) % @n_frames() + 1)
 		return quad
-	.put_prop = (layer, x, y, frame, priority = 0) =>
+	.put_prop = (layer, x, y, frame = 1, priority = 0, alpha = 1) =>
 		return with util_draw.put_prop(layer)
             \setDeck(@get_quad(frame))
             \setLoc(x, y)
             \setPriority(priority)
+            \setColor(1,1,1,alpha)
 
 -------------------------------------------------------------------------------
--- Level data
+-- Map data
 -------------------------------------------------------------------------------
 
-LevelData = with newtype()
+MapData = with newtype()
 	.init = (name, generator) => 
 		@name, @generator = name, generator
 
@@ -165,7 +169,7 @@ setup_define_functions = (fenv, module_name) ->
 	fenv.spritedef = define_wrapper (values) ->
 		{:file, :size, :tiled, :kind, :name, :to} = values
 		{w, h} = size
-		kind = kind or variant
+		kind = kind or 'variant'
 
 		_from = values["from"] -- skirt around Moonscript keyword
 
@@ -183,10 +187,10 @@ setup_define_functions = (fenv, module_name) ->
 		-- Increment sprite number
 		data.next_sprite_id += 1
 
-	-- Level generation data definition
+	-- Map generation data definition
 	fenv.mapdef = define_wrapper (values) ->
 		{:name, :generator} = values
-		map = LevelData.create(name, generator)
+		map = MapData.create(name, generator)
 		data.maps[name] = map
 		data.id_to_map[data.next_sprite_id] = map
 
