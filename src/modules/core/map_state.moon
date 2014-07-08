@@ -194,4 +194,21 @@ create_map_state = (G, id, rng, tilemap) ->
 
     return M
 
-return {:create_map_state}
+-- Current map:
+_current_map = nil
+
+return {
+    :create_map_state
+    map_set: (map) -> _current_map = map
+    map_get: () -> _current_map
+    -- Size of map in pixels
+    map_size: () -> 
+        _current_map.pix_width, _current_map.pix_height
+    -- Size of map in tiles
+    map_tile_size: () -> 
+        _current_map.tilemap_width, _current_map.tilemap_height
+    -- Size of an individual tile
+    map_tile_pixels: () -> 
+        _current_map.tile_width, _current_map.tile_height
+    map_rng: () -> _current_map.rng
+}

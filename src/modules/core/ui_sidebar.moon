@@ -15,6 +15,8 @@ SIDEBAR_WIDTH = 150
 STATBAR_OFFSET_X = 25
 STATBAR_OFFSET_Y = 32
 
+SIDEBAR_FONT = res.get_bmfont 'Liberation-Mono-12.fnt'
+
 sidebar_style = with MOAITextStyle.new()
     \setColor 0,0,0 -- Black
     \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
@@ -51,9 +53,9 @@ draw_statbar = (layer, x,y, is_predraw, w,h, backcol, frontcol, statmin, statmax
         MOAIGfxDevice.setPenColor(unpack(frontcol))
         MOAIDraw.fillRect(x,y,x+w*ratio,y+h)
 
-    if is_predraw
         textx,texty = x+w/2, y+h/2
-        put_text_center layer, sidebar_style, ("%d/%d")\format(statmin, statmax), textx, texty
+        MOAIGfxDevice.setPenColor(0,0,0)
+        MOAIDraw.drawText SIDEBAR_FONT, 12, ("%d/%d")\format(statmin, statmax), textx, texty, 1, 0,0, 0.5, 0.5
 
 -- From Lanarts colors:
 MANA_BACK_COL = {200/255,200/255,200/255}
@@ -123,7 +125,6 @@ sidebar_draw = (is_predraw) =>
     if is_predraw
         sidebar_draw_player_base_stats(@, focus.name, focus.class, focus.stat_context, @x, @y)
         --util_draw_stats.put_stats(focus.stat_context.derived, @layer, styles, cx, cy, 0, 15)
-        ui_inventory.pre_draw(@view, focus.stat_context, cx, cy)
     else
         ui_inventory.draw(@view, focus.stat_context, cx, cy)
 -- Sidebar constructor:
@@ -134,6 +135,7 @@ sidebar_create = (V) ->
     PROP_PRIORITY = 0
     sidebar.draw = () =>
         sidebar_draw(@)
+        MOAIGfxDevice.setPenColor(1,1,1,1)
 
     sidebar.prop = setup_script_prop(sidebar.layer, (() -> sidebar\draw()), V.cameraw, V.camerah, PROP_PRIORITY)
 

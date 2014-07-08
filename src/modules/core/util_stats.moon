@@ -1,6 +1,7 @@
 import StatUtils, ProficiencyPenalties from require "stats.stats"
 import Relations, RaceType, MonsterType, StatContext, ActionContext from require "stats"
 import ItemTraits from require "stats.items"
+import data from require "core"
 
 -- Acts also as a 'stat context' object -- satisfies the three required members: (base, derived, obj)
 ExtendedStatContext = with newtype()
@@ -11,29 +12,6 @@ ExtendedStatContext = with newtype()
         @unarmed_action = unarmed_action
         @race = race
         @unarmed_action_context = ActionContext.action_context_create(@unarmed_action, @, @race or @obj)
-    .step = () =>
-        StatUtils.stat_context_on_step(@context)
-    .weapon_action_context = (weapon = nil) =>
-        weapon = weapon or @get_equipped_item(ItemTraits.WEAPON)
-        action, source = @unarmed_action, (@race or @)
-        if weapon
-            modifier = StatContext.calculate_proficiency_modifier(@, weapon) 
-            source = weapon
-            action = ProficiencyPenalties.apply_attack_modifier(weapon.action_wield, modifier)
-        return ActionContext.action_context_create(action, @, source)
-    .use_weapon = (enemy) =>
-        ActionContext.use_action(@weapon_action_context(), enemy)
-
--- function CombatObject:weapon_action_context(--[[Optional]] weapon)
---     local weapon = weapon or StatContext.get_equipped_item(self._context, ItemTraits.WEAPON)
---     local action, source = self.unarmed_action, self.race or self -- Default
---     if weapon then
---         local modifier = StatContext.calculate_proficiency_modifier(self._context, weapon)
---         source = weapon
---         action = ProficiencyPenalties.apply_attack_modifier(weapon.action_wield, modifier)
---     end
---     return ActionContext.action_context_create(action, self:stat_context(), source)
--- end
 
 -- Methodify the StatContext functions
 -- Note this works because all the following functions take a stat context as the first parameter
@@ -76,5 +54,60 @@ for func_name in *{
     "get_status" 
 } do
     ExtendedStatContext[func_name] = StatContext[func_name]
+
+-- Add methods to the Extended StatContext
+
+with ExtendedStatContext
+    .step = () =>
+        StatUtils.stat_context_on_step(@context)
+    .weapon_action_context = (weapon = nil) =>
+        weapon = weapon or @get_equipped_item(ItemTraits.WEAPON)
+        action, source = @unarmed_action, (@race or @)
+        if weapon
+            modifier = StatContext.calculate_proficiency_modifier(@, weapon) 
+            source = weapon
+            action = ProficiencyPenalties.apply_attack_modifier(weapon.action_wield, modifier)
+        return ActionContext.action_context_create(action, @, source)
+    .can_use_weapon = (enemy) =>
+        ActionContext.can_use_action(@weapon_action_context(), enemy)
+    .use_weapon = (enemy) =>
+        ActionContext.use_action(@weapon_action_context(), enemy)
+
+
+SMALL_SPRITE_ORDER = {
+    "BODY_ARMOUR",
+    "WEAPON",
+    "RING",
+    "GLOVES",
+    "BOOTS",
+    "BRACERS",
+    "AMULET",
+    "HEADGEAR",
+    "AMMUNITION"
+}
+
+REST_SPRITE = data.get_sprite("stat-rest")
+
+PRIORITY_INCR = 1
+
+with ExtendedStatContext
+    .put_avatar_sprite = (layer, x, y, frame, priority) =>
+        assert @race -- Assert that we're a player-like stat-context
+        -- Put base sprite
+        sp = data.get_sprite(@race.avatar_sprite)
+        sp\put_prop(layer, x, y, frame, priority)
+
+        -- Increase priority for next sprite
+        priority += PRIORITY_INCR
+        for equip_type in *SMALL_SPRITE_ORDER
+            equip = @get_equipped_item(equip_type)
+            if equip and equip.avatar_sprite
+                -- Put avatar sprite
+                sp = data.get_sprite(equip.avatar_sprite)
+                sp\put_prop(layer, x, y, frame, priority)
+                priority += PRIORITY_INCR
+        -- Is the object resting?
+        if @obj.is_resting
+            REST_SPRITE\put_prop(layer, x, y, frame, priority)
 
 return {stat_context_create: ExtendedStatContext.create}

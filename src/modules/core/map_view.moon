@@ -158,7 +158,7 @@ create_map_view = (map, cameraw, camerah) ->
     V.draw = () ->
         map_logic.draw(V)
 
-    script_prop = (require 'core.util_draw').setup_script_prop(V.object_layer, V.draw, V.map.pix_width, V.map.pix_height)
+    script_prop = (require 'core.util_draw').setup_script_prop(V.object_layer, V.draw, V.map.pix_width, V.map.pix_height, 999999)
 
     -- Note: uses script_prop above
     V.pre_draw = () ->

@@ -6,6 +6,7 @@ local ranged_weapon_define = (require "@items.ItemDefineUtils").ranged_weapon_de
 -- PIERCING
 weapon_define {
     name = "Dagger",
+    avatar_sprite = 'sw-dagger',
     description = "A small but sharp blade, adept at stabbing purposes.",
 
     gold_worth = 15, difficulty = 0,
@@ -15,6 +16,7 @@ weapon_define {
 
 weapon_define {
     name = "Short Sword",
+    avatar_sprite = 'sw-dagger',
     description = "A small, light sword.",
 
     gold_worth = 35, difficulty = 1,
@@ -25,6 +27,7 @@ weapon_define {
 -- SLASHING
 weapon_define {
     name = "Long Sword",
+    avatar_sprite = 'sw-sword1',
     description = "A large trusty sword.",
 
     gold_worth = 80, difficulty = 3,
@@ -34,6 +37,7 @@ weapon_define {
 
 weapon_define {
     name = "Great Sword",
+    avatar_sprite = 'sw-sword2',
     description = "An oversized brutish sword.",
 
     gold_worth = 120, difficulty = 5,
@@ -43,6 +47,7 @@ weapon_define {
 
 weapon_define {
     name = "Hand Axe",
+    avatar_sprite = 'sw-hand-axe',
     description = "A light, small and sturdy axe.",
 
     gold_worth = 20, difficulty = 0,
@@ -54,6 +59,7 @@ weapon_define {
 
 ranged_weapon_define {
     name = "Short Bow",
+    avatar_sprite = 'sw-blue-bow',
     description = "A small bow.",
 
     ammunition_trait = Traits.ARROW,

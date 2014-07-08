@@ -36,6 +36,12 @@ npc_step_all = (M) ->
             -- Otherwise, proceed according to RVO
             vx, vy = obj\get_rvo_velocity(M)
         -- Advance forward if we don't hit a solid object
+        if not M.tile_check(obj, vx, vy) and not M.object_check(obj, vx, vy, obj.radius / 2)
+            obj.x += vx
+            obj.y += vy
 
+    -- Resolve actions
+    for obj in M.npc_iter()
+        obj\perform_action(M)
 
 return {:npc_step_all}

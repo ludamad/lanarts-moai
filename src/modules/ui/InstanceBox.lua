@@ -16,14 +16,14 @@ function InstanceBox:init(params)
 end
 
 --- Calls step on all contained objects.
-function InstanceBox:step(xy) 
-    self._instances:step(xy)
+function InstanceBox:step(x, y) 
+    self._instances:step(x, y)
 end
 
 --- Calls draw on all contained objects.
-function InstanceBox:draw(xy)
-    self._instances:draw(xy)
-    DEBUG_BOX_DRAW(self, xy)
+function InstanceBox:draw(x, y)
+    self._instances:draw(x, y)
+    DEBUG_BOX_DRAW(self, x, y)
 end
 
 --- Removes the contained object 'obj'.
@@ -39,8 +39,8 @@ end
 --- Return an iterable that iterates over all objects and their positions.
 -- @param xy <i>optional, default {0,0}</i>
 -- @usage for obj, xy in instance_box:instances({100,100}) do ... end
-function InstanceBox:instances( --[[Optional]] xy)
-    return self._instances:instances(xy)
+function InstanceBox:instances( --[[Optional]] x, y)
+    return self._instances:instances(x, y)
 end
 
 --- Add an object to this container.
@@ -54,8 +54,8 @@ function InstanceBox:add_instance(obj, origin, --[[Optional]] offset)
     local self_w, self_h = unpack(self.size)
     local obj_w, obj_h = unpack(obj.size)
 
-    local xy = { ( self_w - obj_w ) * origin[1] + offset[1],
-                 ( self_h - obj_h ) * origin[2] + offset[2] }
+    local xy = {( self_w - obj_w ) * origin[1] + offset[1],
+               ( self_h - obj_h ) * origin[2] + offset[2]}
 
     self._instances:add_instance( obj, xy )
 end
@@ -66,8 +66,8 @@ function InstanceBox:readd_instance(obj, origin, --[[Optional]] offset)
 end
 
 --- Whether the mouse is within the InstanceBox.
-function InstanceBox:mouse_over(xy)
-    return mouse_over(xy, self.size)
+function InstanceBox:mouse_over(x, y)
+    return mouse_over({x, y}, self.size)
 end
 
 --- A simple string representation for debugging purposes.

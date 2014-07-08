@@ -13,6 +13,7 @@ races_define {
     They possess great aptitude in the dark arts.
 ]],
 
+    avatar_sprite = "sr-undead",
     hp = 80,  hp_regen = 0, -- None!
     mp = 100, mp_regen = 0.012,
 
@@ -53,6 +54,7 @@ races_define {
     They possess great aptitude at using tools and performing physical maneuvers. 
 ]],
 
+    avatar_sprite = "sr-human",
     hp = 100, hp_regen = 0.010,
     mp = 100, mp_regen = 0.012,
 
@@ -69,6 +71,7 @@ races_define {
     They train Armour & Force skills 15% faster. 
 ]],
 
+    avatar_sprite = "sr-orc",
     hp = 100, hp_regen = 0.010,
     mp = 80,  mp_regen = 0.008,
 

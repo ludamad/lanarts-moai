@@ -48,14 +48,14 @@ function InstanceLine:clear()
 end
 
 --- Calls step on all contained objects.
-function InstanceLine:step(xy) 
-    self._instances:step(xy)
+function InstanceLine:step(x, y) 
+    self._instances:step(x, y)
 end
 
 --- Calls draw on all contained objects.
-function InstanceLine:draw(xy)
-    self._instances:draw(xy)
-    DEBUG_BOX_DRAW(self, xy)
+function InstanceLine:draw(x, y)
+    self._instances:draw(x, y)
+    DEBUG_BOX_DRAW(self, x, y)
 end
 
 --- Moves to the next location, as if an instance were added.
@@ -98,8 +98,8 @@ function InstanceLine:add_instance(obj, --[[Optional]] offset)
 end
 
 --- Whether the mouse is within the InstanceLine.
-function InstanceLine:mouse_over(xy)
-    return mouse_over(xy, self.size)
+function InstanceLine:mouse_over(x, y)
+    return mouse_over({x, y}, self.size)
 end
 
 --- A simple string representation for debugging purposes.

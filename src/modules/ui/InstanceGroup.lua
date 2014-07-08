@@ -17,30 +17,22 @@ end
 --- Add an object to this container.
 -- @param xy the origin to align against, eg Display.LEFT_TOP, Display.RIGHT_BOTTOM.
 function InstanceGroup:add_instance(obj, xy )
-    self._instances[#self._instances + 1] = { obj, xy }
+    self._instances[#self._instances + 1] = { obj, xy[1], xy[2] }
 end
 
 --- Calls step on all contained objects.
-function InstanceGroup:step(xy)
-    local step_xy = {} -- shared array for performance
-
-    for instance in values(self._instances) do
-        local obj, obj_xy = unpack(instance)
-
-        step_xy[1] = obj_xy[1] + xy[1]
-        step_xy[2] = obj_xy[2] + xy[2]
-
-        obj:step(step_xy)
+function InstanceGroup:step(x, y)
+    for _, instance in ipairs(self._instances) do
+        local obj, obj_x, obj_y = unpack(instance)
+        obj:step(obj_x + x, obj_y + y)
     end
 end
 
 --- Return an iterable that iterates over all objects and their positions.
 -- @param xy <i>optional, default {0,0}</i>
--- @usage for obj, xy in instance_group:instances({100,100}) do ... end
-function InstanceGroup:instances(xy)
-    xy = xy or {0,0}
-
-    local adjusted_xy = {} -- shared array for performance
+-- @usage for obj, x, y in instance_group:instances({100,100}) do ... end
+function InstanceGroup:instances(x, y)
+    x, y = x or 0, y or 0
 
     local arr,idx = self._instances,1
 
@@ -53,12 +45,8 @@ function InstanceGroup:instances(xy)
         end
 
         idx = idx + 1
-        local obj, obj_xy = unpack(val)
-        
-        adjusted_xy[1] = obj_xy[1] + xy[1]
-        adjusted_xy[2] = obj_xy[2] + xy[2]
-
-        return obj, adjusted_xy
+        local obj, obj_x, obj_y = unpack(val)
+        return obj, x + obj_x, y + obj_y
     end
 end
 
@@ -77,21 +65,18 @@ function InstanceGroup:remove(obj)
 end
 
 --- Removes all contained objects.
-function InstanceGroup:clear()
+function InstanceGroup:clear(--[[Optional]] recursive)
+    if recursive then
+
+    end
     self._instances = {}
 end
 
 --- Calls draw on all contained objects.
-function InstanceGroup:draw(xy)
-    local draw_xy = {} -- shared array for performance
-
+function InstanceGroup:draw(x, y)
     for _, instance in ipairs(self._instances) do
-        local obj, obj_xy = unpack(instance)
-
-        draw_xy[1] = obj_xy[1] + xy[1]
-        draw_xy[2] = obj_xy[2] + xy[2]
-
-        obj:draw(draw_xy)
+        local obj, obj_x, obj_y = unpack(instance)
+        obj:draw(obj_x + x, obj_y + y)
     end
 end
 

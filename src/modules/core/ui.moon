@@ -1,6 +1,6 @@
 -- UI components that run on separate 'threads'.
 
-import create_thread from require 'core.util'
+import thread_create from require 'core.util'
 import get_texture, get_json, get_resource_path, get_font from require "resources"
 import camera from require 'core'
 user_io = require "user_io"

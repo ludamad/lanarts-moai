@@ -1,4 +1,4 @@
-import create_thread from require 'core.util'
+import thread_create from require 'core.util'
 import serialization from require 'core'
 import ClientMessageHandler, ServerMessageHandler from require 'core.net_message_handler'
 user_io = require 'user_io'
@@ -59,7 +59,7 @@ _net_step = (G) ->
     if G.step_number <= G.fork_step_number + PREDICT_STEPS
         G.step()
 
-main_thread = (G) -> create_thread () -> profile () ->
+main_thread = (G) -> thread_create () -> profile () ->
     last_full_send_time = MOAISim\getDeviceTime()
     last_part_send_time = MOAISim\getDeviceTime()
     while true

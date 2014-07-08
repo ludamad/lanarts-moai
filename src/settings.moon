@@ -13,11 +13,13 @@ headless: false
 window_size: {800, 600}
 server_ip: (os.getenv "IP") or '192.168.12.102'
 server_port: 6112
-frames_per_second: 200
+frames_per_second: 100
 frames_per_second_csp: 50
 
 :gametype
 :player_name
+
+regen_on_death: true
 
 --Online settings
 network_lock_step: false
@@ -26,8 +28,6 @@ lobby_server_url: 'http://putterson.homedns.org:8080'
 
 --Window settings
 fullscreen: false
-view_width: 1200
-view_height: 900 
 
 --Font settings
 font: 'src/modules/core/resources/fonts/Gudea-Regular.ttf'

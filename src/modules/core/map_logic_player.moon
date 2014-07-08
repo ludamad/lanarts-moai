@@ -75,7 +75,7 @@ player_step = (M) =>
     -- Default to not resting:
     @is_resting = false
     -- Handling resting due to staying-put
-    if not StatContext.has_cooldown S, "rest"
+    if not StatContext.has_cooldown S, "REST_ACTION"
         needs_hp = (S.derived.hp < S.derived.max_hp and S.base.hp_regen > 0)
         needs_mp = (S.derived.mp < S.derived.max_mp and S.base.mp_regen > 0)
         if needs_hp or needs_mp
@@ -121,7 +121,6 @@ player_handle_io = (M) =>
     -- if G.net_handler
         -- Send last two unacknowledged actions (included the one just queued)
         -- G.net_handler\send_unacknowledged_actions(2)
-
 
     if user_io.key_pressed "K_Y"
         Projectile.create M, {

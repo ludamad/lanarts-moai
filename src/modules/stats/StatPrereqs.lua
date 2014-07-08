@@ -61,18 +61,27 @@ function M.DistancePrereq:init(max_dist, --[[Optional]] min_dist)
     self.min_dist = min_dist or -math.huge
 end
 
+local function dist(obj, x, y) 
+    local dx, dy = obj.x - x, obj.y - y
+    return math.sqrt(dx*dx + dy*dy)
+end
+
 function M.DistancePrereq:check(user, target)
-    local target_xy, target_radius 
+    local target_x, target_y, target_radius 
     -- Assumption: Target is either a position or a StatContext
     if is_position(target) then 
-        target_xy, target_radius = target, 0
+        target_x = target[1]
+        target_y = target[2]
+        target_radius = 0
     else 
-        target_xy, target_radius = target.obj.xy, target.obj.radius 
+        target_x = target.obj.x
+        target_y = target.obj.y
+        target_radius = target.obj.radius 
     end
 
     -- Compare only at the tip of the object(s)
     local reach = user.obj.radius + target_radius
-    local distance = vector_distance(user.obj.xy, target_xy) - reach
+    local distance = dist(user.obj, target_x, target_y) - reach
     if distance < self.min_dist then
         return false, "You are too close!"
     end

@@ -51,7 +51,7 @@ generate_test_model = (rng) ->
 -- Simple model for exemplary purposes
 generate_empty_model = (rng) ->
     padding = {10, 10}
-    size = {120, 80}
+    size = {48, 20}
     padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
     map = TileMap.map_create { 
         size: padded_size

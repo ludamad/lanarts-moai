@@ -28,7 +28,9 @@ make_stats = (M, race, name, _class) ->
 --  Object destruction:
 --   .unregister()
 
-PRIORITY_INCR = 1 / (2^16)
+-- Priority increment -- note, MUST be an integer
+-- Enough to increment the different parts of a player
+PRIORITY_INCR = 25
 
 ObjectBase = with newtype()
 	---------------------------------------------------------------------------
@@ -142,24 +144,6 @@ Vision = with newtype()
         @current_seen_bounds = @fieldofview\tiles_covered()
 
 Player = with newtype {parent: CombatObjectBase}
-    .sprite = data.get_sprite("player-human")
-    .equip_sprites = {
-        { -- Player 1, temporary
-            data.get_sprite("sa-archer")
-            data.get_sprite("sl-green-shorts")
-            data.get_sprite("sw-hand-axe")
-            data.get_sprite("ss-small-shield")
-            data.get_sprite("sb-boots")
-        }
-        { -- Player 2, temporary
-            data.get_sprite("sa-spiky")
-            data.get_sprite("sl-green-shorts")
-            data.get_sprite("sw-long-bow")
-            data.get_sprite("sg-claws")
-            data.get_sprite("sb-boots")
-        }
-    }
-
     .init = (M, args) =>
         CombatObjectBase.init(@, M, args)
         @race = args.race
@@ -181,17 +165,11 @@ Player = with newtype {parent: CombatObjectBase}
         CombatObjectBase.remove(@, M)
         table.remove_occurrences M.player_list, @
 
-    .rest_sprite = data.get_sprite("stat-rest")
-
     .pre_draw = (V) => 
         -- Last number is priority
         index = (@id_player-1) %2 +1
-        for i,equip in ipairs @equip_sprites[index]
-            equip\put_prop(V.object_layer, @x, @y, @frame, @priority + (@y + i) * PRIORITY_INCR)
-        n_sprites = #@equip_sprites[index]
-        if @is_resting
-            @rest_sprite\put_prop(V.object_layer, @x, @y, @frame, @priority + (@y + n_sprites + 1) * PRIORITY_INCR )
-        CombatObjectBase.pre_draw(@, V)
+        @stat_context\put_avatar_sprite(V.object_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR)
+        -- CombatObjectBase.pre_draw(@, V)
 
     .nearest_enemy = (M) =>
         min_obj,min_dist = nil,math.huge
@@ -199,6 +177,7 @@ Player = with newtype {parent: CombatObjectBase}
             dist = util_geometry.object_distance(@, obj)
             if dist < min_dist
                 min_obj = obj
+                min_dist = dist
         return min_obj
 
     .attack = (M) =>
@@ -220,6 +199,20 @@ NPC = with newtype {parent: CombatObjectBase}
         @npc_type = MonsterType.lookup(args.type)
         @sprite = data.get_sprite(args.type)
         @init_stats(table.deep_clone(@npc_type.base_stats), @npc_type.unarmed_action)
+
+    .nearest_enemy = (M) =>
+        min_obj,min_dist = nil,math.huge
+        for obj in *M.player_list do
+            dist = util_geometry.object_distance(@, obj)
+            if dist < min_dist
+                min_obj = obj
+                min_dist = dist
+        return min_obj, min_dist
+    .perform_action = (M) =>
+        min_obj, min_dist = @nearest_enemy(M)
+        print min_obj, min_dist
+        if min_obj and @stat_context\can_use_weapon(min_obj.stat_context)
+            @stat_context\use_weapon(min_obj.stat_context)
 
     .remove = (M) =>
         CombatObjectBase.remove(@, M)

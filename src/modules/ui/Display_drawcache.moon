@@ -1,51 +1,4 @@
--- Default priority is quite large (near front)
-DRAW_PRIORITY = 150
-setup_script_prop = (layer, draw_func, w, h, priority = DRAW_PRIORITY) ->
-    -- Step until the draw loop returns false
-    script_prop = with MOAIProp2D.new()
-        \setDeck with MOAIScriptDeck.new()
-            \setDrawCallback draw_func
-            \setRect 0,0,w,h
-        \setPriority priority 
-    layer\insertProp script_prop
-    return script_prop
-
-setup_draw_loop = (draw_func) ->
-    V = {}
-    {w,h} = _SETTINGS.window_size
-
-    -- Step until the draw loop returns false
-	_step_loop = () ->
-   		if draw_func() == false
-   			V.stop()
-
-    -- Setup function
-    V.start = () -> 
-    	V.layer = with MOAILayer2D.new()
-            \setViewport with MOAIViewport.new()
-                \setSize(w,h)
-                \setScale(w,h)
-
-        -- Begin rendering the MOAI layers
-        MOAISim.pushRenderPass(V.layer)
-
-    	V.layer\insertProp with MOAIProp2D.new()
-			\setDeck with MOAIScriptDeck.new()
-				\setDrawCallback _step_loop
-				\setRect 0,0,w,h
-
-    V.stop = () ->
-    	V.layer\clear()
-        -- Cease rendering the MOAI layers
-        MOAISim.removeRenderPass(V.layer)
-        V.layer = nil
-
-    V.join = () ->
-    	-- While draw loop is active:
-    	while V.layer ~= nil 
-    		coroutine.yield()
-
-    return V
+-- Used to implement logic in Display.moon
 
 moai_resource_cache = (constructor, remover = nil) ->
     cached = {}
@@ -143,4 +96,4 @@ put_image = (layer, tex, x, y, priority = 0) ->
                 texw/2, -texh/2
         \setPriority priority
 
-return {:textbox_fit_text, :setup_script_prop, :setup_draw_loop, :put_text, :put_image, :put_text_center, :put_text_right,  :get_quad, :put_prop, :textbox_fit_text, :reset_draw_cache}
+return {:put_text, :put_image, :put_text_center, :put_text_right,  :get_quad, :put_prop, :textbox_fit_text, :reset_draw_cache}

@@ -1,5 +1,5 @@
 res = require "resources"
-util_draw = require "core.util_draw"
+import Display from require "ui"
 
 data = {
 	-- Sprite data
@@ -39,6 +39,11 @@ TileGrid = with newtype()
 TexPart = with newtype()
 	.init = (texture, x, y, w, h) =>
 		@texture, @x, @y, @w, @h = texture, x, y, w, h
+	.draw = (x, y, alpha=1, originx=0, originy=0) =>
+		texw, texh = @texture\getSize()
+		nx, ny = 1 - originx, 1 - originy
+		-- TODO: Make drawTexture not such a long function?
+		MOAIDraw.drawTexture @texture, x-@w*originx, y-@h*originy, x+@w*nx, y + @h*ny, @x/texw, @y/texh, (@x+@w)/texw, (@y+@h)/texh, alpha
 	.update_quad = (quad) =>
 		texw, texh = @texture\getSize()
 		with quad 
@@ -70,11 +75,14 @@ Sprite = with newtype()
 	.n_frames = () =>
 		return #@tex_parts
 	.get_quad = (frame = 1) =>
-		quad = util_draw.get_quad()
+		quad = Display.get_quad()
 		@update_quad(quad, (math.floor(frame)-1) % @n_frames() + 1)
 		return quad
+	.draw = (layer, x, y, frame = 1, alpha = 1, originx=0, originy=0) =>
+		frame = (math.floor(frame)-1) % @n_frames() + 1
+		@tex_parts[frame]\draw(x, y, alpha, originx, originy)
 	.put_prop = (layer, x, y, frame = 1, priority = 0, alpha = 1) =>
-		return with util_draw.put_prop(layer)
+		return with Display.put_prop(layer)
             \setDeck(@get_quad(frame))
             \setLoc(x, y)
             \setPriority(priority)

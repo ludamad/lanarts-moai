@@ -8,6 +8,11 @@ make_bmstyle = (font, col) ->
 
 make_liber = (col) -> make_bmstyle 'Liberation-Mono-12.fnt', col
 
+make_style = (font, col, size) ->
+    return with MOAITextStyle.new()
+        \setColor(unpack(col))
+        \setFont(res.get_font('MateSC-Regular.ttf'))
+
 return {
     liber_black12: make_liber COL_BLACK
     liber_white12: make_liber COL_WHITE
@@ -16,4 +21,8 @@ return {
     liber_gold12: make_liber COL_GOLD
     liber_pale_blue: make_liber COL_PALE_BLUE
     liber_red12: make_liber COL_RED
+    mate_pale_red20: make_style 'MateSC-Regular.ttf', COL_PALE_RED, 20
+    -- mate_pale_red20: make_style 'MateSC-Regular.ttf', COL_PALE_RED, 20
+    -- mate_pale_red20: make_style 'MateSC-Regular.ttf', COL_PALE_RED, 20
+    -- mate_pale_red20: make_style 'MateSC-Regular.ttf', COL_PALE_RED, 12
 }

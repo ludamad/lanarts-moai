@@ -56,7 +56,8 @@ class_define {
     description = "A disciplined, heavily armoured warrior.",
     items = { 
         "Health Potion", 
-        "Hand Axe",
+        {type="Leather Boots", bonus=0, equipped = true},
+        {type="Hand Axe", equipped=true},
         {type="Chainshirt", bonus=1, equipped=true},
         {type="Horned Helmet", bonus=1, equipped=true}
     },

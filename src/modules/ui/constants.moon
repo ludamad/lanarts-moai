@@ -1,0 +1,13 @@
+return {
+	LEFT_TOP: {0,0}
+	CENTER_TOP: {0.5,0}
+	RIGHT_TOP: {1.0,0}
+
+	LEFT_CENTER: {0,0.5}
+	CENTER: {0.5,0.5}
+	RIGHT_CENTER: {1.0,0.5}
+
+	LEFT_BOTTOM: {0,1.0}
+	CENTER_BOTTOM: {0.5,1.0}
+	RIGHT_BOTTOM: {1.0,1.0}
+}

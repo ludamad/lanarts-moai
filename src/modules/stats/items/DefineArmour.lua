@@ -41,6 +41,7 @@ body_armour_define {
 
 body_armour_define {
     name = "Chainshirt",
+    avatar_sprite = "sa-chainshirt",
     description = "The shirt consists of small metal rings linked together in a mesh.",
     sprite = {}, -- TODO
 
@@ -120,6 +121,7 @@ headgear_define {
 
 headgear_define {
     name = "Horned Helmet",
+    avatar_sprite = "sh-horn-gray",
     description = "A helmet with horns. It provides pretty good protection to the head.",
     sprite = {}, -- TODO
 
@@ -136,6 +138,7 @@ local boots_define = ItemDefineUtils.boots_define
 
 boots_define {
     name = "Leather Boots",
+    avatar_sprite = "sb-brown",
     description = "Boots made of leather. They go a long way for protecting the feat.",
     sprite = {}, -- TODO
 
