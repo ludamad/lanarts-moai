@@ -22,7 +22,9 @@ end
 
 --- Return whether the mouse is within a bounding box.
 function bbox_mouse_over(bbox, origin)
-    return bbox_contains(Display.shift_origin(bbox, origin or Display.LEFT_TOP), user_io.mouse_xy() )
+     pretty(Display.shift_origin(bbox, origin or Display.LEFT_TOP), {user_io.mouse_xy()} )
+
+    return bbox_contains(Display.shift_origin(bbox, origin or Display.LEFT_TOP), {user_io.mouse_xy()} )
 end
 
 --- Return whether the mouse is within a bounding box defined by xy and size.

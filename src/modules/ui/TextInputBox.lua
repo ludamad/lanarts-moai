@@ -1,5 +1,5 @@
 local user_io = require "user_io"
-local Display = require "lanarts.draw"
+local Display = require "@Display"
 
 local BLINK_TIME_MS = 600
 local BLINK_HELD_MS = 600
@@ -38,8 +38,8 @@ function TextInputBox.get:text()
     return self.text_input.text
 end
 
-function TextInputBox:mouse_over(xy)
-    return mouse_over(xy, self.size)
+function TextInputBox:mouse_over(x, y)
+    return mouse_over({x, y}, self.size)
 end
 
 function TextInputBox:step(xy)
@@ -107,7 +107,7 @@ function TextInputBox:draw(xy)
 
     if (self.selected) then
         boxcolor = COL_WHITE
-    elseif self:mouse_over(xy) then
+    elseif self:mouse_over(x, y) then
         boxcolor = COL_MID_GRAY
     end
 

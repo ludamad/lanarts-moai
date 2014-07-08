@@ -7,5 +7,6 @@ table.merge Module, require '@Display_drawcache'
 table.merge Module, require '@Display_constants'
 table.merge Module, require '@Display_components'
 table.merge Module, require '@Display_camera'
+table.merge Module, require '@Display_drawutil'
 
 return Module

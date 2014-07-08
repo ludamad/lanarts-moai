@@ -14,7 +14,7 @@ local InstanceLine = newtype()
 -- params.per_row & params.dy must be passed together or not at all, and specify how to arrange elements into a grid.
 -- @usage For example, InstanceLine.create( {dx = 32} ) or InstanceLine.create( {dx = 32, per_row = 3, dy = 32} )
 function InstanceLine:init(params)
-    assert( params.dx,
+    assert( params.dx or (params.per_row == 1),
         "InstanceLine.create expects a 'dx' member to indicate spacing of elements.")
 
     assert( (params.per_row and params.dy) or (not params.per_row and not params.dy),
@@ -25,7 +25,7 @@ function InstanceLine:init(params)
     self.position = {0, 0}
     self.size =  params.force_size or {0, 0}
 
-    self.dx = params.dx
+    self.dx = params.dx or 0
     self.dy = --[[Optional]] params.dy or 0
 
     self.force_size = --[[Optional]] params.force_size or false

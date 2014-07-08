@@ -92,9 +92,13 @@ import map_object_types, game_state, map_state, map_view from require 'core'
 import Display from require "ui"
 import MainMenu from require "ui.menus"
 
+import thread_create from require 'core.util'
+
 main = () ->
     MOAISim.setStep(1 / _SETTINGS.frames_per_second)
     Display.display_setup()
-    MainMenu.menu_main(do_nothing, do_nothing, do_nothing, do_nothing).start()
+    thread = thread_create () -> profile () ->
+        MainMenu.menu_main(do_nothing, do_nothing, do_nothing, do_nothing)
+    thread.start()
 
 main()

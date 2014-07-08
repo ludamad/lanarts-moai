@@ -36,7 +36,7 @@ end
 
 --- Step function, increases the sprite frame counter
 function Sprite:step(x, y)
-    self.options.frame = self.options.frame + 1
+    -- TODO Consider animated sprites
 end
 
 --- Forwards options and position to drawable object
