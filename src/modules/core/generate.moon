@@ -69,6 +69,4 @@ generate_empty_model = (rng) ->
     --print_map(map, map.instances) -- Uncomment to print
     return map
 
-
-
 return {:generate_test_model, :generate_empty_model}

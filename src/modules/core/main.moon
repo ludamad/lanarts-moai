@@ -1,6 +1,3 @@
--- Must load settings early because it can be referenced in files
-_G._SETTINGS = require "settings"
-
 -- Define data loading functions
 require "@data"
 
@@ -90,15 +87,46 @@ import map_object_types, game_state, map_state, map_view from require 'core'
 -- 	thread = G.start()
 
 import Display from require "ui"
-import MainMenu from require "ui.menus"
+import MenuMain, MenuSettings from require "ui.menus"
 
 import thread_create from require 'core.util'
+
+-- Navigates between levels and menus
+SceneController = with newtype()
+    .init = () =>
+        @_is_active = true
+        -- Closure to call next
+        @_next = false
+    .set_next = (next) =>
+        assert @_is_active, "Can't queue twice!"
+        @_is_active = false
+        @_next = next
+    .perform_next = () =>
+    	next = @_next
+    	@_next = false
+    	@_is_active = true
+    	next()
+    .is_active = () => 
+    	return @_is_active
 
 main = () ->
     MOAISim.setStep(1 / _SETTINGS.frames_per_second)
     Display.display_setup()
+    SC = SceneController.create()
+
+    -- Helpers for creating button navigation logic
+    nextf = (f) -> (-> SC\set_next(f))
+    nextmenu = (menu, ...) -> 
+    	args = {...}
+    	nextf () ->
+    		menu(SC, unpack(args))
+
+    -- The main thread performing the menu/game traversal
     thread = thread_create () -> profile () ->
-        MainMenu.menu_main(do_nothing, do_nothing, do_nothing, do_nothing)
+    	SC\set_next () ->
+    		MenuMain.start(SC, nextmenu(MenuSettings.start, do_nothing, do_nothing), do_nothing, do_nothing)
+    	SC\perform_next()
+		SC\perform_next()
     thread.start()
 
 main()

@@ -1,5 +1,6 @@
 local user_io = require "user_io"
 local Display = require "@Display"
+local TextField = require "core.TextField"
 
 local BLINK_TIME_MS = 600
 local BLINK_HELD_MS = 600
@@ -16,7 +17,7 @@ local TextInputBox = newtype()
 --              optional 'select' callback, 
 --              optional 'deselect' callback}
 function TextInputBox:init(font, size, fieldargs, callbacks)
-    self.text_input = TextInput.create( unpack(fieldargs))
+    self.text_input = TextField.create( unpack(fieldargs))
 
     self.size = size
 
@@ -85,7 +86,7 @@ end
 function TextInputBox:draw(xy)
     local bbox = bbox_create(xy, self.size)
 
-    Display.draw_rectangle(COL_DARKER_GRAY, bbox)
+    Display.fillRect(bbox, COL_DARKER_GRAY)
 
     local textcolor = self.valid_string(self.text) and COL_MUTED_GREEN or COL_LIGHT_RED
 
@@ -111,8 +112,8 @@ function TextInputBox:draw(xy)
         boxcolor = COL_MID_GRAY
     end
 
-    Display.draw_rectangle_outline(boxcolor, bbox_create(xy, self.size), 1)
-    DEBUG_BOX_DRAW(self, xy)
+    Display.drawRect(bbox_create(xy, self.size), boxcolor)
+    DEBUG_BOX_DRAW(self, x, y)
 end
 
 function TextInputBox:__tostring()

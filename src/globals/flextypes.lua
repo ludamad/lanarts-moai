@@ -27,7 +27,7 @@ local function typedef_aux(...)
     end
 end
 
-function typedef(...)
+function _G.typedef(...)
     if #{...} == 1 and type(...) == "string" then
         return typedef_aux()(false)(...) -- Simple type
     else return typedef_aux(...) end

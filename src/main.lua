@@ -24,9 +24,6 @@ require "globals.math"
 require "globals.table"
 require "globals.flextypes"
 require "globals.string"
-require "globals.lanarts_backcompat_globals"
-require "globals.lanarts_backcompat_draw"
-require "globals.lanarts_backcompat_textcomponent"
 
 -------------------------------------------------------------------------------
 -- Ensure proper loading of moonscript files.
@@ -39,6 +36,18 @@ require("moonscript.base").insert_loader()
 -------------------------------------------------------------------------------
 
 require "globals.modules"
+
+-- Must load settings early because it can be referenced in files
+_G._SETTINGS = require "settings"
+
+-------------------------------------------------------------------------------
+-- Additional global utilities.
+-- TODO: Evaluate
+-------------------------------------------------------------------------------
+
+require "globals.lanarts_backcompat_globals"
+require "globals.lanarts_backcompat_draw"
+require "globals.lanarts_backcompat_textcomponent"
 
 -------------------------------------------------------------------------------
 -- Finally, if we are not testing, run the game.

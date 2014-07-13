@@ -97,6 +97,20 @@ function InstanceLine:add_instance(obj, --[[Optional]] offset)
     self:skip_location()
 end
 
+function InstanceLine:ipairs()
+    return self._instances:ipairs()
+end
+
+function InstanceLine:align(origin)
+    local ox, oy = origin[1],origin[2]
+    local w,h = self.size[1], self.dy
+    for _, obj in self:ipairs() do
+        local objw, objh = unpack(obj[1].size)
+        obj[2] = obj[2] + ox * (w - objw)
+        obj[3] = obj[3] + oy * (h - objh)
+    end
+end
+
 --- Whether the mouse is within the InstanceLine.
 function InstanceLine:mouse_over(x, y)
     return mouse_over({x, y}, self.size)

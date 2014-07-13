@@ -72,6 +72,10 @@ function InstanceGroup:clear(--[[Optional]] recursive)
     self._instances = {}
 end
 
+function InstanceGroup:ipairs()
+    return ipairs(self._instances)
+end
+
 --- Calls draw on all contained objects.
 function InstanceGroup:draw(x, y)
     for _, instance in ipairs(self._instances) do

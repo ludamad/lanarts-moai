@@ -7,8 +7,8 @@
 
 --- Does nothing. 
 --@usage dummy_object = { step = do_nothing, draw = do_nothing }
-function do_nothing() end
-_EMPTY_TABLE = {}
+function _G.do_nothing() end
+_G._EMPTY_TABLE = {}
 
 -- Global data is a special submodule, its members are always serialized
 --local GlobalData = import "core.GlobalData"
@@ -16,12 +16,12 @@ _EMPTY_TABLE = {}
 local print,error,assert=print,error,assert -- Performance
 
 local tinsert = table.insert
-function appendf(t, s, ...)
+function _G.appendf(t, s, ...)
     return tinsert(t, s:format(...))
 end
 
 -- Data is defined on a per-submodule basis
-function data_load(key, default, --[[Optional]] vpath)
+function _G.data_load(key, default, --[[Optional]] vpath)
     do return default end -- TODO Implement
     -- Make a safe & (almost) guaranteed unique key 
     local global_key = (vpath or virtual_path(2)) .. ':' .. key
@@ -43,7 +43,7 @@ end
 -- @param func the function to memoize, arguments must be strings or numbers
 -- @param separator <i>optional, default ';'</i>, the separator used when joining arguments to form a string key
 -- @usage new_load = memoized(load)
-function memoized(func, --[[Optional]] separator) 
+function _G.memoized(func, --[[Optional]] separator) 
     local cache = {}
     setmetatable( cache, {__mode = "kv"} ) -- Make table weak
 
@@ -61,7 +61,7 @@ function memoized(func, --[[Optional]] separator)
 end
 
 -- Resolves a number, or a random range
-function random_resolve(v)
+function _G.random_resolve(v)
     return type(v) == "table" and random(unpack(v)) or v
 end
 
@@ -70,12 +70,12 @@ end
 -- @param val the value to pretty-print
 -- @param tabs <i>optional, default 0</i>, the level of indentation
 -- @param packed <i>optional, default false</i>, if true, minimal spacing is used
-function pretty_print(val, --[[Optional]] tabs, --[[Optional]] packed)
+function _G.pretty_print(val, --[[Optional]] tabs, --[[Optional]] packed)
     print(pretty_tostring(val, tabs, packed))
 end
 
 -- Convenience print-like function:
-function pretty(...)
+function _G.pretty(...)
     local args = {}
     for i=1,select("#", ...) do
     	args[i] = pretty_tostring_compact(select(i, ...)) 
@@ -84,7 +84,7 @@ function pretty(...)
 end
 
 --- Iterate all iterators one after another
-function iter_combine(...)
+function _G.iter_combine(...)
     local args = {...}
     local arg_n = #args
     local arg_i = 1
@@ -101,7 +101,7 @@ function iter_combine(...)
 end
 
 --- Like a functional map of a function onto a list
-function map_call(f, list)
+function _G.map_call(f, list)
     local ret = {}
     for i=1,#list do 
         ret[i] = f(list[i])
@@ -110,7 +110,7 @@ function map_call(f, list)
 end
 
 -- Functional composition
-function func_apply_and(f1,f2, --[[Optional]] s2)
+function _G.func_apply_and(f1,f2, --[[Optional]] s2)
     return function(s1,...) 
         local v = {f1(s1,...)}
         if not v[1] then return unpack(v)
@@ -121,20 +121,20 @@ function func_apply_and(f1,f2, --[[Optional]] s2)
     end
 end
 
-function func_apply_not(f)
+function _G.func_apply_not(f)
     return function(...) return not f(...) end
 end
 
 --- Return whether a file with the specified name exists.
 -- More precisely, returns whether the given file can be opened for reading.
-function file_exists(name)
+function _G.file_exists(name)
     local f = io.open(name,"r")
     if f ~= nil then io.close(f) end 
     return f ~= nil 
 end
 
 
-function func_apply_or(f1,f2, --[[Optional]] s2)
+function _G.func_apply_or(f1,f2, --[[Optional]] s2)
     return function(s1,...) 
         local v = {f1(s1,...)}
         if v[1] then return unpack(v)
@@ -145,7 +145,7 @@ function func_apply_or(f1,f2, --[[Optional]] s2)
     end
 end
 
-function func_apply_sequence(f1,f2,--[[Optional]] s2)
+function _G.func_apply_sequence(f1,f2,--[[Optional]] s2)
     return function(s1,...)
         local v = f1(s1,...)
         if s2 then v = f2(s2, ...) or v 
@@ -155,7 +155,7 @@ function func_apply_sequence(f1,f2,--[[Optional]] s2)
 end
 
 local _cached_dup_table = {}
-function dup(val, times)
+function _G.dup(val, times)
     table.clear(_cached_dup_table)
     for i=1,times do
         _cached_dup_table[i] = val
@@ -164,7 +164,7 @@ function dup(val, times)
 end
 
 --- Return a random element from a list
-function random_choice(choices)
+function _G.random_choice(choices)
     local idx = random(1, #choices)
     return choices[idx]
 end
@@ -172,7 +172,7 @@ end
 local function iterator_helper(f,...)
     return f(...)
 end
-function iterator_step(state)
+function _G.iterator_step(state)
     local oldf = state[1] -- Used in hack to determine termination
     table.assign(state, iterator_helper(unpack(state)))
     if state[1] ~= oldf then table.clear(state) end
