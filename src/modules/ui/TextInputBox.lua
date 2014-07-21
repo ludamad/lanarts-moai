@@ -40,6 +40,10 @@ function TextInputBox.get:text()
     return self.text_input.text
 end
 
+function TextInputBox.get:max_length()
+    return self.text_input.max_length
+end
+
 function TextInputBox.set:text(text)
     self.text_input.text = text
 end
@@ -49,20 +53,40 @@ function TextInputBox:mouse_over(x, y)
     return mouse_over({x, y}, self.size)
 end
 
+local VALID_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,/;!?()&/-%'
+
 local key_count = 1
 function TextInputBox:step(x, y)
     assert(type(x) == 'number')
     if self.selected then
-        local mod_state = sdl.GetModState()
-        for _, up_key in ipairs(user_io.get_released_keys_for_step()) do
-            key_count = key_count + 1
-            print(key_count, up_key)
-            self.text_input:handle_key_up(up_key, mod_state)
-        end
-        for _, down_key in ipairs(user_io.get_pressed_keys_for_step()) do
-            key_count = key_count + 1
-            print(key_count, down_key)
-            self.text_input:handle_key_down(down_key, mod_state)
+        local ctrl_down = sdl.IsLCTRLDown() or sdl.IsRCTRLDown()
+        -- Are we pasting?
+        if ctrl_down and (user_io.key_pressed "K_V") then
+            -- Append clipboard to current text contexts
+            local text = self.text 
+            local clip_text = sdl.GetClipboardText()
+            -- Filter clipboard text, guarding against unprintable characters
+            for i=1,#clip_text do
+                local char = clip_text:sub(i,i)
+                if char == '%' or VALID_CHARS:find(char) then
+                    text = text .. char
+                end
+            end
+            -- Clip by max length, and set text contexts
+            self.text = text:sub(1, self.max_length)
+        else
+            -- Normal input
+            local mod_state = sdl.GetModState()
+            for _, up_key in ipairs(user_io.get_released_keys_for_step()) do
+                key_count = key_count + 1
+                print(key_count, up_key)
+                self.text_input:handle_key_up(up_key, mod_state)
+            end
+            for _, down_key in ipairs(user_io.get_pressed_keys_for_step()) do
+                key_count = key_count + 1
+                print(key_count, down_key)
+                self.text_input:handle_key_down(down_key, mod_state)
+            end
         end
     end
 

@@ -119,7 +119,7 @@ M.K_I = byte("i")
 M.K_J = byte("j")
 M.K_K = byte("k")
 M.K_L = byte("l")
-M.KM = byte("m")
+M.K_M = byte("m")
 M.K_N = byte("n")
 M.K_O = byte("o")
 M.K_P = byte("p")
@@ -185,10 +185,12 @@ M.K_SLASH = byte("/")
 M.K_LESS_THAN = byte("<")
 M.K_RIGHT_THAN = byte(">")
 M.K_QUESTION = byte("?")
-M.KMINUS = byte("-")
+M.K_MINUS = byte("-")
 M.K_UNDERSCORE = byte("_")
 M.K_EQUAL = byte("=")
 M.K_PLUS = byte("+")
+M.K_LCTRL = 224
+M.K_RCTRL = 228
 
 for i=1,9 do
     M["K_F"..i] = (313 + i)
