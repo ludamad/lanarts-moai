@@ -211,15 +211,15 @@ speed_toggle_create = () ->
 
 label_button_create = (params, color_formula, on_click) ->
     sprite = Sprite.create(params.sprite, { color: Display.COL_WHITE })
-    label = TextLabel.create font: params.font, font_size: 12, text: params.text
+    label = TextLabel.create font: params.font, font_size: (params.font_size or 12), text: params.text
 
-    size = params.size
+    params.size = params.size or label.size
 
     label_button = InstanceBox.create( params )
 
     label_button\add_instance( sprite, Display.CENTER_TOP )
-    label_button\add_instance( label, Display.CENTER_BOTTOM )
-    
+    label_button\add_instance( label, Display.CENTER_TOP, {0, params.size[2] - params.font_size}) -- Offset to near the bottom
+
     label_button.step = (x, y) => -- Makeshift inheritance
         InstanceBox.step(self, x, y)
 
@@ -234,8 +234,8 @@ label_button_create = (params, color_formula, on_click) ->
 
 class_choice_buttons_create = () ->
     x_padding, y_padding = 32, 16
-    font = DEFAULT_FONT
-    font_height = 12
+    font = MENU_FONT
+    font_size = 24
 
     buttons = { 
         { "Mage", "menu/class-icons/wizard.png"},
@@ -243,7 +243,7 @@ class_choice_buttons_create = () ->
         { "Archer", "menu/class-icons/archer.png"}
     }
 
-    button_size = { 96, 96 + y_padding + font_height }
+    button_size = { 96, 96 + y_padding + font_size }
     button_row = InstanceLine.create( { dx: button_size[1] + x_padding } )
 
     button_row.step = (x, y) =>
@@ -261,6 +261,7 @@ class_choice_buttons_create = () ->
         button_row\add_instance label_button_create { 
                 size: button_size,
                 font: font,
+                font_size: font_size,
                 text: button[1],
                 sprite: res.get_texture(button[2]) 
             },

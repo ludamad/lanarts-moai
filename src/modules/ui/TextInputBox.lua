@@ -19,6 +19,7 @@ local TextInputBox = newtype()
 --              optional 'deselect' callback}
 function TextInputBox:init(font, size, fieldargs, callbacks)
     self.text_input = TextField.create( unpack(fieldargs))
+    self.last_valid_text = fieldargs[2]
 
     self.size = size
 
@@ -37,6 +38,10 @@ end
 
 function TextInputBox.get:text()
     return self.text_input.text
+end
+
+function TextInputBox.set:text(text)
+    self.text_input.text = text
 end
 
 function TextInputBox:mouse_over(x, y)
@@ -64,6 +69,7 @@ function TextInputBox:step(x, y)
     self.text_input:step()
 
     if self.valid_string(self.text) then
+        self.last_valid_text = self.text
         self:update()
     end
 
@@ -71,6 +77,7 @@ function TextInputBox:step(x, y)
 
     if (user_io.key_pressed("K_ENTER") or user_io.mouse_left_pressed()) and self.selected then
         self.selected = false
+        self.text = self.last_valid_text
         self:deselect()
     elseif clicked and not self.selected then
         self.selected = true
