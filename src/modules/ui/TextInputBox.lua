@@ -55,7 +55,6 @@ end
 
 local VALID_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,/;!?()&/-%'
 
-local key_count = 1
 function TextInputBox:step(x, y)
     assert(type(x) == 'number')
     if self.selected then
@@ -78,13 +77,9 @@ function TextInputBox:step(x, y)
             -- Normal input
             local mod_state = sdl.GetModState()
             for _, up_key in ipairs(user_io.get_released_keys_for_step()) do
-                key_count = key_count + 1
-                print(key_count, up_key)
                 self.text_input:handle_key_up(up_key, mod_state)
             end
             for _, down_key in ipairs(user_io.get_pressed_keys_for_step()) do
-                key_count = key_count + 1
-                print(key_count, down_key)
                 self.text_input:handle_key_down(down_key, mod_state)
             end
         end

@@ -87,7 +87,7 @@ import map_object_types, game_state, map_state, map_view from require 'core'
 -- 	thread = G.start()
 
 import Display from require "ui"
-import MenuMain, MenuSettings from require "ui.menus"
+import MenuMain, MenuSettings, MenuCharGen from require "ui.menus"
 
 import thread_create from require 'core.util'
 
@@ -116,10 +116,6 @@ main = () ->
 
     -- Helpers for creating button navigation logic
     nextf = (f) -> (-> SC\set_next(f))
-    nextmenu = (menu, ...) -> 
-    	args = {...}
-    	nextf () ->
-    		menu(SC, unpack(args))
 
     io_thread = thread_create () -> while true 
         coroutine.yield()
@@ -128,10 +124,19 @@ main = () ->
 
     -- The main thread performing the menu/game traversal
     main_thread = thread_create () ->
-    	SC\set_next () ->
-    		MenuMain.start(SC, nextmenu(MenuSettings.start, do_nothing, do_nothing), do_nothing, do_nothing)
-    	SC\perform_next()
-		SC\perform_next()
+        -- Foward declare the 'transitions'
+        local mmain, msettings, mchargen
+        -- Set up the 'transitions' between the menus -- functions that initiate the menu
+        mmain = nextf () ->     MenuMain.start(SC, msettings, do_nothing, do_nothing) 
+        msettings = nextf () -> MenuSettings.start(SC, mmain, mchargen)
+        mchargen = nextf () ->  MenuCharGen.start(SC, msettings, do_nothing)
+        -- Set up first menu
+    	mmain()
+        -- Loop through the menu state machine (SceneController)
+        -- For these purposes, the game itself is considered a 'menu'
+        while true
+           -- Should yield:
+    	   SC\perform_next()
 
     -- Start the threads that perform the real work
     main_thread.start()

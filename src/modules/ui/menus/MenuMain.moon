@@ -1,5 +1,5 @@
 import Display, InstanceBox, InstanceLine, Sprite, TextLabel, TextInputBox from require "ui"
-import MENU_FONT, text_label_create, text_button_create from require "@menus.util_menu"
+import MENU_FONT, text_label_create, text_button_create from require "@menus.util_menu_common"
 
 menu_main_start = (controller, on_start_click, on_load_click, on_score_click) ->
     -- Clear the previous layout

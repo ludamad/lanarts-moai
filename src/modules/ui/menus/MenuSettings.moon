@@ -1,11 +1,15 @@
 import Display, InstanceBox, InstanceLine, Sprite, TextLabel, TextInputBox from require "ui"
-import DEFAULT_FONT, MENU_FONT, text_label_create, text_button_create from require "@menus.util_menu"
+import DEFAULT_FONT, MENU_FONT, text_label_create, text_button_create, back_and_continue_options_create, make_text_label
+    from require "@menus.util_menu_common"
 import ErrorReporting from require 'system'
+import data from require 'core'
+import ClassType from require 'stats'
+
 user_io = require 'user_io'
 res = require 'resources'
 
 SETTINGS_BOX_MAX_CHARS = 18
-SETTINGS_BOX_SIZE = {180, 34}
+SETTINGS_BOX_SIZE = {200, 34}
 
 TEXT_COLOR = {255/255, 250/255, 240/255}
 CONFIG_MENU_SIZE = {640, 480}
@@ -221,7 +225,7 @@ label_button_create = (params, color_formula, on_click) ->
     label_button\add_instance( label, Display.CENTER_TOP, {0, params.size[2] - params.font_size}) -- Offset to near the bottom
 
     label_button.step = (x, y) => -- Makeshift inheritance
-        InstanceBox.step(self, x, y)
+        InstanceBox.step(@, x, y)
 
         if @mouse_over(x,y) and user_io.mouse_left_pressed() 
             on_click(@, x, y)
@@ -231,49 +235,6 @@ label_button_create = (params, color_formula, on_click) ->
         label.color = (color == Display.COL_WHITE) and TEXT_COLOR or color
 
     return label_button
-
-class_choice_buttons_create = () ->
-    x_padding, y_padding = 32, 16
-    font = MENU_FONT
-    font_size = 24
-
-    buttons = { 
-        { "Mage", "menu/class-icons/wizard.png"},
-        { "Fighter", "menu/class-icons/fighter.png"},
-        { "Archer", "menu/class-icons/archer.png"}
-    }
-
-    button_size = { 96, 96 + y_padding + font_size }
-    button_row = InstanceLine.create( { dx: button_size[1] + x_padding } )
-
-    button_row.step = (x, y) =>
-        InstanceLine.step(self, x, y)
-
-        -- Allow choosing a class by using left/right arrows or tab
-        if user_io.key_pressed(user_io.K_LEFT)
-            _SETTINGS.class_type = ( _SETTINGS.class_type - 1 ) % #buttons
-        elseif user_io.key_pressed(user_io.K_RIGHT) or user_io.key_pressed(user_io.K_TAB) 
-            _SETTINGS.class_type = ( _SETTINGS.class_type + 1 ) % #buttons
-
-    for i = 1, #buttons
-        button = buttons[i]
-
-        button_row\add_instance label_button_create { 
-                size: button_size,
-                font: font,
-                font_size: font_size,
-                text: button[1],
-                sprite: res.get_texture(button[2]) 
-            },
-            (x, y) => -- color_formula
-                if _SETTINGS.class_type == i-1 then
-                    return Display.COL_GOLD
-                else 
-                    return @mouse_over(x,y) and Display.COL_PALE_YELLOW or Display.COL_WHITE,
-            (x, y) => -- on_click
-                _SETTINGS.class_type = i-1
-
-    return button_row
 
 center_setting_fields_create = () ->
     fields = InstanceLine.create force_size: {500, 162}, dx: 320, dy: 64, per_row: 2
@@ -310,62 +271,20 @@ center_setting_fields_create = () ->
 
     return fields
 
-make_text_label = (text) ->
-    TextLabel.create font: DEFAULT_FONT, font_size: 12, :text
-
-choose_class_message_create = () ->
-    label = make_text_label "Choose your Class!"
-
-    label.step = (x, y) => -- Makeshift inheritance
-        TextLabel.step(@, x, y)
-        @set_color()
-
-    label.set_color = () =>
-        @color = _SETTINGS.class_type == -1 and Display.COL_PALE_RED or Display.COL_INVISIBLE
-
-    label\set_color() -- Ensure correct starting color
-
-    return label
-
-back_and_continue_options_create = (on_back_click, on_start_click) ->
-    font = DEFAULT_FONT
-    options = InstanceLine.create( { dx: 200 } )
-
-    -- associate each label with a handler
-    -- we make use of the ability to have objects as keys
-    components = {
-        [ make_text_label "Back"  ]: on_back_click or do_nothing
-        [ make_text_label "Start" ]: on_start_click or do_nothing
-    }
-
-    for obj, handler in pairs(components)
-        options\add_instance(obj)
-
-    options.step = (x, y) => -- Makeshift inheritance
-        InstanceLine.step(@, x,y)
-        for obj, obj_x, obj_y in @instances(x,y) do
-            click_handler = components[obj]
-
-            mouse_is_over = obj\mouse_over(obj_x, obj_y)
-            obj.color = mouse_is_over and Display.COL_GOLD or TEXT_COLOR
-
-            if mouse_is_over and user_io.mouse_left_pressed() then click_handler()
-
-    return options
-
-menu_content_settings = (on_back_click, on_start_click) ->
+menu_settings_content = (on_back_click, on_start_click) ->
+    spr_title_trans = Sprite.image_create("LANARTS-transparent.png", alpha: 0.5)
+    spr_title = Sprite.image_create("LANARTS.png")
     return with InstanceBox.create size: _SETTINGS.window_size
-        \add_instance class_choice_buttons_create(), 
-            Display.CENTER_TOP, { 0, 50 } --Down 50 pixels
+        \add_instance spr_title_trans, Display.CENTER_TOP, {-10,30}
+        \add_instance spr_title, Display.CENTER_TOP, {0,20}
+        \add_instance make_text_label("Game Settings", 20, Display.COL_PALE_GREEN),
+            {0.50, 0.45}
 
         \add_instance center_setting_fields_create(),
-            {0.50, 0.70}
+            {0.50, 0.70}, {-10,0} -- Left 10 pixels
 
         \add_instance back_and_continue_options_create(on_back_click, on_start_click), 
             Display.CENTER_BOTTOM, { 0, -20 } --Up 20 pixels
-
-        \add_instance choose_class_message_create(), 
-            Display.CENTER_BOTTOM, { 0, -50 } -- Up 50 pixels
 
     return fields
 
@@ -373,7 +292,7 @@ menu_content_settings = (on_back_click, on_start_click) ->
 menu_settings = (controller, on_back_click, on_start_click) ->
     -- Clear the previous layout
     Display.display_setup()
-    box_menu = menu_content_settings(on_back_click, on_start_click)
+    box_menu = menu_settings_content(on_back_click, on_start_click)
     Display.display_add_draw_func () ->
         ErrorReporting.wrap(() -> box_menu\draw(0,0))()
 

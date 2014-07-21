@@ -49,6 +49,7 @@ end
 
 --- Calls step on all contained objects.
 function InstanceLine:step(x, y) 
+    assert(x and y)
     self._instances:step(x, y)
 end
 
@@ -75,8 +76,8 @@ end
 --- Return an iterable that iterates over all objects and their positions.
 -- @param xy <i>optional, default {0,0}</i>
 -- @usage for obj, xy in instance_line:instances({100,100}) do ... end
-function InstanceLine:instances(xy)
-    return self._instances:instances(xy)
+function InstanceLine:instances(x, y)
+    return self._instances:instances(x, y)
 end
 
 --- Add an object to the current line, starting a new one if per_row was passed and has been exceeded.

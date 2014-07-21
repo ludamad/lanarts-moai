@@ -22,6 +22,7 @@ end
 
 --- Calls step on all contained objects.
 function InstanceGroup:step(x, y)
+    assert(x and y)
     for _, instance in ipairs(self._instances) do
         local obj, obj_x, obj_y = unpack(instance)
         obj:step(obj_x + x, obj_y + y)

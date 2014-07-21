@@ -10,7 +10,6 @@ player_name = (os.getenv "player") or "ludamad"
 
 {
 headless: false
-class_type: 1
 window_size: {800, 600}
 server_ip: (os.getenv "IP") or '192.168.12.102'
 server_port: 6112

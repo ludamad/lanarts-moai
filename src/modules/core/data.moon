@@ -78,7 +78,7 @@ Sprite = with newtype()
 		quad = Display.get_quad()
 		@update_quad(quad, (math.floor(frame)-1) % @n_frames() + 1)
 		return quad
-	.draw = (layer, x, y, frame = 1, alpha = 1, originx=0, originy=0) =>
+	.draw = (x, y, frame = 1, alpha = 1, originx=0, originy=0) =>
 		frame = (math.floor(frame)-1) % @n_frames() + 1
 		@tex_parts[frame]\draw(x, y, alpha, originx, originy)
 	.put_prop = (layer, x, y, frame = 1, priority = 0, alpha = 1) =>

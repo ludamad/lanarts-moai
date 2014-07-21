@@ -90,9 +90,9 @@ class_define {
         {type="Leather Armour", bonus=0, equipped=true}, 
         {type="Leather Cap", bonus=0, equipped=true}, 
         {type="Short Bow", equipped=true}, 
-        {type="Arrow", amount=400, equipped=true}
+        {type="Arrow", amount=50, equipped=true}
     },
-    spells = {"Magic Arrow", "Berserk", "Minor Missile"},
+    spells = {"Magic Arrow"},
 
     skills = {
         ["Melee"] = SPECIALITY,
@@ -107,3 +107,5 @@ class_define {
         ["Magic Items"] = MINOR
     }
 }
+
+return {MAGE_NAMES_FOR_SKILL = MAGE_NAMES_FOR_SKILL}

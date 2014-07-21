@@ -211,6 +211,30 @@ with spritedef file: 'crawl-potions.png', size: {32,32}
     .define name: 'PotionBase', from: {3, 1}, to: {4, 9}
     .define name: 'Health Potion', from: {12, 2}
 
+skill_icons = with spritedef file: 'menu/skill-icons.png', size: {32,32}
+    .define name: 'skicon-melee', from: {31, 3}
+    .define name: 'skicon-ranged', from: {7, 4}
+    .define name: 'skicon-magic', from: {17, 4}
+    .define name: 'skicon-piercing', from: {1, 4}
+    .define name: 'skicon-slashing', from: {2, 4}
+    .define name: 'skicon-blunt', from: {5, 4}
+    .define name: 'skicon-enchantments', from: {14, 4}
+    .define name: 'skicon-curses', from: {22, 4}
+    .define name: 'skicon-force', from: {9, 4}
+    .define name: 'skicon-summoning', from: {29, 4}
+    .define name: 'skicon-armour', from: {10, 4}
+    .define name: 'skicon-willpower', from: {30, 4}
+    .define name: 'skicon-fortitude', from: {19, 4}
+    .define name: 'skicon-self_mastery', from: {16, 4}
+    .define name: 'skicon-magic_items', from: {20, 4}
+    .define name: 'skicon-dark', from: {21, 4}
+    .define name: 'skicon-light', from: {31, 4}
+    .define name: 'skicon-fire', from: {25, 4}
+    .define name: 'skicon-water', from: {26, 4}
+    .define name: 'skicon-air', from: {27, 4}
+    .define name: 'skicon-earth', from: {28, 4}
+
+
 -- with spritedef file: 'crawl-weapons-ranged.png', size: {32,32}, tiled: true, kind: 'variant'
 
 mapdef.define {
