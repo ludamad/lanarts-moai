@@ -1,6 +1,7 @@
 local user_io = require "user_io"
 local Display = require "@Display"
 local TextField = require "core.TextField"
+local sdl = require 'sdl'
 
 local BLINK_TIME_MS = 600
 local BLINK_HELD_MS = 600
@@ -28,7 +29,6 @@ function TextInputBox:init(font, size, fieldargs, callbacks)
 
     self.blink_timer = timer_create()
 
-    self.draw = callbacks.draw
     self.valid_string = callbacks.valid_string or function() return true end
     self.update = callbacks.update or do_nothing
     self.select = callbacks.select or do_nothing
@@ -40,13 +40,24 @@ function TextInputBox.get:text()
 end
 
 function TextInputBox:mouse_over(x, y)
+    assert(type(x) == 'number')
     return mouse_over({x, y}, self.size)
 end
 
-function TextInputBox:step(xy)
+local key_count = 1
+function TextInputBox:step(x, y)
+    assert(type(x) == 'number')
     if self.selected then
-        for event in values( input.events ) do
-            self.text_input:event_handle(event)
+        local mod_state = sdl.GetModState()
+        for _, up_key in ipairs(user_io.get_released_keys_for_step()) do
+            key_count = key_count + 1
+            print(key_count, up_key)
+            self.text_input:handle_key_up(up_key, mod_state)
+        end
+        for _, down_key in ipairs(user_io.get_pressed_keys_for_step()) do
+            key_count = key_count + 1
+            print(key_count, down_key)
+            self.text_input:handle_key_down(down_key, mod_state)
         end
     end
 
@@ -56,7 +67,7 @@ function TextInputBox:step(xy)
         self:update()
     end
 
-    local clicked = user_io.mouse_left_pressed() and self:mouse_over(xy)
+    local clicked = user_io.mouse_left_pressed() and self:mouse_over(x, y)
 
     if (user_io.key_pressed("K_ENTER") or user_io.mouse_left_pressed()) and self.selected then
         self.selected = false
@@ -83,14 +94,13 @@ function TextInputBox.is_blinking(self)
     return false
 end
 
-function TextInputBox:draw(xy)
-    local bbox = bbox_create(xy, self.size)
+function TextInputBox:draw(x, y)
+    local bbox = bbox_create({x, y}, self.size)
 
-    Display.fillRect(bbox, COL_DARKER_GRAY)
+    Display.fillRect(bbox, Display.COL_DARKER_GRAY)
 
-    local textcolor = self.valid_string(self.text) and COL_MUTED_GREEN or COL_LIGHT_RED
+    local textcolor = self.valid_string(self.text) and Display.COL_MUTED_GREEN or Display.COL_LIGHT_RED
 
-    local x, y = unpack(xy)
     local w, h = unpack(self.size)
 
     local text = self.text
@@ -98,21 +108,22 @@ function TextInputBox:draw(xy)
         text = text .. '|' 
     end
 
-    self.font:draw(
-        {color = textcolor, origin = Display.LEFT_CENTER}, 
-        {x + 5, y + h / 2}, 
-        text
-    )
+    Display.drawText {
+        font = self.font,
+        color = textcolor, origin = Display.LEFT_CENTER, 
+        x = x + 5, y = y + h / 2,
+        text = text
+    }
 
-    local boxcolor = COL_DARK_GRAY
+    local boxcolor = Display.COL_DARK_GRAY
 
     if (self.selected) then
-        boxcolor = COL_WHITE
+        boxcolor = Display.COL_WHITE
     elseif self:mouse_over(x, y) then
-        boxcolor = COL_MID_GRAY
+        boxcolor = Display.COL_MID_GRAY
     end
 
-    Display.drawRect(bbox_create(xy, self.size), boxcolor)
+    Display.drawRect(bbox_create({x, y}, self.size), boxcolor)
     DEBUG_BOX_DRAW(self, x, y)
 end
 

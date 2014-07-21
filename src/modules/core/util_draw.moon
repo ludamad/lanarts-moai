@@ -1,3 +1,5 @@
+import ErrorReporting from require 'system'
+
 -- Default priority is quite large (near front)
 DRAW_PRIORITY = 150
 setup_script_prop = (layer, draw_func, w, h, priority = DRAW_PRIORITY) ->
@@ -14,6 +16,8 @@ setup_draw_loop = (draw_func) ->
     V = {}
     {w,h} = _SETTINGS.window_size
 
+    -- Ensure error reporting occurs properly
+    draw_func = ErrorReporting.wrap(draw_func)
     -- Step until the draw loop returns false
 	_step_loop = () ->
    		if draw_func() == false

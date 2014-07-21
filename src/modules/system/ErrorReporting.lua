@@ -94,7 +94,7 @@ M = {
     
     virtual_paths = true, 
     use_color = true,
-    context = 2
+    context = 5
 }
 
 local function numformat(n)

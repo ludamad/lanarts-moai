@@ -24,7 +24,7 @@ local function death_screen_create()
          {0, (-40 - sprite.size[2]/2) }
     )
 
-    if settings.regen_on_death then
+    if _SETTINGS.regen_on_death then
         box:add_instance(
              TextLabel.create( font_cached_load(death_screen_font, 20), {color=COL_LIGHT_GRAY}, "Press enter to respawn."),
              Display.CENTER,
@@ -42,7 +42,7 @@ local function death_screen_create()
              {0, (20 + sprite.size[2]/2) }
         )
         box:add_instance(
-             TextLabel.create( font_cached_load(settings.menu_font, 12), {color=COL_PALE_YELLOW}, "-ludamad"),
+             TextLabel.create( font_cached_load(_SETTINGS.menu_font, 12), {color=COL_PALE_YELLOW}, "-ludamad"),
              Display.CENTER,
              {100, (45 + sprite.size[2]/2) }
         )

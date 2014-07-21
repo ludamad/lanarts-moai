@@ -38,7 +38,7 @@ require("moonscript.base").insert_loader()
 require "globals.modules"
 
 -- Must load settings early because it can be referenced in files
-_G._SETTINGS = require "settings"
+_G._SETTINGS = nilprotect(require "settings")
 
 -------------------------------------------------------------------------------
 -- Additional global utilities.

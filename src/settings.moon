@@ -10,6 +10,7 @@ player_name = (os.getenv "player") or "ludamad"
 
 {
 headless: false
+class_type: 1
 window_size: {800, 600}
 server_ip: (os.getenv "IP") or '192.168.12.102'
 server_port: 6112
@@ -22,12 +23,13 @@ frames_per_second_csp: 50
 regen_on_death: true
 
 --Online settings
-network_lock_step: false
+network_lockstep: false
 username: 'User'
 lobby_server_url: 'http://putterson.homedns.org:8080'
 
 --Window settings
 fullscreen: false
+frame_action_repeat: 0 -- 0 is ideal
 
 --Font settings
 font: 'src/modules/core/resources/fonts/Gudea-Regular.ttf'

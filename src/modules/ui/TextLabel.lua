@@ -16,7 +16,7 @@ function TextLabel:init(options)
     self.font = assert(options.font)
     self.text = assert(options.text)
     self.font_scale = options.font_scale or 1
-    self.font_size = options.font_size or font:getDefaultSize()
+    self.font_size = options.font_size or options.font:getDefaultSize()
     self.origin = options.origin or Display.LEFT_TOP
     self.color = options.color or Display.COL_WHITE
     self.mouse_area_padding = options.mouse_area_padding or DEFAULT_PADDING

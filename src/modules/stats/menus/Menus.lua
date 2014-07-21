@@ -9,7 +9,7 @@ local Keys = require "core.Keyboard"
     
 -- START SCREEN -- 
 local text_button_params = {
-    font = font_cached_load(settings.menu_font, 20),
+    font = font_cached_load(_SETTINGS.menu_font, 20),
     color = {255, 250, 240},
     hover_color = COL_RED,
     click_box_padding = 5
@@ -102,7 +102,7 @@ function setup_start_menu()
 --                GameState.load("saves/savefile.save")
 --            end
 --        end
-    settings.connection_type = Network.NONE
+    _SETTINGS.connection_type = Network.NONE
         exit_menu()
     end
 
@@ -124,7 +124,7 @@ function setup_settings_menu()
 --    
 --    menu_state.back = setup_start_menu
 --    menu_state.continue = function ()
---        if settings.class_type ~= -1 then
+--        if _SETTINGS.class_type ~= -1 then
 --            exit_menu()
 --        end
 --    end

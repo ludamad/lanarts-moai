@@ -1,6 +1,7 @@
 local Display = require "ui.Display"
 local resources = require 'resources'
 local user_io = require 'user_io'
+local ErrorReporting = require 'system.ErrorReporting'
 
 -- More ad hoc utilities without a home, yet
 
@@ -28,6 +29,8 @@ end
 
 --- Return whether the mouse is within a bounding box defined by xy and size.
 function _G.mouse_over(xy, size, origin)
+    -- if type(xy) == 'number' then
+    -- print(ErrorReporting.traceback(), xy, size, origin) end
     return bbox_mouse_over(bbox_create(xy, size), origin)
 end
 

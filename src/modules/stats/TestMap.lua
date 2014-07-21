@@ -11,7 +11,7 @@ local GameInterface = require "@ui.GameInterface"
 local M = nilprotect {} -- Submodule
 
 function M.main(cmd_args)
-    Display.initialize("TestMap", {settings.view_width, settings.view_height}, settings.fullscreen)
+    Display.initialize("TestMap", {_SETTINGS.view_width, _SETTINGS.view_height}, _SETTINGS.fullscreen)
 
     -- Load game content
     require "@DefineAll"

@@ -79,6 +79,27 @@ local function wrap(method)
     end
 end
 
+_UP_EVENTS, _DOWN_EVENTS = {}, {}
+
+-- Collect the events
+MOAIInputMgr.device.keyboard:setCallback( 
+    function (key, down)
+        if down then 
+            append(_DOWN_EVENTS, key)
+        else 
+            append(_UP_EVENTS, key) 
+        end
+    end
+)
+
+function M.clear_keys_for_step()
+    table.clear(_UP_EVENTS)
+    table.clear(_DOWN_EVENTS)
+end
+
+function M.get_released_keys_for_step() return _UP_EVENTS end
+function M.get_pressed_keys_for_step() return _DOWN_EVENTS end
+
 M.key_down = wrap("keyIsDown")
 M.key_up = wrap("keyIsUp")
 M.key_pressed = wrap("keyDown")
@@ -129,6 +150,7 @@ M.K_RETURN = M.K_ENTER
 M.K_ESCAPE = 27
 
 M.K_SPACE = byte(" ")
+M.K_TAB = 43
 M.K_LEFT_PAREN = byte("(")
 M.K_RIGHT_PAREN = byte(")")
 M.K_ASTERISK = byte("*")

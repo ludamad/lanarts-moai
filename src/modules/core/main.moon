@@ -121,12 +121,21 @@ main = () ->
     	nextf () ->
     		menu(SC, unpack(args))
 
+    io_thread = thread_create () -> while true 
+        coroutine.yield()
+        -- Ensure that we only consider keys for a single step in the key query methods
+        user_io.clear_keys_for_step()
+
     -- The main thread performing the menu/game traversal
-    thread = thread_create () -> profile () ->
+    main_thread = thread_create () ->
     	SC\set_next () ->
     		MenuMain.start(SC, nextmenu(MenuSettings.start, do_nothing, do_nothing), do_nothing, do_nothing)
     	SC\perform_next()
 		SC\perform_next()
-    thread.start()
+
+    -- Start the threads that perform the real work
+    main_thread.start()
+    -- Clear the io state as the last action
+    io_thread.start()
 
 main()

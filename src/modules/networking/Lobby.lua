@@ -6,7 +6,7 @@ local httprequest = require "networking.HttpRequest"
 local M = {} --submodule
 
 function M.create_user(username, password)
-    return httprequest.json_request(settings.lobby_server_url, {
+    return httprequest.json_request(_SETTINGS.lobby_server_url, {
         type = "CreateUserMessage", 
         username = username, 
         password = password 
@@ -14,7 +14,7 @@ function M.create_user(username, password)
 end
 
 function M.login(username, password)
-    return httprequest.json_request(settings.lobby_server_url, {
+    return httprequest.json_request(_SETTINGS.lobby_server_url, {
         type = "LoginMessage", 
         username = username, 
         password = password 
@@ -22,14 +22,14 @@ function M.login(username, password)
 end
 
 function M.guest_login(username)
-    return httprequest.json_request(settings.lobby_server_url, {
+    return httprequest.json_request(_SETTINGS.lobby_server_url, {
         type = "GuestLoginMessage", 
         username = username
     })
 end
 
 function M.chat_message(username, sessionId, message)
-    return httprequest.json_request(settings.lobby_server_url, {
+    return httprequest.json_request(_SETTINGS.lobby_server_url, {
         type = "ChatMessage", 
         username = username,
         sessionId = sessionId,
@@ -38,7 +38,7 @@ function M.chat_message(username, sessionId, message)
 end
 
 function M.create_game(username, sessionId)
-    return httprequest.json_request(settings.lobby_server_url, {
+    return httprequest.json_request(_SETTINGS.lobby_server_url, {
         type = "CreateGameMessage", 
         username = username,
         sessionId = sessionId,
@@ -46,7 +46,7 @@ function M.create_game(username, sessionId)
 end
 
 function M.join_game(username, sessionId, gameId)
-    return httprequest.json_request(settings.lobby_server_url, {
+    return httprequest.json_request(_SETTINGS.lobby_server_url, {
         type = "JoinGameMessage", 
         username = username,
         sessionId = sessionId,
@@ -55,14 +55,14 @@ function M.join_game(username, sessionId, gameId)
 end
 
 function M.query_game(gameId)
-    return httprequest.json_request(settings.lobby_server_url, {
+    return httprequest.json_request(_SETTINGS.lobby_server_url, {
         type = "GameStatusRequestMessage", 
         gameId = gameId
     })
 end
 
 function M.query_game_list()
-    return httprequest.json_request(settings.lobby_server_url, {
+    return httprequest.json_request(_SETTINGS.lobby_server_url, {
         type = "GameListRequestMessage" 
     })
 end

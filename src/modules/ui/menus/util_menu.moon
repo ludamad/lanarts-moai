@@ -2,6 +2,7 @@ import Display, InstanceBox, InstanceLine, Sprite, TextLabel, TextInputBox from 
 res = require 'resources'
 import mouse_left_pressed from require 'user_io'
 
+DEFAULT_FONT = res.get_bmfont('Liberation-Mono-12.fnt')
 MENU_FONT = res.get_font(_SETTINGS.menu_font)
 
 text_label_create = (args) ->
@@ -27,4 +28,4 @@ text_button_create = (args) ->
 
     return label
 
-return {:MENU_FONT, :text_label_create, :text_button_create}
+return {:DEFAULT_FONT, :MENU_FONT, :text_label_create, :text_button_create}

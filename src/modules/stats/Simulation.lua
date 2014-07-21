@@ -386,7 +386,7 @@ local function fight_spawn_if_over(GM)
 end
 
 function M.main(cmd_args)
-    Display.initialize("Simulation", {settings.view_width, settings.view_height}, settings.fullscreen)
+    Display.initialize("Simulation", {_SETTINGS.view_width, _SETTINGS.view_height}, _SETTINGS.fullscreen)
     -- Load game content
     require "@DefineAll"
 

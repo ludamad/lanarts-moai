@@ -1,6 +1,6 @@
 -- The main display module. See the components for the available methods.
 
-Module = {}
+Module = nilprotect {}
 
 -- TODO: Remove dependency on C++ code here
 table.merge Module, require "lanarts.draw"

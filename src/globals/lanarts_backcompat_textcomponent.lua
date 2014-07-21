@@ -1,5 +1,6 @@
 local user_io = require "user_io"
 local InstanceGroup, TextLabel, InstanceBox, TextInputBox
+local Display
 
 -- Solve circular dependence by late-loading
 local function ensure_loaded_dependencies()
@@ -7,6 +8,7 @@ local function ensure_loaded_dependencies()
     TextLabel = TextLabel or require "ui.TextLabel"
     InstanceBox = InstanceBox or require "ui.InstanceBox"
     TextInputBox = TextInputBox or require "ui.TextInputBox"
+    Display = Display or require "ui.Display"
 end
 
 --- Create a clickable piece of text
@@ -18,16 +20,16 @@ end
 --      'hover_color' is the color when the mouse is over the text, default same as 'color'
 --      'padding' controls how much bigger the click area is than the text, default 5
 -- }
-function text_button_create(text, on_click, params)
+function _G.text_button_create(text, on_click, params)
     ensure_loaded_dependencies()
 
-    local no_hover_color = params.color or COL_WHITE
+    local no_hover_color = params.color or Display.COL_WHITE
     local hover_color = params.hover_color or no_hover_color
     local padding = params.click_box_padding or 5
     local font = params.font
 
     -- Solves circular dependencies:
-    local label = TextLabel.create(font, { color=no_hover_color }, text)
+    local label = TextLabel.create {font = font, color = no_hover_color, text = text}
 
     function label:step(xy) -- Makeshift inheritance
         TextLabel.step(self, xy)
@@ -51,7 +53,7 @@ end
 --      'default_text': Optional, the default contents of the input box
 --      'input_callbacks': Controls the TextInputBox, see TextInputBox.lua
 -- }
-function text_field_create(params)
+function _G.text_field_create(params)
     ensure_loaded_dependencies()
 
     local font, size = params.font, params.size
@@ -64,11 +66,11 @@ function text_field_create(params)
     if label_text then
         -- Add text label
         field:add_instance(
-            TextLabel.create(
-                font, -- TextLabel font
-                {color = COL_YELLOW }, 
-                label_text
-            ),
+            TextLabel.create {
+                font = font, -- TextLabel font
+                color = Display.COL_YELLOW, 
+                text = label_text
+            },
             {0, -20} -- position
         )
     end
@@ -90,16 +92,16 @@ function text_field_create(params)
 end
 
 -- Takes size, font, max_chars as parameters
-function name_field_create(params)
+function _G.name_field_create(params)
     return text_field_create {
         size = params.size,
         font = params.font,
         max_chars = params.max_chars,
         label_text = params.label_text or "Enter your name:",
-        default_text = settings.username,
+        default_text = _SETTINGS.username,
         input_callbacks = {
             update = function(field) -- Update username based on contents
-                settings.username = field.text
+                _SETTINGS.username = field.text
             end
         }
     }

@@ -5,6 +5,7 @@ local CooldownTypes = require "@stats.CooldownTypes"
 local Apts = require "@stats.AptitudeTypes"
 local LogUtils = require "core.LogUtils"
 local status_type_define = (require "@stats.StatusTypeUtils").status_type_define
+local Display = require "ui.Display"
 
 -- EXHAUSTION
 local EXHAUSTION_MOVEMENT_MULTIPLIER = 0.75
@@ -12,7 +13,7 @@ local EXHAUSTION_ATTACK_COOLDOWN_MULTIPLIER = 0.75
 local Exhausted = status_type_define {
     name = "Exhausted",
     time_limited = true,
-    on_draw = { sprite = "exhausted.png", new_color = COL_PALE_BLUE },
+    on_draw = { sprite = "exhausted.png", new_color = Display.COL_PALE_BLUE },
     init = function(self, stats, ...)
         self.base.init(self, stats, ...)
         LogUtils.event_log_player(stats.obj, "$You {is}[are] now exhausted.", {255,200,200})
@@ -40,7 +41,7 @@ status_type_define {
        self.extensions = 0
        LogUtils.event_log_player(stats.obj, "$You enter{s} a powerful rage!", {200,200,255})
     end,
-    on_draw = { sprite = "berserk.png", new_color = COL_PALE_RED },
+    on_draw = { sprite = "berserk.png", new_color = Display.COL_PALE_RED },
     on_calculate = function(self, stats)
         local D = stats.derived
 
