@@ -213,29 +213,6 @@ speed_toggle_create = () ->
 
     return toggle
 
-label_button_create = (params, color_formula, on_click) ->
-    sprite = Sprite.create(params.sprite, { color: Display.COL_WHITE })
-    label = TextLabel.create font: params.font, font_size: (params.font_size or 12), text: params.text
-
-    params.size = params.size or label.size
-
-    label_button = InstanceBox.create( params )
-
-    label_button\add_instance( sprite, Display.CENTER_TOP )
-    label_button\add_instance( label, Display.CENTER_TOP, {0, params.size[2] - params.font_size}) -- Offset to near the bottom
-
-    label_button.step = (x, y) => -- Makeshift inheritance
-        InstanceBox.step(@, x, y)
-
-        if @mouse_over(x,y) and user_io.mouse_left_pressed() 
-            on_click(@, x, y)
-
-        color = color_formula(@, x, y)
-        sprite.color = color
-        label.color = (color == Display.COL_WHITE) and TEXT_COLOR or color
-
-    return label_button
-
 center_setting_fields_create = () ->
     fields = InstanceLine.create force_size: {500, 162}, dx: 320, dy: 64, per_row: 2
 
@@ -272,16 +249,12 @@ center_setting_fields_create = () ->
     return fields
 
 menu_settings_content = (on_back_click, on_start_click) ->
-    spr_title_trans = Sprite.image_create("LANARTS-transparent.png", alpha: 0.5)
-    spr_title = Sprite.image_create("LANARTS.png")
     return with InstanceBox.create size: _SETTINGS.window_size
-        \add_instance spr_title_trans, Display.CENTER_TOP, {-10,30}
-        \add_instance spr_title, Display.CENTER_TOP, {0,20}
-        \add_instance make_text_label("Game Settings", 20, Display.COL_PALE_GREEN),
-            {0.50, 0.45}
+        \add_instance make_text_label("Game Settings", 20, Display.COL_WHITE),
+            {0.50, 0.15}
 
         \add_instance center_setting_fields_create(),
-            {0.50, 0.70}, {-10,0} -- Left 10 pixels
+            {0.50, 0.50}, {-10,0} -- Left 10 pixels
 
         \add_instance back_and_continue_options_create(on_back_click, on_start_click), 
             Display.CENTER_BOTTOM, { 0, -20 } --Up 20 pixels
