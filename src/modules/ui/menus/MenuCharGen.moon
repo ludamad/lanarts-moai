@@ -4,6 +4,8 @@ import DEFAULT_FONT, MENU_FONT, text_label_create, text_button_create, back_and_
 import ErrorReporting from require 'system'
 import data from require 'core'
 import ClassType, RaceType from require 'stats'
+import StatUtils from require 'stats.stats'
+import util_stats, util_draw_stats from require 'core'
 
 user_io = require 'user_io'
 res = require 'resources'
@@ -14,8 +16,18 @@ TEXT_COLOR = {255/255, 250/255, 240/255}
 _CLASS_CHOICE = ""
 _RACE_CHOICE = "Human"
 _MAGE_MAGIC_SKILL = "Fire"
-_KNIGHT_WEAPON_SKILL = "Piercing"
+_KNIGHT_WEAPON_SKILL = "Piercing Weapons"
 _CLASS_OBJECT = nil
+_STAT_OBJECT = nil
+
+update_stat_object = () ->
+    if _CLASS_OBJECT ~= nil
+        base = RaceType.resolve(_RACE_CHOICE).on_create(_SETTINGS.player_name)
+        context = util_stats.stat_context_create(base, {}, {}) -- Give dummy object
+        _CLASS_OBJECT\on_map_init(context)
+        context\on_step()
+        context\on_calculate()
+        _STAT_OBJECT = context
 
 local class_choice_buttons_create
 do -- Defines class_choice_buttons_create, hides related functions
@@ -27,13 +39,20 @@ do -- Defines class_choice_buttons_create, hides related functions
     }
 
     skill_left_toggle = {
-        Piercing: "Slashing", Slashing: "Blunt", Blunt: "Piercing"
+        ["Piercing Weapons"]: "Slashing Weapons"
+        ["Slashing Weapons"]: "Blunt Weapons"
+        ["Blunt Weapons"]: "Piercing Weapons"
     }
     skill_right_toggle = table.value_key_invert(skill_left_toggle)
+    skill_sprite_lookup = {
+        ["Piercing Weapons"]: "skicon-piercing"
+        ["Slashing Weapons"]: "skicon-slashing"
+        ["Blunt Weapons"]: "skicon-blunt"
+    }
 
     -- Calculated on any change of skill choice
     -- Initialize
-    sprite = data.get_sprite('skicon-' .. _MAGE_MAGIC_SKILL\lower())
+    sprite = data.get_sprite(skill_sprite_lookup[_KNIGHT_WEAPON_SKILL])
     text = _KNIGHT_WEAPON_SKILL
     text_color = TEXT_COLOR
 
@@ -158,13 +177,14 @@ do -- Defines class_choice_buttons_create, hides related functions
 
         container\add_instance button_row, Display.CENTER_TOP
         if _CLASS_CHOICE == "Mage"
-            container\add_instance mage_choice_toggle_create(update), Display.CENTER_BOTTOM
             _CLASS_OBJECT = ClassType.lookup("Mage")\on_create magic_skill: _MAGE_MAGIC_SKILL, weapon_skill: "Slashing Weapons"
+            container\add_instance mage_choice_toggle_create(update), Display.CENTER_BOTTOM
         elseif _CLASS_CHOICE == "Knight"
-            container\add_instance knight_choice_toggle_create(update), Display.CENTER_BOTTOM
             _CLASS_OBJECT = ClassType.lookup("Knight")\on_create weapon_skill: _KNIGHT_WEAPON_SKILL
+            container\add_instance knight_choice_toggle_create(update), Display.CENTER_BOTTOM
         elseif _CLASS_CHOICE == "Archer"
             _CLASS_OBJECT = ClassType.lookup("Archer")\on_create {}
+        update_stat_object()
 
     button_row.step = (x, y) =>
         InstanceLine.step(@, x, y)
@@ -231,6 +251,7 @@ do -- Defines race_toggle_create, hides related functions
         sprite = data.get_sprite('sr-' .. _RACE_CHOICE\lower())
         text = _RACE_CHOICE .. ":\n" ..RaceType.lookup(_RACE_CHOICE).description
         text_color = TEXT_COLOR
+        update_stat_object()
 
     toggle.step = (x, y) =>
         -- Toggle the connection type
@@ -274,17 +295,34 @@ choose_class_message_create = () ->
 
     return label
 
+local skill_display_box
+do -- Defines skill_preview_box
+  skill_display_box = () ->
+    box = {size: {200,400}}
+    box.step = (x, y) => nil
+    box.draw = (x, y) => 
+        Display.drawRect(bbox_create({x,y}, @size), Display.COL_WHITE)
+        Display.drawText{x: x+3, y: y-2, origin: Display.LEFT_BOTTOM, text: "Stat Preview", font: DEFAULT_FONT, color: Display.COL_YELLOW}
+
+        if _STAT_OBJECT == nil then return
+        util_draw_stats.draw_stats(_STAT_OBJECT.derived, x+10, y+10, 0, 15)
+
+    return box
+
 menu_chargen_content = (on_back_click, on_start_click) ->
-    return with InstanceBox.create size: _SETTINGS.window_size
+    box_race_and_class = with InstanceBox.create size: {480, 480}
         \add_instance race_toggle_create(), 
             Display.CENTER_TOP, { 0, 90 } -- Down 90 pixels
-
         \add_instance class_choice_buttons_create(), 
             Display.CENTER, { 0, 90 } --Down 90 pixels
 
+    return with InstanceBox.create size: _SETTINGS.window_size
+        \add_instance make_text_label("Character Creation", 32, Display.COL_WHITE),
+            Display.CENTER_TOP, {-196,80}
+        \add_instance box_race_and_class, Display.LEFT_CENTER
+        \add_instance skill_display_box(), Display.RIGHT_CENTER, { -25, 0 } -- Left 25 pixels
         \add_instance choose_class_message_create(), 
             Display.CENTER_BOTTOM, { 0, -50 } -- Up 50 pixels
-
         \add_instance back_and_continue_options_create(on_back_click, on_start_click), 
             Display.CENTER_BOTTOM, { 0, -20 } --Up 20 pixels
 

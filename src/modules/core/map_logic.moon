@@ -1,5 +1,6 @@
 
-import camera, util_movement, util_geometry, util_draw, game_actions from require "core"
+import camera, util_movement, util_geometry, game_actions from require "core"
+import Display from require 'ui'
 import StatUtils from require "stats.stats"
 import StatContext from require "stats"
 import default_cooldown_table, reset_rest_cooldown from require "stats.stats.CooldownTypes"
@@ -49,6 +50,8 @@ step = (M) ->
     -- Step the subsystems
     M.collision_world\step()
     M.rvo_world\step()
+    if #M.player_list == 0
+        return "death"
 
 -- IO Handling
 
@@ -75,13 +78,13 @@ _text_style = with MOAITextStyle.new()
 UI_PRIORITY = 200
 
 _draw_text = (V, text, obj, dx, dy) ->
-    with util_draw.put_text_center V.object_layer, _text_style, text, obj.x + dx, obj.y + dy
+    with Display.put_text_center V.object_layer, _text_style, text, obj.x + dx, obj.y + dy
         \setPriority UI_PRIORITY
         \setColor 1,1,1,0.2
 
 -- Takes view object
 pre_draw = (V) ->
-    util_draw.reset_draw_cache()
+    Display.reset_draw_cache()
 
     for obj in *V.map.player_list
         _draw_text(V, V.gamestate.player_name(obj), obj, 0, -25)

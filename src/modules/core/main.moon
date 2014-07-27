@@ -12,84 +12,83 @@ util = require 'core.util'
 import RaceType, ClassType from require "stats"
 import map_object_types, game_state, map_state, map_view from require 'core'
 
+import Display from require "ui"
+import MenuMain, MenuSettings, MenuCharGen from require "ui.menus"
+
+import thread_create from require 'core.util'
+
 -------------------------------------------------------------------------------
 -- Game setup
 -------------------------------------------------------------------------------
 
 {w, h} = _SETTINGS.window_size
 
--- -- Global RNG for view randomness
--- _G._RNG = mtwist.create(os.time())
+-- Global RNG for view randomness
+_G._RNG = mtwist.create(os.time())
 
--- _spawn_players = (G, M) ->
---     import random_square_spawn_object from require '@util_generate'
+_spawn_players = (G, M) ->
+    import random_square_spawn_object from require '@util_generate'
 
---     for i=1,#G.players
---         random_square_spawn_object M, (px, py) ->
---             map_object_types.Player.create M, {
---                 name: G.players[i].player_name
---                 x: px*32+16
---                 y: py*32+16
---                 radius: 10
---                 race: RaceType.lookup "Orc"
---                 class: ClassType.lookup "Knight"
---                 solid: true
---                 id_player: i
---                 speed: 4
---             }
+    for i=1,#G.players
+        random_square_spawn_object M, (px, py) ->
+            map_object_types.Player.create M, {
+                name: G.players[i].player_name
+                x: px*32+16
+                y: py*32+16
+                radius: 10
+                race: RaceType.lookup "Orc"
+                class: ClassType.lookup "Knight"
+                solid: true
+                id_player: i
+                speed: 4
+            }
 
--- _spawn_monsters = (G, M) ->
---     import random_square_spawn_object from require '@util_generate'
+_spawn_monsters = (G, M) ->
+    import random_square_spawn_object from require '@util_generate'
 
---     for i=1,10
---         random_square_spawn_object M, (px, py) ->
---             map_object_types.NPC.create M, {
---                 x: px*32+16
---                 y: py*32+16
---                 type: "Giant Rat"
---                 radius: 10
---                 solid: true
---                 id_player: i
---                 speed: 4
---             }
+    for i=1,10
+        random_square_spawn_object M, (px, py) ->
+            map_object_types.NPC.create M, {
+                x: px*32+16
+                y: py*32+16
+                type: "Giant Rat"
+                radius: 10
+                solid: true
+                id_player: i
+                speed: 4
+            }
 
--- main = () ->
--- 	MOAISim.setStep(1 / _SETTINGS.frames_per_second)
--- 	-- (require 'core.network.session').main()
--- 	MOAISim.openWindow "Lanarts", w,h
---     gl_set_vsync(false)
+view_game = (on_death) ->
+    Display.display_setup()
+	MOAISim.setStep(1 / _SETTINGS.frames_per_second)
 
--- 	rng = mtwist.create(2)--os.time())
+	rng = mtwist.create(2)--os.time())
 
---     G = game_state.create_game_state()
+    G = game_state.create_game_state()
 
---     if G.gametype == 'server' or G.gametype == 'single_player'
---         G.add_new_player(_SETTINGS.player_name, true)
+    if G.gametype == 'server' or G.gametype == 'single_player'
+        G.add_new_player(_SETTINGS.player_name, true)
 
---     _start_game = () ->
---         log("game start called")
--- 		tilemap = modules.get_map("start").generator(G, rng)
+    _start_game = () ->
+        log("game start called")
+		tilemap = modules.get_map("start").generator(G, rng)
 
--- 	    M = map_state.create_map_state(G, 1, rng, tilemap)
---         append G.maps, M
+	    M = map_state.create_map_state(G, 1, rng, tilemap)
+        append G.maps, M
 
---         -- Set the current map as a global variable:
---         _G._MAP = M
---         map_state.map_set(M)
--- 	    _spawn_players(G, M)
---         _spawn_monsters(G, M)
--- 	    V = map_view.create_map_view(M, w, h)
+        -- Set the current map as a global variable:
+        _G._MAP = M
+        map_state.map_set(M)
+	    _spawn_players(G, M)
+        _spawn_monsters(G, M)
+	    V = map_view.create_map_view(M, w, h)
 
--- 	    G.change_view(V)
+	    G.change_view(V)
 
---     G.change_view(map_view.create_menu_view(G, w,h, _start_game))
+    G.change_view(map_view.create_menu_view(G, w,h, _start_game))
 
--- 	thread = G.start()
-
-import Display from require "ui"
-import MenuMain, MenuSettings, MenuCharGen from require "ui.menus"
-
-import thread_create from require 'core.util'
+    -- Start the game
+	G.start(on_death)
 
 -- Navigates between levels and menus
 SceneController = with newtype()
@@ -125,11 +124,12 @@ main = () ->
     -- The main thread performing the menu/game traversal
     main_thread = thread_create () ->
         -- Foward declare the 'transitions'
-        local mmain, msettings, mchargen
+        local mmain, msettings, mchargen, mviewgame
         -- Set up the 'transitions' between the menus -- functions that initiate the menu
-        mmain = nextf () ->     MenuMain.start(SC, msettings, do_nothing, do_nothing) 
+        mmain = nextf ()     -> MenuMain.start(SC, msettings, do_nothing, do_nothing) 
         msettings = nextf () -> MenuSettings.start(SC, mmain, mchargen)
-        mchargen = nextf () ->  MenuCharGen.start(SC, msettings, do_nothing)
+        mchargen = nextf ()  -> MenuCharGen.start(SC, msettings, mviewgame)
+        mviewgame = nextf () -> view_game(mmain)
         -- Set up first menu
     	mmain()
         -- Loop through the menu state machine (SceneController)

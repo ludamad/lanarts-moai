@@ -155,10 +155,6 @@ setup_map_state = (M) ->
     -- The game collision avoidance 'world'
     M.rvo_world = RVOWorld.create()
 
-    M.step = () ->
-        M.players\step(M)
-        M.npcs\step(M)
-
     -- Run the generation functions that were delayed until
     -- the map creation (mainly instance spawning):
     for gen_func in *M.tilemap.instances

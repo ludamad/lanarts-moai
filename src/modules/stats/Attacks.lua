@@ -4,6 +4,7 @@ local CooldownTypes = require "@stats.CooldownTypes"
 local AttackResolution = require "@AttackResolution"
 local LogUtils = require "core.LogUtils"
 local StatContext = require "@StatContext"
+local Display = require 'ui.Display'
 
 local M = nilprotect {} -- Submodule
 
@@ -13,8 +14,8 @@ function M.AttackEffect:apply(attacker, target)
     assert(target.base and target.derived, "Stat context expected as target parameter (probably wrong target type)")
     local dmg = AttackResolution.damage_calc(self, attacker, target)
     StatContext.add_hp(target, -_MAP.rng:random_round(dmg))
-    LogUtils.event_log_resolved(attacker.obj, "{The }$You deal{s} " ..dmg .. " damage!", COL_GREEN)
-    LogUtils.event_log_resolved(target.obj, "{The }$You [have]{has} " .. math.ceil(target.base.hp) .. "HP left.", COL_PALE_BLUE)
+    LogUtils.event_log_resolved(attacker.obj, "{The }$You deal{s} " ..dmg .. " damage!", Display.COL_GREEN)
+    LogUtils.event_log_resolved(target.obj, "{The }$You [have]{has} " .. math.ceil(target.base.hp) .. "HP left.", Display.COL_PALE_BLUE)
     return dmg
 end
 

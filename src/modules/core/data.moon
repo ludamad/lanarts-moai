@@ -218,7 +218,7 @@ return {
 		else 
 			assert(data.id_to_tilelist[key])
 
-	get_tilelist_id: (name) -> assert(data.tiles[name].id)
-	get_sprite: (name) -> assert(data.sprites[name])
-	get_map: (name) -> assert(data.maps[name])
+	get_tilelist_id: (name) -> assert(data.tiles[name].id, name)
+	get_sprite: (name) -> assert(data.sprites[name], name)
+	get_map: (name) -> assert(data.maps[name], name)
 }

@@ -250,7 +250,7 @@ center_setting_fields_create = () ->
 
 menu_settings_content = (on_back_click, on_start_click) ->
     return with InstanceBox.create size: _SETTINGS.window_size
-        \add_instance make_text_label("Game Settings", 20, Display.COL_WHITE),
+        \add_instance make_text_label("Game Settings", 32, Display.COL_WHITE),
             {0.50, 0.15}
 
         \add_instance center_setting_fields_create(),

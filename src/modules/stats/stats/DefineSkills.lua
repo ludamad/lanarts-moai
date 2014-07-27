@@ -26,7 +26,7 @@ end
 
 local function default_on_calculate(skill_slot, user)
     local apts = user.derived.aptitudes
-    local level = user.base.level
+    local level = skill_slot.level
     for type, apt in pairs(skill_slot.type.aptitudes) do
         local eff,dam,res,def = apt[1],apt[2],apt[3],apt[4]
         apts.effectiveness[type] = (apts.effectiveness[type] or 0) + eff * level   
@@ -38,8 +38,8 @@ end
 
 local function specialized_on_calculate(type, apt)
     local eff_val,dam_val,res_val,def_val = apt[1],apt[2],apt[3],apt[4]
-    return function(_, user)
-        local apts, level = user.derived.aptitudes, user.base.level
+    return function(skill_slot, user)
+        local apts, level = user.derived.aptitudes, skill_slot.level
         local eff, dam, res, def = apts.effectiveness, apts.damage, apts.resistance, apts.defence
         eff[type] = (eff[type] or 0) + eff_val * level
         dam[type] = (dam[type] or 0) + dam_val * level
@@ -63,7 +63,6 @@ local function on_spend_skill_points(skill_slot, stats, sp, --[[Optional]] print
     local old_level = skill_slot.level
     skill_slot.skill_points = skill_slot.skill_points + sp
     skill_slot.level = xp2level(skill_slot, skill_slot.skill_points)
-
     if print and skill_slot.level > old_level then
         local msg = ("{$You's}[Your] %s skill rises from %.1f to %.1f!"):format(
             skill_slot.name, old_level, skill_slot.level

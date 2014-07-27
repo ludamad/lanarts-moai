@@ -4,7 +4,8 @@
 --
 
 res = require 'resources'
-import setup_script_prop, put_text, put_text_center, put_prop from require "@util_draw"
+import setup_script_prop from require '@util_draw'
+import put_text, put_text_center, put_prop from require "ui.Display"
 import COL_GREEN, COL_RED, COL_BLUE, COL_PALE_RED, COL_GOLD, COL_PALE_BLUE, COL_MUTED_GREEN from require "@ui_colors"
 import default_cooldown_table from require "stats.stats.CooldownTypes"
 import ui_minimap, ui_inventory, util_draw_stats from require "core"
@@ -118,6 +119,7 @@ sidebar_draw_player_base_stats = (name, _class, stat_context, x, y) =>
 -- Sidebar pseudo-methods:
 sidebar_draw = (is_predraw) =>
     focus = @gamestate.local_player()
+    if not focus then return
     draw_statbars(@layer, @x + STATBAR_OFFSET_X, @y + STATBAR_OFFSET_Y, is_predraw, focus.stat_context)
     @minimap\draw()
     -- Content position:

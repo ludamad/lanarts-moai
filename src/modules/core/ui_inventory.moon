@@ -35,7 +35,7 @@ InventoryDrawer = with newtype()
 
     .draw_sprite = (key, gridx, gridy) => 
         x, y = @grid_xy(gridx, gridy)
-        return data.get_sprite(key)\draw(@layer, x, y)
+        return data.get_sprite(key)\draw(x, y)
 
     -- Draw primitives
     .draw_slot = (slot, gridx, gridy) =>

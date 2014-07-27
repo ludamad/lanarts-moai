@@ -23,7 +23,7 @@ function SkillType.get_skill_slot(list, type)
             return s
         end
     end
-    assert(false) -- Skill type doesn't exist for some reason
+    assert(false, type) -- Skill type doesn't exist for some reason
 end
 
 return SkillType

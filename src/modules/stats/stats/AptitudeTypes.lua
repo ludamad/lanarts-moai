@@ -8,7 +8,7 @@ local ALL = make_allowable(dup(true,4))
 local EFFECTIVENESS = make_allowable(true, dup(false,3))
 local RESISTANCE_AND_EFFECTIVENESS = make_allowable(true, false, true, false)
 
-M.allowed_aptitudes = {
+M.trainable_aptitudes = {
 -- TRAINABLE APTITUDES
 -- Main combat proficiencies
     MELEE = ALL,
@@ -42,7 +42,9 @@ M.allowed_aptitudes = {
 -- Minor elements
     EARTH = ALL,
     AIR = ALL,
+}
 
+M.untrainable_aptitudes = {
 -- NON-TRAINABLE APTITUDES
     CHAOS = RESISTANCE_AND_EFFECTIVENESS,
     POISON = RESISTANCE_AND_EFFECTIVENESS,
@@ -64,6 +66,10 @@ M.allowed_aptitudes = {
 
     MOVEMENT_SPEED = EFFECTIVENESS
 }
+
+M.allowed_aptitudes = {}
+table.merge(M.allowed_aptitudes, M.trainable_aptitudes)
+table.merge(M.allowed_aptitudes, M.untrainable_aptitudes)
 
 for type, allowable in pairs(M.allowed_aptitudes) do
     M[type] = type

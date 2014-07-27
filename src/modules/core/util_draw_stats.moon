@@ -1,4 +1,7 @@
-import put_text from require "@util_draw"
+import drawText, drawTexture, colorEscapeCode, COL_RED, COL_YELLOW, COL_GREEN, COL_WHITE from require 'ui.Display'
+import AptitudeTypes from require 'stats.stats'
+import data from require 'core'
+res = require 'resources'
 import max, min from math
 
 -- For sidebar
@@ -6,32 +9,36 @@ _trait_buffer = {}
 _trait_key_buffer = {}
 _trait_kinds = {"effectiveness", "damage", "resistance", "defence"}
 
+escape = (col, text) -> colorEscapeCode(col) .. text
+
 to_camelcase = (str) ->
     parts = str\split("_")
     for i,part in ipairs(parts) do
         parts[i] = part\lower()\gsub("^%l", string.upper)
     return (" ")\join(parts)
 
-put_value = (layer, styles, x, y, val) ->
-	local text, style
+DEFAULT_FONT = res.get_bmfont('Liberation-Mono-12.fnt')
+
+draw_value = (allowed, x, y, val) ->
+	if not allowed then return 32
+	local text, color
 	if val == 0
-		style = styles[1] -- 'neutral' style
+		color = COL_YELLOW -- 'neutral' color
 		text = ("+%g")\format(val)
 	elseif val < 0
-		style = styles[2] -- 'bad' style
-		text = ("-%g")\format(val)
+		color = COL_RED -- 'bad' color
+		text = ("%g")\format(val)
 	else
-		style = styles[3] -- 'good' style
+		color = COL_GREEN -- 'good' color
 		text = ("+%g")\format(val)
-	textbox = put_text layer, style, text, x, y
-	x1, _, x2, _ = textbox\getStringBounds(1, #text)
-	return math.max((x2 - x1) + 4, 32)
+	dx, dy = drawText {:x, :y, :text, font: DEFAULT_FONT, :color}
+	return math.max(dx + 4, 32)
 
-put_stat_values = (layer, styles, x, y, eff, dam, res, def) ->
-	x += put_value layer, styles, x, y, eff
-	x += put_value layer, styles, x, y, dam
-	x += put_value layer, styles, x, y, res
-	x += put_value layer, styles, x, y, def
+draw_stat_values = (x, y, aeff, adam, ares, adef, eff, dam, res, def) ->
+	x += draw_value aeff, x, y, eff
+	x += draw_value adam, x, y, dam
+	x += draw_value ares, x, y, res
+	x += draw_value adef, x, y, def
 
 -- Comparator buffer
 CBType = with newtype()
@@ -62,21 +69,26 @@ CB = CBType.create()
 
 __cmp = (trait1, trait2) -> CB\compare(trait1, trait2)
 
+STAT_SPRITE_MAP = {}
+for aptitude_name,_ in pairs(AptitudeTypes.trainable_aptitudes)
+	STAT_SPRITE_MAP[aptitude_name] = data.get_sprite('skicon-' .. aptitude_name\lower())
+
 -- Pseudomethod. Takes a stat object.
 -- Avoids memory allocation.
-put_stats = (layer, styles, x, y, x_interval, y_interval, best = true, n_start = 1, n_end = 10) =>
+draw_stats = (x, y, x_interval, y_interval, best = true, n_start = 1, n_end = 12) =>
 	table.clear(_trait_buffer)
     table.clear(_trait_key_buffer)
 	traits, trait_keys = _trait_buffer, _trait_key_buffer
 
 	for category,apts in pairs(@aptitudes)
         for trait,amnt in pairs(apts)
-        	traits[trait] = true
+        	if AptitudeTypes.trainable_aptitudes[trait]
+	        	traits[trait] = true
 
 	for trait,amnt in pairs(_trait_buffer)
    		append trait_keys, trait
 
-   	-- Ensure at consistent (alphabetical) ordering
+   	-- Ensure a consistent (alphabetical) ordering
     apts = @aptitudes
     CB.take_best = best
 	CB.eff, CB.dam = apts.effectiveness, apts.damage
@@ -91,13 +103,16 @@ put_stats = (layer, styles, x, y, x_interval, y_interval, best = true, n_start =
     	eff, dam = apts.effectiveness[trait] or 0, apts.damage[trait] or 0
     	res, def = apts.resistance[trait] or 0, apts.defence[trait] or 0
 
-    	apt_str = to_camelcase(trait)
-    	text = put_text layer, styles[1], apt_str, x, y
-    	put_stat_values layer, styles, x, y + y_interval, eff, dam, res, def
+    	{effectiveness: aeff, damage: adam, resistance: ares, defence: adef} = AptitudeTypes.allowed_aptitudes[trait]
 
-    	y += y_interval * 2
+    	apt_str = to_camelcase(trait)
+    	STAT_SPRITE_MAP[trait]\draw(x,y)
+    	drawText {x: x + 35, :y, text: apt_str, font: DEFAULT_FONT, color: COL_WHITE}
+    	draw_stat_values x + 35, y + y_interval, aeff, adam, ares, adef, eff, dam, res, def
+
+    	y += 32
     -- str = ("%s %s %s %s %s")\format
     --     if_color(C.GREEN, to_camelcase(trait), C.BOLD), 
     --     apt("effectiveness"), apt("damage"), apt("resistance"), apt("defence"),
 
-return {:put_stats}
+return {:draw_stats}

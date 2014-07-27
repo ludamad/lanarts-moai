@@ -1,4 +1,4 @@
-import put_image from require "@util_draw"
+import put_image from require "ui.Display"
 res = require 'resources'
 
 local layer, w, h, is_draw

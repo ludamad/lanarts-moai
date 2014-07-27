@@ -26,7 +26,7 @@ for func_name in *{
     "equip_item"
     "deequip_item"
     "calculate_proficiency_modifier"
-    "on_step"
+    "on_calculate"
     "add_mp"
     "add_cooldown"
     "apply_cooldown"
@@ -58,8 +58,8 @@ for func_name in *{
 -- Add methods to the Extended StatContext
 
 with ExtendedStatContext
-    .step = () =>
-        StatUtils.stat_context_on_step(@context)
+    .on_step = () =>
+        StatUtils.stat_context_on_step(@)
     .weapon_action_context = (weapon = nil) =>
         weapon = weapon or @get_equipped_item(ItemTraits.WEAPON)
         action, source = @unarmed_action, (@race or @)

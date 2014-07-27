@@ -181,7 +181,7 @@ end
 
 local function menu_loop(should_poll)
     local exit_game = false
-    local loop = util_draw.setup_draw_loop(function()
+    local loop = Display.setup_draw_loop(function()
         if user_io.key_pressed("K_F9") then
             -- note, globals are usually protected against being changed
             -- but a bypass is allowed for cases where it must be done

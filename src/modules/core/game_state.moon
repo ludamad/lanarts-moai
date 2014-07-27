@@ -1,5 +1,6 @@
 import thread_create from require 'core.util'
 import serialization from require 'core'
+import ErrorReporting from require 'system'
 import ClientMessageHandler, ServerMessageHandler from require 'core.net_message_handler'
 user_io = require 'user_io'
 
@@ -59,7 +60,7 @@ _net_step = (G) ->
     if G.step_number <= G.fork_step_number + PREDICT_STEPS
         G.step()
 
-main_thread = (G) -> thread_create () -> profile () ->
+main_thread = (G, on_death) -> profile () ->
     last_full_send_time = MOAISim\getDeviceTime()
     last_part_send_time = MOAISim\getDeviceTime()
     while true
@@ -86,7 +87,11 @@ main_thread = (G) -> thread_create () -> profile () ->
         if is_menu 
             G.step()
         elseif not G.net_handler
-            G.step()
+            if G.step() == "death"
+                on_death()
+                G.map_view.clear()
+                -- TODO: Explicitly tear down all state
+                return -- Continue to next menu
             G.drop_old_actions(G.step_number - 1)
         else
             before = MOAISim\getDeviceTime()
@@ -133,12 +138,10 @@ create_game_state = () ->
         G.map_view.start()
 
     -- Setup function
-    G.start = () -> 
+    G.start = (on_death) -> 
         G.map_view.start() unless G.map_view == nil
 
-        thread = main_thread(G)
-        thread.start()
-        return thread
+        return main_thread(G, on_death)
 
     -- Tear-down function
     G.stop = () -> 
@@ -148,8 +151,9 @@ create_game_state = () ->
 
     -- Game step function
     G.step = () -> 
-        G.map.step() unless G.map == nil
+        ret = G.map.step()
         G.step_number += 1 unless G.map.is_menu
+        return ret
 
     G.serialize_fork = () ->
         serialization.exclude(G)

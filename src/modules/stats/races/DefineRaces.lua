@@ -2,6 +2,7 @@ local SpellType = require "@SpellType"
 local SpellTraits = require "@spells.SpellTraits"
 local Apts = require "@stats.AptitudeTypes"
 local Actions = require "@Actions"
+local Display = require "ui.Display"
 
 local races_define = (require "@races.RaceDefineUtils").races_define
 
@@ -42,7 +43,7 @@ races_define {
             local StatContext = require "@StatContext"
             local LogUtils = require "core.LogUtils"
             local actual = StatContext.add_hp(caster, self.heal_amount)
-            LogUtils.event_log_resolved(caster.obj, "<The >$You invoke [the]{its} curse to gain{s} " .. actual .. "HP!", COL_GREEN)
+            LogUtils.event_log_resolved(caster.obj, "<The >$You invoke [the]{its} curse to gain{s} " .. actual .. "HP!", Display.COL_GREEN)
         end
     }}
 }

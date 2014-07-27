@@ -4,6 +4,8 @@
 
 BoolGrid, mtwist = require "BoolGrid", require "mtwist" 
 
+import Display from require 'ui'
+
 import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld, game_actions,
     ui_minimap, menu_start from require "core"
 
@@ -87,7 +89,6 @@ setup_tile_layers = (V) ->
 
     layer = V.add_layer()
 
-    pretty("Props", props)
     -- Add all the different textures to the layer
     for p in *props do layer\insertProp(p)
 
@@ -220,7 +221,7 @@ create_menu_view = (G, w,h, continue_callback) ->
             G.net_handler\unqueue_message(type)
 
     V.pre_draw = () ->
-        util_draw.reset_draw_cache()
+        Display.reset_draw_cache()
         menu_start.draw_setup(V.ui_layer, w, h)
         info = "There are #{#G.players} players."
         if G.gametype == 'client'
@@ -237,7 +238,7 @@ create_menu_view = (G, w,h, continue_callback) ->
         -- Note though this handshake is completely contained within this block, and 
         -- this guarantees that everyone is set up ready to receive game actions!
 
-        util_draw.put_text(V.ui_layer, menu_style, info, 0, 0, 0.5, 0.5, "center")
+        Display.put_text(V.ui_layer, menu_style, info, 0, 0, 0.5, 0.5, "center")
 
         if client_starting
             if net_recv("ServerConfirmStartGame")

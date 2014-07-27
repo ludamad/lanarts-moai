@@ -41,6 +41,13 @@ _drawTexture = (args) ->
 		ux, uy, ux + uw, uy + uh, 
 		r,g,b,a
 
+SC = string.char -- for colorEscapeCode
+colorEscapeCode = (color) ->
+	{r,g,b,a} = color
+	-- Change into integers, accounting for the fact that alpha may not be specified
+	r,g,b,a = math.floor(r*255), math.floor(g*255), math.floor(b*255), math.floor((a or 1)*255)
+	return '\0' .. SC(r) .. SC(g) .. SC(b) .. SC(a)
+
 return {
 	fillRect: _fillRect
 	drawRect: _drawRect
@@ -48,9 +55,10 @@ return {
 		if args.color
 			setPenColor(unpack(args.color))
 		O = args.origin or {}
-		MOAIDraw.drawText assert(args.font, "No font!"), args.font_size or nil, 
+		return MOAIDraw.drawText assert(args.font, "No font!"), args.font_size or nil, 
 			assert(args.text, "No text!"), args.x, args.y, args.font_scale or 1, 
 			0,0, O[1] or args.origin_x or 0, O[2] or args.origin_y or 0, 
 			args.max_width or 0
 	drawTexture: _drawTexture
+	:colorEscapeCode
 }
