@@ -107,21 +107,23 @@ local function type_define(args, type, --[[Optional]] on_map_init, --[[Optional]
         table.insert(args.traits, ItemType.EQUIPMENT_TRAIT)
     end
 
-    if args.on_draw then
-        args.on_draw = ContentUtils.derive_on_draw(args.on_draw)
-    else
-        local rel_path = args.mini_sprite or ("sprites/mini_sprites/" .. ContentUtils.canonical_sprite_name(args.name or args.lookup_key))
-        local abs_path = ContentUtils.path_resolve_for_definition(rel_path)
-        if args.mini_sprite or file_exists(abs_path) then
-            if not args.mini_sprite then abs_path = abs_path .. '%32x32' end -- Support multiple choices
-            args.mini_sprite = ContentUtils.resolve_sprite(abs_path, --[[Absolute]] true, --[[Prefer 'animation']] true)
-            args.on_draw = default_on_draw
-        end
-    end
+    -- TODO: Completely decouple drawing concerns from stat system
 
-    if not args.on_draw then
-        args.on_draw = find_default_on_draw(args.aptitude_types) or nil
-    end
+    -- if args.on_draw then
+    --     args.on_draw = ContentUtils.derive_on_draw(args.on_draw)
+    -- else
+    --     local rel_path = args.mini_sprite or ("sprites/mini_sprites/" .. ContentUtils.canonical_sprite_name(args.name or args.lookup_key))
+    --     local abs_path = ContentUtils.path_resolve_for_definition(rel_path)
+    --     if args.mini_sprite or file_exists(abs_path) then
+    --         if not args.mini_sprite then abs_path = abs_path .. '%32x32' end -- Support multiple choices
+    --         args.mini_sprite = ContentUtils.resolve_sprite(abs_path, --[[Absolute]] true, --[[Prefer 'animation']] true)
+    --         args.on_draw = default_on_draw
+    --     end
+    -- end
+
+    -- if not args.on_draw then
+    --     args.on_draw = find_default_on_draw(args.aptitude_types) or nil
+    -- end
 
     -- Proficiency and identification
     if not args.proficiency_requirements then

@@ -72,9 +72,13 @@ with ExtendedStatContext
         ActionContext.can_use_action(@weapon_action_context(), enemy)
     .use_weapon = (enemy) =>
         ActionContext.use_action(@weapon_action_context(), enemy)
-
+    .print = () =>
+        print StatUtils.stats_to_string(@derived)
+    .copy = () =>
+        return ExtendedStatContext.create(@base, @obj, @unarmed_action, @race)
 
 SMALL_SPRITE_ORDER = {
+    "__LEGS", -- Pseudo-slot
     "BODY_ARMOUR",
     "WEAPON",
     "RING",
@@ -100,10 +104,17 @@ with ExtendedStatContext
         -- Increase priority for next sprite
         priority += PRIORITY_INCR
         for equip_type in *SMALL_SPRITE_ORDER
-            equip = @get_equipped_item(equip_type)
-            if equip and equip.avatar_sprite
+            local avatar_sprite
+            -- For now, there is no way to get a legs sprite
+            -- so we hardcode one in so avatars look less naked!
+            if equip_type == "__LEGS"
+                avatar_sprite = "sl-gray-pants"
+            else
+                equip = @get_equipped_item(equip_type)
+                avatar_sprite = equip and equip.avatar_sprite
+            if avatar_sprite
                 -- Put avatar sprite
-                sp = data.get_sprite(equip.avatar_sprite)
+                sp = data.get_sprite(avatar_sprite)
                 sp\put_prop(layer, x, y, frame, priority)
                 priority += PRIORITY_INCR
         -- Is the object resting?

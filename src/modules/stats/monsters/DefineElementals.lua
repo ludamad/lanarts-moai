@@ -21,7 +21,7 @@ monster_define {
     range = 150,
 
     created_projectile = {
-        sprite = "sprites/storm_bolt.png",
+        sprite = "proj-storm_bolt",
         aptitude_types = {Apts.AIR, Apts.MAGIC, Apts.FORCE},
         effectiveness = 1, damage = 10,
         speed = 4, delay = 1

@@ -11,6 +11,7 @@ local M = nilprotect {} -- Submodule
 
 -- A more convenient race_define
 function M.races_define(args)
+    logI("Defining race ", args.name)
     args.description = args.description:pack()
     if args.on_create then -- Full custom
         return RaceType.define(args)

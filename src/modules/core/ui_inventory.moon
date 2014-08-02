@@ -8,7 +8,7 @@ import liber_black12, liber_white12, liber_pale_red12,
     liber_muted_green12, liber_gold12, liber_pale_blue,
     liber_red12 from require '@ui_styles'
 
-import COL_YELLOW, COL_DARK_GREEN from require "@ui_colors"
+import COL_YELLOW, COL_DARK_GREEN from require "ui.Display"
 
 ROW_SLOTS = 4
 DRAWN_SLOTS = 24

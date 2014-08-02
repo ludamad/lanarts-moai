@@ -28,7 +28,9 @@ end
 function AmmoFireEffect:apply(user, target)
     local ammo = StatContext.get_equipped_item(user, ItemTraits.AMMUNITION)
     local weapon = StatContext.get_equipped_item(user, ItemTraits.WEAPON)
-    ammo:on_fire(user, self.use_weapon and weapon or nil, self.action, target)
+    if ammo then
+        ammo:on_fire(user, self.use_weapon and weapon or nil, self.action, target)
+    end
 end
 
 function M.add_ranged_weapon_effect_and_prereq(actions, action_projectile_hit, ammo_trait, --[[Optional]] amount)

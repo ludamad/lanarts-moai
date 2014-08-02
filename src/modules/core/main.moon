@@ -1,8 +1,11 @@
 -- Define data loading functions
+logI("Loading core.data")
 require "@data"
 
 -- Must load data early because it can be referenced in files
+logI("Starting loading core.define_data")
 require '@define_data'
+logI("Finished loading core.define_data")
 
 user_io = require "user_io"
 modules = require "core.data"
@@ -26,7 +29,7 @@ import thread_create from require 'core.util'
 -- Global RNG for view randomness
 _G._RNG = mtwist.create(os.time())
 
-_spawn_players = (G, M) ->
+_spawn_players = (G, M, stat_components) ->
     import random_square_spawn_object from require '@util_generate'
 
     for i=1,#G.players
@@ -36,8 +39,8 @@ _spawn_players = (G, M) ->
                 x: px*32+16
                 y: py*32+16
                 radius: 10
-                race: RaceType.lookup "Orc"
-                class: ClassType.lookup "Knight"
+                race: stat_components.race
+                class: stat_components.class
                 solid: true
                 id_player: i
                 speed: 4
@@ -58,7 +61,7 @@ _spawn_monsters = (G, M) ->
                 speed: 4
             }
 
-view_game = (on_death) ->
+view_game = (stat_components, on_death) ->
     Display.display_setup()
 	MOAISim.setStep(1 / _SETTINGS.frames_per_second)
 
@@ -70,7 +73,7 @@ view_game = (on_death) ->
         G.add_new_player(_SETTINGS.player_name, true)
 
     _start_game = () ->
-        log("game start called")
+        logI("game start called")
 		tilemap = modules.get_map("start").generator(G, rng)
 
 	    M = map_state.create_map_state(G, 1, rng, tilemap)
@@ -78,11 +81,15 @@ view_game = (on_death) ->
 
         -- Set the current map as a global variable:
         _G._MAP = M
+
+        logI("Map created")
         map_state.map_set(M)
-	    _spawn_players(G, M)
+	    _spawn_players(G, M, stat_components)
         _spawn_monsters(G, M)
+        logI("players & monsters spawned")
 	    V = map_view.create_map_view(M, w, h)
 
+        logI("changing to game view")
 	    G.change_view(V)
 
     G.change_view(map_view.create_menu_view(G, w,h, _start_game))
@@ -109,12 +116,22 @@ SceneController = with newtype()
     	return @_is_active
 
 main = () ->
+    logI("Main starting")
     MOAISim.setStep(1 / _SETTINGS.frames_per_second)
     Display.display_setup()
     SC = SceneController.create()
 
-    -- Helpers for creating button navigation logic
-    nextf = (f) -> (-> SC\set_next(f))
+    -- nextf:
+    -- Helper for creating button navigation logic
+    -- Returns a function that captures any arguments passed
+    -- and queues a menu state transition that calls 'f'.
+    --
+    -- 'f' is expected to be a pseudo-thread -- a function that yields until
+    -- it the scene controller is inactive.
+    nextf = (f) -> (...) ->
+        -- Capture any arguments passed
+        args = {...}
+        SC\set_next(() -> f(unpack(args)))
 
     io_thread = thread_create () -> while true 
         coroutine.yield()
@@ -129,9 +146,9 @@ main = () ->
         mmain = nextf ()     -> MenuMain.start(SC, msettings, do_nothing, do_nothing) 
         msettings = nextf () -> MenuSettings.start(SC, mmain, mchargen)
         mchargen = nextf ()  -> MenuCharGen.start(SC, msettings, mviewgame)
-        mviewgame = nextf () -> view_game(mmain)
+        mviewgame = nextf (stat_components) -> view_game(stat_components, mchargen)
         -- Set up first menu
-    	mmain()
+    	mchargen()
         -- Loop through the menu state machine (SceneController)
         -- For these purposes, the game itself is considered a 'menu'
         while true

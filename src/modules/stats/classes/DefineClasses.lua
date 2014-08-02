@@ -57,7 +57,6 @@ class_define {
     items = { 
         "Health Potion", 
         {type="Leather Boots", bonus=0, equipped = true},
-        {type="Hand Axe", equipped=true},
         {type="Chainshirt", bonus=1, equipped=true},
         {type="Horned Helmet", bonus=1, equipped=true}
     },

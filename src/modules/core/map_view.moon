@@ -194,6 +194,7 @@ create_map_view = (map, cameraw, camerah) ->
 -------------------------------------------------------------------------------
 
 create_menu_view = (G, w,h, continue_callback) ->
+    logI("create_menu_view")
     -- We 'cheat' with our menu map view, just point to same object
     V = {is_menu: true}
     V.map = V
@@ -256,6 +257,8 @@ create_menu_view = (G, w,h, continue_callback) ->
             game_actions.setup_action_state(G)
             net_send("ClientAckStartGame")
         elseif G.gametype == 'single_player'
+            logI("create_menu_view: single player detected")
+
             game_actions.setup_action_state(G)
             continue_callback()
 

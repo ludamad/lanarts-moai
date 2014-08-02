@@ -7,6 +7,8 @@ local Stats = require "@Stats"
 local SkillType = require "@SkillType"
 local Attacks = require "@Attacks"
 
+local data -- Lazy-loaded
+
 local M = nilprotect {} -- Submodule
 
 M.RESOURCE_METATABLE = {
@@ -66,7 +68,17 @@ local function resolve_directional(subimages, --[[Can be nil]] weights)
 end
 
 function M.resolve_sprite(args, --[[Optional]] absolute_paths, --[[Optional]] use_animation)
-    do return {width = 0} end
+    data = data or require 'core.data' -- Lazy load
+    if type(args) == "string" then 
+        return data.get_sprite(args)
+    elseif type(args.sprite) == "string" then
+        return data.get_sprite(args.sprite)
+    elseif args.sprite then
+        return args.sprite
+    else
+        return args
+    end
+
     local sprite
     if type(args) == "string" then
         sprite = args

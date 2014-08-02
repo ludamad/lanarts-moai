@@ -1,5 +1,5 @@
 res = require 'resources'
-import COL_BLACK, COL_GREEN, COL_RED, COL_BLUE, COL_PALE_RED, COL_GOLD, COL_PALE_BLUE, COL_MUTED_GREEN, COL_WHITE from require "@ui_colors"
+import COL_BLACK, COL_GREEN, COL_RED, COL_BLUE, COL_PALE_RED, COL_GOLD, COL_PALE_BLUE, COL_MUTED_GREEN, COL_WHITE from require "ui.Display"
 
 make_bmstyle = (font, col) -> 
     return with MOAITextStyle.new()

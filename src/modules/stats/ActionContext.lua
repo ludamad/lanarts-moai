@@ -12,7 +12,8 @@ M.PROJECTILE_ACTION = "PROJECTILE_ACTION"
 -- Create an empty action context
 function M.action_context_create(action, --[[Optional]] user, --[[Optional]] source, --[[Optional]] type)
     return { 
-        base = action, derived = table.deep_clone(action), 
+        -- TODO Evaluate the table.clone here!
+        base = action, derived = table.clone(action), 
         user = user, 
         source = source, -- The item, race etc that defined this action.
         type = type or M.DIRECT_ACTION -- While we store 'source', it is not enough to infer eg if the action was caused by a projectile hit

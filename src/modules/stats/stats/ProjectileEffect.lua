@@ -1,6 +1,11 @@
 -- local ActionProjectileObject = require "@objects.ActionProjectileObject"
 local Actions = require "@Actions"
 local ContentUtils = require "@stats.ContentUtils"
+local map_object_types -- Lazy load
+
+local function lazy_load()
+    map_object_types = map_object_types or require "core.map_object_types"
+end
 
 -- Creates a missile as part of an action.
 -- Allows for either StatContext's or positions as targets.
@@ -18,20 +23,30 @@ end
 local vnorm, vsub = vector_normalize,vector_subtract
 
 function ProjectileEffect:apply(user, target)
-    local user_xy = user.obj.xy
+    local user_xy = {user.obj.x, user.obj.y}
     -- Assumption: Target is either a position or a StatContext
-    local target_xy = is_position(target) and target or target.obj.xy
+    local target_xy = is_position(target) and target or {target.obj.x, target.obj.y}
+    local velocity = vnorm(vsub(target_xy, user_xy), self.speed)
 
-    return ActionProjectileObject.create {
-        map = user.obj.map,
-        xy = user_xy,
-        stats = user.obj:stat_context_copy(),
-        velocity = vnorm(vsub(target_xy, user_xy), self.speed),
-        -- Projectile configuration:
+    lazy_load() -- Ensure 'map_object_types' is loaded
+    return map_object_types.Projectile.create(user.obj.map, {
+        x = user_xy[1], y = user_xy[2],
         sprite = self.sprite,
         action = self.action,
-        radius = self.radius
-    }
+        radius = self.radius,
+        vx = velocity[1], vy = velocity[2],
+        stats = user.obj:stat_context_copy()
+    })
+    -- return ActionProjectileObject.create {
+    --     map = user.obj.map,
+    --     xy = user_xy,
+    --     stats = user.obj:stat_context_copy(),
+    --     velocity = vnorm(vsub(target_xy, user_xy), self.speed),
+    --     -- Projectile configuration:
+    --     sprite = self.sprite,
+    --     action = self.action,
+    --     radius = self.radius
+    -- }
 end
 
 local ActionUtils
@@ -43,7 +58,7 @@ function ProjectileEffect.derive_projectile_effect(args, --[[Optional, default f
     local sprite = ContentUtils.resolve_sprite(args)
     local effect = ProjectileEffect.create { 
         sprite = sprite,
-        radius = args.radius or (sprite.width / 2),
+        radius = args.radius or (sprite.w / 2),
         speed = args.speed
     }
 

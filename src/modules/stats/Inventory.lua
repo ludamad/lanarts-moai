@@ -22,6 +22,13 @@ function Inventory:find_item(item_type)
     return nil
 end
 
+
+function Inventory:print()
+    for idx,item in ipairs(self.items) do
+        print(item.name)
+    end
+end
+
 -- Returns whether there was room to add the item
 function Inventory:add_item(item_slot)
     -- Resolve item slot

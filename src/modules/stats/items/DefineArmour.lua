@@ -9,6 +9,7 @@ local body_armour_define = ItemDefineUtils.body_armour_define
 
 body_armour_define {
     name = "Leather Armour",
+    avatar_sprite = "sa-leather",
     description = "The armour made of fine leather.",
     sprite = {}, -- TODO
 
@@ -20,6 +21,7 @@ body_armour_define {
 
 body_armour_define {
     name = "Robe",
+    avatar_sprite = "sa-robe",
     description = "A robe.",
     sprite = {}, -- TODO
 
@@ -30,6 +32,7 @@ body_armour_define {
 
 body_armour_define {
     name = "Studded Leather Armour",
+    avatar_sprite = "sa-studded-leather",
     description = "The armour is made of fine, studded leather.",
     sprite = {}, -- TODO
 

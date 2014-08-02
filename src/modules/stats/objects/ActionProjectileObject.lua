@@ -1,7 +1,3 @@
-
-
-
-
 local LogUtils = require "core.LogUtils"
 local GameObject = require "core.GameObject"
 local Map = require "core.Map"
@@ -10,7 +6,7 @@ local Actions = require "@Actions"
 local ActionProjectileObject = GameObject.type_create(Projectiles.LinearProjectileBase)
 
 function ActionProjectileObject:init(args)
-    args.radius = args.radius or args.sprite.width / 2
+    args.radius = args.radius or args.sprite.w / 2
     ActionProjectileObject.parent_init(self, args)
     self.sprite = args.sprite
     self.stats = args.stats

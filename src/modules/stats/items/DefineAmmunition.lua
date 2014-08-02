@@ -3,7 +3,7 @@ local ammunition_define,Traits = (require "@items.ItemDefineUtils").ammunition_d
 ammunition_define {
     name = "Arrow",
     description = "A mediocore arrow.",
-    projectile_sprite = "sprites/arrow_projectile.png%32x32",
+    projectile_sprite = "proj-arrow",
     traits = {Traits.ARROW},
     speed = 6.5
 }

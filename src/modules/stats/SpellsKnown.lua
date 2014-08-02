@@ -21,6 +21,14 @@ function SpellsKnown:add_spell(spell_slot)
     table.insert(self.spells, spell_slot)
 end
 
+function SpellsKnown:copy()
+    local copy = SpellsKnown.create()
+    for _, spell in ipairs(self.spells) do
+        append(copy.spells, spell)
+    end
+    return copy
+end
+
 function SpellsKnown:values()
     return values(self.spells)
 end

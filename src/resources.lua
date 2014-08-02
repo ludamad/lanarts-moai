@@ -5,6 +5,7 @@ local RESOURCE_PATH = {
     "./resources/lanarts/",
     "./src/modules/core/",
     "./src/modules/core/resources/",
+    "./src/modules/rglike/DawnLike_3/",
     "./src/modules/core/resources/fonts/",
     "./resources/tiled-maps/",
 }

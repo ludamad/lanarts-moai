@@ -45,13 +45,15 @@ player_perform_move = (M, dx, dy) =>
     reset_rest_cooldown(@stat_context)
 
 player_perform_action = (M, obj, action) ->
-    if action.action_type == game_actions.ACTION_NONE
-        return
-    elseif action.action_type == game_actions.ACTION_MOVE
-        id_player, step_number, dx, dy = game_actions.unbox_move_action(action)
-        assert(id_player == obj.id_player)
-        assert(step_number == M.gamestate.step_number)
-        player_perform_move(obj, M, dx, dy)
+    -- Resolve any special actions queued for this frame
+    if action.action_type == game_actions.ACTION_USE_WEAPON
+        obj\attack(M)
+
+    -- Finally, resolve the movement component of the action
+    id_player, step_number, dx, dy = game_actions.unbox_move_component(action)
+    assert(id_player == obj.id_player)
+    assert(step_number == M.gamestate.step_number)
+    player_perform_move(obj, M, dx, dy)
 
 player_move_with_velocity = (M, vx, vy) =>
     mag = math.sqrt(vx*vx + vy*vy)
@@ -87,6 +89,8 @@ player_step = (M) =>
         S.derived.hp_regen += S.base.hp_regen * 7
         S.derived.mp_regen += S.base.mp_regen * 7
 
+MAX_FUTURE_STEPS = 0
+
 -- Exported
 -- Handle keyboard and mouse input for a single frame, for this player
 -- M: The current map
@@ -110,19 +114,23 @@ player_handle_io = (M) =>
     elseif (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
         dx = -1
 
-    if G.gametype ~= "single_player"
-        if dx==0 and dy==0 then 
-            dx,dy = rdx,rdy
-            if _RNG\random(15) == 1
-                rdx,rdy = _RNG\random(-1,2),_RNG\random(-1,2)
+    -- if G.gametype ~= "single_player"
+    --     if dx==0 and dy==0 then 
+    --         dx,dy = rdx,rdy
+    --         if _RNG\random(15) == 1
+    --             rdx,rdy = _RNG\random(-1,2),_RNG\random(-1,2)
 
-    action = game_actions.make_move_action @, step_number, dx, dy
+    local action
+    if user_io.key_pressed "K_Y"
+        action = game_actions.make_weapon_action @, step_number, dx, dy
+    else
+        action = game_actions.make_move_action @, step_number, dx, dy
     G.queue_action(action)
     -- if G.net_handler
         -- Send last two unacknowledged actions (included the one just queued)
         -- G.net_handler\send_unacknowledged_actions(2)
 
-    if user_io.key_pressed "K_Y"
+    if user_io.key_pressed "K_P"
         Projectile.create M, {
             x: @x
             y: @y

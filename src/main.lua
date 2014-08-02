@@ -81,6 +81,6 @@ elseif os.getenv "TEST" then
   	end
 else
     ErrorReporting.wrap(function()
-		    require("core.main")
+        require("core.main")
     end)()
 end

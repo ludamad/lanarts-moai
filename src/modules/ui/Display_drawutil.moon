@@ -2,6 +2,7 @@
 
 import fillRect, drawRect, drawText from MOAIDraw
 import setPenColor from MOAIGfxDevice
+Display = require '@Display_constants'
 
 -- Convenience wrapper around fillRect.
 -- Takes (bbox, color) or (x1,y1,x2,y2, color)
@@ -48,6 +49,9 @@ colorEscapeCode = (color) ->
 	r,g,b,a = math.floor(r*255), math.floor(g*255), math.floor(b*255), math.floor((a or 1)*255)
 	return '\0' .. SC(r) .. SC(g) .. SC(b) .. SC(a)
 
+-- Reusable object for drawTexture:
+_DRAW_TEXTURE_HELPER = {}
+
 return {
 	fillRect: _fillRect
 	drawRect: _drawRect
@@ -59,6 +63,15 @@ return {
 			assert(args.text, "No text!"), args.x, args.y, args.font_scale or 1, 
 			0,0, O[1] or args.origin_x or 0, O[2] or args.origin_y or 0, 
 			args.max_width or 0
-	drawTexture: _drawTexture
+	drawTexture: (texture_or_args, x, y, origin = Display.LEFT_TOP) ->
+		local args
+		if type(texture_or_args) == 'userdata'
+			args = _DRAW_TEXTURE_HELPER
+			args.x, args.y = x, y
+			args.texture = texture_or_args
+			args.origin = origin
+		else
+			args = texture_or_args
+		_drawTexture(args)
 	:colorEscapeCode
 }

@@ -5,7 +5,7 @@
 -------------------------------------------------------------------------------
 
 -- Action type enumeration
-ACTION_NONE, ACTION_MOVE, ACTION_USE_SPELL, ACTION_USE_ITEM, ACTION_USE_WEAPON = unpack [i for i=1,4]
+ACTION_NORMAL, ACTION_USE_SPELL, ACTION_USE_ITEM, ACTION_USE_WEAPON = unpack [i for i=1,4]
 
 -- Forward-declare
 local GameAction
@@ -17,12 +17,17 @@ local GameAction
 -- TODO combine moves into ALL actions -- it only makes sense
 
 make_none_action = (pobj, step_number) ->
-    return GameAction.create pobj.id_player, ACTION_NONE,
+    return GameAction.create pobj.id_player, ACTION_NORMAL,
         0,0, step_number, 0, pobj.x, pobj.y
 
 make_move_action = (pobj, step_number, dirx, diry) -> 
     -- Add 3 to directions to force them into the 0-255 range
-    return GameAction.create pobj.id_player, ACTION_MOVE, 
+    return GameAction.create pobj.id_player, ACTION_NORMAL, 
+        dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
+
+make_weapon_action = (pobj, step_number, dirx, diry) -> 
+    -- Add 3 to directions to force them into the 0-255 range
+    return GameAction.create pobj.id_player, ACTION_USE_WEAPON, 
         dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
 
 -- make_spell_action = (pobj, step_number, dirx, diry) -> 
@@ -30,8 +35,8 @@ make_move_action = (pobj, step_number, dirx, diry) ->
 --     return GameAction.create pobj.id_player, ACTION_MOVE, 
 --         dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
 
-unbox_move_action = (action) ->
-    assert(action.action_type == ACTION_MOVE)
+-- All actions have a move-component
+unbox_move_component = (action) ->
     {:id_player, :step_number, :genericbyte1, :genericbyte2} = action
     -- Subtract 3 to recreate the directions from make_move_action
     return id_player, step_number, genericbyte1 - 3, genericbyte2 - 3
@@ -263,6 +268,7 @@ setup_action_state = (G) ->
 
 return {
     :GameAction, :GameActionFrame, :GameActionFrameSet, 
-    :setup_action_state, :make_move_action, :make_none_action, :unbox_move_action,
-    :ACTION_NONE, :ACTION_MOVE
+    :setup_action_state, :make_move_action, :make_none_action, :make_weapon_action,
+    :unbox_move_component,
+    :ACTION_NORMAL, :ACTION_USE_WEAPON, :ACTION_USE_ITEM, :ACTION_USE_SPELL
 }

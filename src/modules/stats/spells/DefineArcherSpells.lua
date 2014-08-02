@@ -8,7 +8,7 @@ spell_define {
 	name = "Magic Arrow",
 	description = "Allows you to create an arrow of pure energy. Requires a bow.", -- TODO COLOURS!!
 	mp_cost = 20,
-	sprite = "sprites/crystal_spear.png%32x32",
+	sprite = "proj-crystal_spear",
 
     equipment_prereq = {trait = Apts.BOWS, name = "a Bow", slot = ItemTraits.WEAPON},
 

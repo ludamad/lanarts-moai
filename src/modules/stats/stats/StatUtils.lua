@@ -147,7 +147,7 @@ M.stat_copy = CodeGeneration.copy_function_compile {
         "name", "team", "level", "skill_points", "xp", 
         "hp", "max_hp", "hp_regen",
         "mp", "max_mp", "mp_regen",
-        "gold",
+        "race", "class", "gold",
         "movement_speed", "inventory"
     },
     deep = {

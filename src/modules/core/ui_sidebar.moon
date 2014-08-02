@@ -6,7 +6,7 @@
 res = require 'resources'
 import setup_script_prop from require '@util_draw'
 import put_text, put_text_center, put_prop from require "ui.Display"
-import COL_GREEN, COL_RED, COL_BLUE, COL_PALE_RED, COL_GOLD, COL_PALE_BLUE, COL_MUTED_GREEN from require "@ui_colors"
+import COL_GREEN, COL_RED, COL_BLUE, COL_PALE_RED, COL_GOLD, COL_PALE_BLUE, COL_MUTED_GREEN from require "ui.Display"
 import default_cooldown_table from require "stats.stats.CooldownTypes"
 import ui_minimap, ui_inventory, util_draw_stats from require "core"
 

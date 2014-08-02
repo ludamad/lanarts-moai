@@ -55,10 +55,6 @@ step = (M) ->
 
 -- IO Handling
 
-MAX_FUTURE_STEPS = 0
-
-rdx,rdy = _RNG\random(-1,2),_RNG\random(-1,2)
-
 handle_io = (M) ->
     if (user_io.key_pressed "K_ESCAPE")
         os.exit()

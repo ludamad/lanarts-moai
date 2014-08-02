@@ -22,7 +22,10 @@ _STAT_OBJECT = nil
 
 update_stat_object = () ->
     if _CLASS_OBJECT ~= nil
-        base = RaceType.resolve(_RACE_CHOICE).on_create(_SETTINGS.player_name)
+        race = RaceType.resolve(_RACE_CHOICE)
+        base = race.on_create(_SETTINGS.player_name)
+        base.race = race 
+        base.class = _CLASS_OBJECT
         context = util_stats.stat_context_create(base, {}, {}) -- Give dummy object
         _CLASS_OBJECT\on_map_init(context)
         context\on_step()
@@ -326,9 +329,13 @@ menu_chargen_content = (on_back_click, on_start_click) ->
         \add_instance back_and_continue_options_create(on_back_click, on_start_click), 
             Display.CENTER_BOTTOM, { 0, -20 } --Up 20 pixels
 
-menu_chargen = (controller, on_back_click, on_start_click) ->
+menu_chargen = (controller, on_back_click, raw_on_start_click) ->
     -- Clear the previous layout
     Display.display_setup()
+    -- Allow process the start-click callback if _STAT_OBJECT isn't nil
+    on_start_click = () -> 
+        if _STAT_OBJECT then 
+            raw_on_start_click {class: _CLASS_OBJECT, race: RaceType.resolve(_RACE_CHOICE)}
     box_menu = menu_chargen_content(on_back_click, on_start_click)
     Display.display_add_draw_func () ->
         ErrorReporting.wrap(() -> box_menu\draw(0,0))()

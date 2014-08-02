@@ -2,7 +2,7 @@
 res = require 'resources'
 import setup_script_prop from require '@util_draw'
 import put_text, put_text_center, put_prop from require "ui.Display"
-import COL_GREEN, COL_RED, COL_BLUE, COL_YELLOW from require "@ui_colors"
+import COL_GREEN, COL_RED, COL_BLUE, COL_YELLOW from require "ui.Display"
 import TileMap,camera from require "core"
 
 import StatContext from require "stats"

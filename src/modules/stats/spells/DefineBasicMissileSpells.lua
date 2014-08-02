@@ -15,7 +15,7 @@ end
 spell_define {
     lookup_key = "Minor Missile",
     description = "A minor missile attack.",
-    sprite = "sprites/minor_missile.png%32x32",
+    sprite = "proj-minor_missile",
 
     range = 250,
     mp_cost = 5,

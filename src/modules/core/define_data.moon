@@ -3,6 +3,8 @@
 gen = require '@generate'
 import TileMap from require "core"
 
+logI("Loading tiles")
+
 with tiledef file: 'floor.png', solid: false
     .define name: 'undefined', from: {1,1}, to: {2,1}
     .define name: 'grey_floor', from: {3,1}, to: {11,1}
@@ -14,6 +16,8 @@ with spritedef file: 'feat.png', size: {32,32}, tiled: true
     .define name: 'door_closed', from: {3, 2}
     .define name: 'door_open',   from: {10, 2}    
     .define name: 'shop',        from: {11,6}, to: {21,6}
+
+logI("Loading player components")
 
 with spritedef file: 'player-animated.png', size: {32,32}, tiled: true, kind: 'animation'
     .define name: 'sr-human', from: {1, 1}, to: {4, 1}
@@ -37,8 +41,12 @@ with spritedef file: 'crawl-sarmour.png', size: {32,32}, tiled: true, kind: 'ani
     .define name: 'sa-chainshirt', from: {4, 2}
     .define name: 'sa-gold', from: {4, 3}
     .define name: 'sa-death', from: {11, 9}
+    .define name: 'sa-leather', from: {6,6}
+    .define name: 'sa-robe', from: {6,8}
+    .define name: 'sa-studded-leather', from: {6,6}
 
 with spritedef file: 'crawl-legs.png', size: {32,32}, tiled: true, kind: 'animation'
+    .define name: 'sl-gray-pants', from: {5, 2}
     .define name: 'sl-green-shorts', from: {8, 2}
     .define name: 'sl-green-skirt', from: {10, 3}
     .define name: 'sl-white-pants', from: {9, 2}
@@ -137,7 +145,6 @@ with spritedef file: 'crawl-avatar-head.png', size: {32,32}, tiled: true
     .define name: 'sh-wizard-white', from: {2, 7}
     .define name: 'sh-yellow-wing', from: {3, 7}
 
-
 with spritedef file: 'crawl-gloves.png', size: {32,32}, tiled: true
     .define name: 'sg-claws', from: {1, 1}
     .define name: 'sg-red-gloves', from: {2, 1}
@@ -185,6 +192,7 @@ with spritedef file: 'status_icon.png', size: {32,32}, tiled: true
 
 with spritedef file: 'crawl-weapons.png', size: {32,32}, tiled: true
     .define name: 'Hand Axe', from: {9, 5}
+    .define name: 'Dagger', from: {12, 2}
 
 with spritedef file: 'crawl-weapons-ranged.png', size: {32,32}, tiled: true
     .define name: 'Arrow', from: {1, 1}, to: {2, 1}
@@ -194,11 +202,27 @@ with spritedef file: 'crawl-weapons-ranged.png', size: {32,32}, tiled: true
     .define name: 'Bolt', from: {9, 1}, to: {10,1}
     .define name: 'Long Bow', from: {12, 1}, to: {2,2}
     .define name: 'Needle', from: {3, 2}, to: {6,2}
-    .define name: 'Bow', from: {8, 1}, to: {10,2}
+    .define name: 'Short Bow', from: {8, 1}, to: {10,2}
     .define name: 'Silver Arrow', from: {11, 2}, to: {12,2}
 
+-- On-battle-field projectile sprites
+with spritedef file: 'arrow-projectile.png', size: {32,32}, tiled: true
+    .define name: "proj-arrow", from: {1,1}, to: {8,1}
+
+with spritedef file: 'cloud-projectile.png', size: {32,32}, tiled: true
+    .define name: "proj-storm_bolt", from: {1,1}, to: {4,1}
+
+with spritedef file: 'minor-missile.png', size: {32,32}
+    .define name: "proj-minor_missile", from: {1,1}, to: {8,1}
+
+with spritedef file: 'cloud-projectile.png', size: {32,32}, tiled: true
+    .define name: "proj-storm_bolt", from: {1,1}, to: {4,1}, tiled: true
+    .define name: "proj-crystal_spear", from: {1,1}, to: {8,1}
+
+-- In-inventory armour item sprites
 with spritedef file: 'crawl-armour.png', size: {32,32}
     .define name: 'Chainshirt', from: {9, 1}, to: {11, 1}
+    .define name: 'Leather Armour', from: {6,3}
     .define name: "Leather Boots", from: {5, 1}
     .define name: "Thick Boots", from: {6, 1}
     .define name: "Runed Boots", from: {7, 1}
@@ -206,10 +230,13 @@ with spritedef file: 'crawl-armour.png', size: {32,32}
 
 with spritedef file: 'crawl-armour-headgear.png', size: {32,32}
     .define name: 'Horned Helmet', from: {8, 1}
+    .define name: 'Leather Cap', from: {2, 1}
 
 with spritedef file: 'crawl-potions.png', size: {32,32}
     .define name: 'PotionBase', from: {3, 1}, to: {4, 9}
     .define name: 'Health Potion', from: {12, 2}
+
+logI("Loading skill icons")
 
 skill_icons = with spritedef file: 'menu/skill-icons.png', size: {32,32}
     .define name: 'skicon-melee', from: {31, 3}
@@ -237,10 +264,12 @@ skill_icons = with spritedef file: 'menu/skill-icons.png', size: {32,32}
 
 -- with spritedef file: 'crawl-weapons-ranged.png', size: {32,32}, tiled: true, kind: 'variant'
 
+logI("Defining maps")
+
 mapdef.define {
 	name: "start" 
 	generator: (G, rng) ->
-		model = gen.generate_empty_model(rng)
+		model = gen.generate_test_model(rng)
 		-- for i=1,50 do spawn rng, model, 
 		-- 	(px, py) -> (L) ->
 		-- 		map_object_types.NPC.create L, {
@@ -273,6 +302,6 @@ for vpath in *{
     "stats.stats.DefineStatusTypes"
     "stats.races.DefineRaces"
 
-} do require(vpath)
-
-require "stats.races.DefineRaces"
+} do
+    logI("Loading " .. vpath)
+    require(vpath)

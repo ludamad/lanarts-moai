@@ -17,6 +17,11 @@ else
     end
 end
 
+-- Lightly used, can safely always be on
+function logI(...)
+    print(...)
+end
+
 -- Set to a metatable that does not allow nil accesses
 function nilprotect(t)
     return setmetatable(t, nilprotect_meta)

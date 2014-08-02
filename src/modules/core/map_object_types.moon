@@ -6,6 +6,7 @@ import camera, util_draw from require "core"
 import FieldOfView, FloodFillPaths, util_stats, util_geometry from require "core"
 
 import Relations, RaceType, MonsterType, StatContext, ActionContext from require "stats"
+import StatUtils from require "stats.stats"
 import add_hp, add_mp, add_cooldown, set_cooldown, temporary_add, permanent_add from require "stats.StatContext"
 
 make_stats = (M, race, name, _class) ->
@@ -41,6 +42,7 @@ ObjectBase = with newtype()
 	.init = (M, args) =>
 		@x, @y, @radius = args.x, args.y, args.radius or 16
         @target_radius, @solid = (args.target_radius or args.radius or 16), args.solid or false
+        @map = M
         -- Register into world , and store the instance table ID
         @id = M.objects\add(@)
         @id_col = 0 -- Not all objects need to be part of the collision set
@@ -71,7 +73,6 @@ draw_statbar = (x,y,w,h, ratio) ->
     MOAIGfxDevice.setPenColor(0, 1, 0)
     MOAIDraw.fillRect(x,y,x+w*ratio,y+h)
 
-
 CombatObjectBase = with newtype {parent: ObjectBase}
     .init = (M, args) =>
         args.solid = true
@@ -98,6 +99,7 @@ CombatObjectBase = with newtype {parent: ObjectBase}
         M.col_id_to_object[@id_col] = nil
         table.remove_occurrences M.combat_object_list, @
 
+    .stat_context_copy = () => @stat_context\copy()
     -- Subsystem synchronization
     .sync_col = (M) =>
         M.collision_world\update_instance(@id_col, @x, @y, @radius, @target_radius, @solid)
@@ -145,12 +147,15 @@ Vision = with newtype()
 
 Player = with newtype {parent: CombatObjectBase}
     .init = (M, args) =>
+        logI("Player::init")
         CombatObjectBase.init(@, M, args)
         @race = args.race
         @class = args.class
         @name = args.name
 
+        -- Create the stats object for the player
         @init_stats(make_stats(M, args.race, args.name, args.class), args.race.unarmed_action, args.race)
+        logI("Player::init stats created")
 
         add_hp @stat_context, -50
         @vision_tile_radius = 6
@@ -160,6 +165,7 @@ Player = with newtype {parent: CombatObjectBase}
         @vision = Vision.create(M, @vision_tile_radius)
         @paths_to_player = FloodFillPaths.create(M.tilemap)
         append M.player_list, @
+        logI("Player::init complete")
 
     .remove = (M) =>
         CombatObjectBase.remove(@, M)
@@ -182,7 +188,8 @@ Player = with newtype {parent: CombatObjectBase}
 
     .attack = (M) =>
         o = @nearest_enemy(M)
-        @stat_context\use_weapon o.stat_context
+        if o
+            @stat_context\use_weapon o.stat_context
 
     .can_see = (obj) =>
         return @vision.fieldofview\circle_visible(obj.x, obj.y, obj.radius)
@@ -198,7 +205,7 @@ NPC = with newtype {parent: CombatObjectBase}
         append M.npc_list, @
         @npc_type = MonsterType.lookup(args.type)
         @sprite = data.get_sprite(args.type)
-        @init_stats(table.deep_clone(@npc_type.base_stats), @npc_type.unarmed_action)
+        @init_stats(StatUtils.stat_clone(@npc_type.base_stats), @npc_type.unarmed_action)
 
     .nearest_enemy = (M) =>
         min_obj,min_dist = nil,math.huge
@@ -210,7 +217,6 @@ NPC = with newtype {parent: CombatObjectBase}
         return min_obj, min_dist
     .perform_action = (M) =>
         min_obj, min_dist = @nearest_enemy(M)
-        print min_obj, min_dist
         if min_obj and @stat_context\can_use_weapon(min_obj.stat_context)
             @stat_context\use_weapon(min_obj.stat_context)
 
@@ -243,10 +249,10 @@ Animation = with newtype {parent: ObjectBase}
 
 -- 'Step' is called in projectile phase, in map_logic.moon
 Projectile = with newtype {parent: ObjectBase}
-    .sprite = data.get_sprite("Storm Cloud")
     .priority = 1
     .init = (M, args) =>
         ObjectBase.init(@, M, args)
+        @sprite = args.sprite
         @vx = args.vx
         @vy = args.vy
         @action = args.action
