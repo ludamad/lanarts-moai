@@ -26,7 +26,7 @@ if not table.clear then -- Prefer luajit builtin (by a lot)
 end
 
 function profile(f)
-    do return
+    do return end
     require("jit.p").start("vFL")
     local ret = {f()}
     require("jit.p").stop()
