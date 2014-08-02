@@ -95,7 +95,7 @@ view_game = (stat_components, on_death) ->
     G.change_view(map_view.create_menu_view(G, w,h, _start_game))
 
     -- Start the game
-	G.start(on_death)
+    G.start(on_death)
 
 -- Navigates between levels and menus
 SceneController = with newtype()
@@ -105,6 +105,7 @@ SceneController = with newtype()
         @_next = false
     .set_next = (next) =>
         assert @_is_active, "Can't queue twice!"
+        assert type(next) == 'function'
         @_is_active = false
         @_next = next
     .perform_next = () =>
