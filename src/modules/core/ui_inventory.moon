@@ -54,7 +54,8 @@ InventoryDrawer = with newtype()
             name, desc = Identification.name_and_description(@stat_context, slot)
             if name\find "Potion"
                 @draw_sprite "PotionBase", gridx, gridy
-            @draw_sprite slot.lookup_key, gridx, gridy
+            else 
+                @draw_sprite slot.lookup_key, gridx, gridy
             if slot.stackable
                 @draw_text tostring(slot.amount), gridx, gridy
 

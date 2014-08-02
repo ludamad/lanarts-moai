@@ -225,12 +225,14 @@ with spritedef file: 'crawl-armour.png', size: {32,32}
     .define name: 'Leather Armour', from: {6,3}
     .define name: "Leather Boots", from: {5, 1}
     .define name: "Thick Boots", from: {6, 1}
+    .define name: "Robe", from: {7, 4}
     .define name: "Runed Boots", from: {7, 1}
     .define name: "Troll's Boots", from: {8, 1}
 
 with spritedef file: 'crawl-armour-headgear.png', size: {32,32}
     .define name: 'Horned Helmet', from: {8, 1}
     .define name: 'Leather Cap', from: {2, 1}
+    .define name: 'Wizard\'s Hat', from: {3, 1}
 
 with spritedef file: 'crawl-potions.png', size: {32,32}
     .define name: 'PotionBase', from: {3, 1}, to: {4, 9}
