@@ -13,7 +13,7 @@ end
 -- Set modules folder as loading root. Must occur before insert_loader().
 -------------------------------------------------------------------------------
 
-package.path = package.path .. ";src/modules/?.lua"
+package.path = package.path .. ";src/modules/?.lua" .. ";/home/adomurad/sources/Apollo/?.lua"
 
 -------------------------------------------------------------------------------
 -- Define global utilities.
@@ -58,7 +58,7 @@ local ErrorReporting = require "system.ErrorReporting"
 if os.getenv("i") then
     inspect()
 elseif os.getenv "TEST" then
-	print "RUNNING TEST SUITE"
+    print "RUNNING TEST SUITE"
     _TEST = false -- Strict-global compatibility
     local busted = (require 'busted') 
     -- Better error reporting for 'it'
@@ -79,6 +79,10 @@ elseif os.getenv "TEST" then
   	else
   		print("Everything passed!")
   	end
+elseif os.getenv("REQUIRE") then
+    ErrorReporting.wrap(function()
+        require(os.getenv("REQUIRE")) 
+    end)()
 else
     ErrorReporting.wrap(function()
         require("core.main")

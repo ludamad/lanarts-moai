@@ -91,7 +91,7 @@ local function rgb_to_xterm(rgb)
     return equiv
 end
 
-function M.from_rgb(color) 
+function M.from_rgb(color)
    return AnsiColor.create("38;5;" .. rgb_to_xterm(color))
 end
 

@@ -101,7 +101,7 @@ end
 function newtype(args)
     local get, set = {}, {}
     local parent = args and args.parent
-    local type = {}
+    local type = args or {}
     -- 'Inherit' via simple copying.
     -- Note fall back in __newindex anyway.
     if parent ~= nil then

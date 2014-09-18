@@ -20,7 +20,7 @@ local function resolve_col_and_params(colspec)
     local traits = colspec:upper():split("_")
     local col,params = "RESET",""
     for t in values(traits) do
-        if PARAM_SPECS[t] then params = params .. PARAM_SPECS[t] 
+        if PARAM_SPECS[t] then params = params .. PARAM_SPECS[t]
         elseif t ~= '' then col = t end
     end
     return col,params
@@ -80,19 +80,19 @@ M = {
         ["%s*%[C%]: in function 'require'"] = 1,
         ["%s*%[C%]: in function 'xpcall'"] = 1
     },
-    
+
     stacktrace_replacements = {
         {"stack traceback:", function(s) return M.resolve_color("WHITE", s) end},
         {"%[C%]:.*'", function(s) return colfmt("{faint_white:%s}", s) end}
     },
-    
+
     error_replacements = {
 --    "^%s*[^%.]+%.lua:%d+:%s*",
         {'^'.. FILE_LINE_MATCHER, function(s) return '' end},
         {'('..FILE_LINE_MATCHER..')(.*)', function(s1,s2) return colfmt("{bold_white:%s}{white:%s}", s1,s2) end}
     },
-    
-    virtual_paths = true, 
+
+    virtual_paths = true,
     use_color = true,
     context = 5
 }
@@ -105,7 +105,7 @@ local DOT_LINE = "--------------------------------------------------------------
 function M.resolve_context(fpath, line_num, context)
     local file = io.open(fpath, "r");
     local arr = {}
-    if not file then 
+    if not file then
         return arr
     end
     local i,min_i,max_i = 1,line_num-context,line_num+context
@@ -124,14 +124,14 @@ end
 
 function M.resolve_color(col, str, params)
     if M.use_color and AnsiColors then return AnsiColors[col](str, params) end
-    return str 
-    
+    return str
+
 end
 local function resolve_path(path)
     if not M.virtual_paths then return path end
-    if path:match(ROOTFILE_PATTERN) then return path end 
+    if path:match(ROOTFILE_PATTERN) then return path end
     return real_path_to_virtual(path)
-end 
+end
 
 local function resolve_replacements(str, replacements)
     for _,r in ipairs(replacements) do
@@ -159,7 +159,7 @@ local function resolve_changes(stacktrace, i)
     local inserts = 0
     local converted = {}
     local function path_conv(path, line)
-        if M.virtual_paths then 
+        if M.virtual_paths then
             append(converted, colfmt("{faint_white:(%s:%s)}", path, line))
         end
         local ret = colfmt("{white:%s:%s}", resolve_path(path), line)
@@ -203,7 +203,7 @@ function M.traceback(--[[Optional]] str)
         i = i + 1 + resolve_changes(stacktrace, i)
     end
     return colfmt(
-        "{bold_red:An error occurred:}\n{bold_white:@} {reset:%s}\n%s", 
+        "{bold_red:An error occurred:}\n{bold_white:@} {reset:%s}\n%s",
         resolve_replacements(str or "", M.error_replacements):trim(),
         table.concat(stacktrace, '\n')
     )
@@ -213,16 +213,16 @@ function M.wrap(f)
     return function(...)
         local args = {...}
         xpcall(
-            -- Call 
-            function() 
+            -- Call
+            function()
                 return f(unpack(args))
-            end, 
-            -- Error handling 
-            function(err) 
-                print(M.traceback(err)) 
+            end,
+            -- Error handling
+            function(err)
+                print(M.traceback(err))
             end
         )
-    end 
+    end
 end
 
 AnsiColors = require "system.AnsiColors" -- Lazy import

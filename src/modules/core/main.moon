@@ -161,4 +161,7 @@ main = () ->
     -- Clear the io state as the last action
     io_thread.start()
 
-main()
+if os.getenv "newstats"
+    (require "newstats.tests").main()
+else
+    main()
