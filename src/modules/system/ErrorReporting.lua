@@ -94,7 +94,7 @@ M = {
 
     virtual_paths = true,
     use_color = true,
-    context = 5
+    context = 1
 }
 
 local function numformat(n)
@@ -220,6 +220,9 @@ function M.wrap(f)
             -- Error handling
             function(err)
                 print(M.traceback(err))
+                -- if os.getenv("EXIT_ON_ERR") then 
+                    os.exit()
+                -- end
             end
         )
     end

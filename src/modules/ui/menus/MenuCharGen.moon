@@ -1,11 +1,9 @@
 import Display, InstanceBox, InstanceLine, Sprite, TextLabel, TextInputBox from require "ui"
 import DEFAULT_FONT, MENU_FONT, text_label_create, text_button_create, back_and_continue_options_create, make_text_label
     from require "@menus.util_menu_common"
+statsystem = require "statsystem"
 import ErrorReporting from require 'system'
 import data from require 'core'
-import ClassType, RaceType from require 'stats'
-import StatUtils from require 'stats.stats'
-import util_stats, util_draw_stats from require 'core'
 
 user_io = require 'user_io'
 res = require 'resources'
@@ -13,58 +11,53 @@ res = require 'resources'
 TEXT_COLOR = {255/255, 250/255, 240/255}
 
 -- 'Global' class choice variables
-_CLASS_CHOICE = ""
+_CLASS_CHOICE = nil
+_CLASS_ARGS = nil
 _RACE_CHOICE = "Human"
-_MAGE_MAGIC_SKILL = "Fire"
-_KNIGHT_WEAPON_SKILL = "Piercing Weapons"
-_CLASS_OBJECT = nil
+_MAGE_MAGIC_SKILL = "fire_mastery"
+_WEAPON_SKILL = "piercing_weapons"
 _STAT_OBJECT = nil
 
 update_stat_object = () ->
-    if _CLASS_OBJECT ~= nil
-        race = RaceType.resolve(_RACE_CHOICE)
-        base = race.on_create(_SETTINGS.player_name)
-        base.race = race 
-        base.class = _CLASS_OBJECT
-        context = util_stats.stat_context_create(base, {}, {}) -- Give dummy object
-        _CLASS_OBJECT\on_map_init(context)
-        context\on_step()
-        context\on_calculate()
-        _STAT_OBJECT = context
+    if _CLASS_CHOICE ~= nil
+        race = statsystem.races[_RACE_CHOICE]
+        stats = statsystem.PlayerStatContext.create(_SETTINGS.player_name, _RACE_CHOICE)
+        statsystem.classes[_CLASS_CHOICE].stat_class_adjustments(_CLASS_ARGS, stats)
+        _STAT_OBJECT = stats
 
 local class_choice_buttons_create
 do -- Defines class_choice_buttons_create, hides related functions
   -- 'Private'
-  knight_choice_toggle_create = (root_update) ->
+  weapon_choice_toggle_create = (root_update, include_bows = false) ->
     toggle = {
         size: {300,32},
         font: DEFAULT_FONT,
     }
 
     skill_left_toggle = {
-        ["Piercing Weapons"]: "Slashing Weapons"
-        ["Slashing Weapons"]: "Blunt Weapons"
-        ["Blunt Weapons"]: "Piercing Weapons"
+        ["piercing_weapons"]: "slashing_weapons"
+        ["slashing_weapons"]: "blunt_weapons"
+        ["blunt_weapons"]: "piercing_weapons"
     }
+    if include_bows
+        -- Include ranged weapons in the toggle options:
+        skill_left_toggle["blunt_weapons"] = "ranged_weapons"
+        skill_left_toggle["ranged_weapons"] = "piercing_weapons"
+
     skill_right_toggle = table.value_key_invert(skill_left_toggle)
-    skill_sprite_lookup = {
-        ["Piercing Weapons"]: "skicon-piercing"
-        ["Slashing Weapons"]: "skicon-slashing"
-        ["Blunt Weapons"]: "skicon-blunt"
-    }
 
     -- Calculated on any change of skill choice
     -- Initialize
-    sprite = data.get_sprite(skill_sprite_lookup[_KNIGHT_WEAPON_SKILL])
-    text = _KNIGHT_WEAPON_SKILL
+    sprite = data.get_sprite('skicon-'.._WEAPON_SKILL)
+    text = statsystem.SKILL_ATTRIBUTE_NAMES[_WEAPON_SKILL]
     text_color = TEXT_COLOR
 
     toggle.step = (x, y) =>
         -- Toggle the connection type
         if user_io.mouse_left_pressed() and mouse_over({x, y}, @size)
-            _KNIGHT_WEAPON_SKILL = skill_left_toggle[_KNIGHT_WEAPON_SKILL]
+            _WEAPON_SKILL = skill_left_toggle[_WEAPON_SKILL]
         elseif user_io.mouse_right_pressed() and mouse_over({x, y}, @size)
-            _KNIGHT_WEAPON_SKILL = skill_right_toggle[_KNIGHT_WEAPON_SKILL]
+            _WEAPON_SKILL = skill_right_toggle[_WEAPON_SKILL]
         root_update()
 
     toggle.draw = (x, y) =>
@@ -80,7 +73,7 @@ do -- Defines class_choice_buttons_create, hides related functions
             font: @font
             color: Display.COL_GOLD, origin: Display.LEFT_BOTTOM 
             x: x, y: y - 5
-            text: "Knight Fighting Focus:"
+            text: "Weapon Style:"
         }
         Display.drawText font: @font, font_size: 12, :text, x: x+8+spr_h, y: y+h/2, color: text_color, origin_y: 0.5
         Display.drawRect(bbox_create({x,y}, @size), box_color)
@@ -95,14 +88,15 @@ do -- Defines class_choice_buttons_create, hides related functions
     }
 
     skill_left_toggle = {
-        Fire: "Water", Water: "Dark", Dark: "Light", Light: "Curses", Curses: "Enchantments"
-        Enchantments: "Force", Force: "Earth", Earth: "Air", Air: "Fire"
+        ["fire_mastery"]: "water_mastery", ["water_mastery"]: "death_mastery", 
+        ["death_mastery"]: "life_mastery", ["life_mastery"]: "curses", ["curses"]: "enchantments"
+        ["enchantments"]: "force_spells", ["force_spells"]: "earth_mastery", ["earth_mastery"]: "air_mastery", ["air_mastery"]: "fire_mastery"
     }
     skill_right_toggle = table.value_key_invert(skill_left_toggle)
 
     -- Calculated on any change of skill choice
     sprite = data.get_sprite('skicon-' .. _MAGE_MAGIC_SKILL\lower())
-    text = _CLASS_OBJECT.name .. ' (' .. _MAGE_MAGIC_SKILL .. ' Focus)'
+    text = _STAT_OBJECT.class_name .. ' (' .. statsystem.SKILL_ATTRIBUTE_NAMES[_MAGE_MAGIC_SKILL] .. ' Focus)'
     text_color = TEXT_COLOR
 
     toggle.step = (x, y) =>
@@ -180,14 +174,17 @@ do -- Defines class_choice_buttons_create, hides related functions
 
         container\add_instance button_row, Display.CENTER_TOP
         if _CLASS_CHOICE == "Mage"
-            _CLASS_OBJECT = ClassType.lookup("Mage")\on_create magic_skill: _MAGE_MAGIC_SKILL, weapon_skill: "Slashing Weapons"
+            _CLASS_ARGS = {magic_skill: _MAGE_MAGIC_SKILL, weapon_skill: _WEAPON_SKILL}
+            update_stat_object()
             container\add_instance mage_choice_toggle_create(update), Display.CENTER_BOTTOM
+            -- Unlike with the Knight (for which it would make little sense), we allow choosing ranged_weapons as a weapon style for mages.
+            container\add_instance weapon_choice_toggle_create(update, true), Display.CENTER_BOTTOM, {0, 60}
         elseif _CLASS_CHOICE == "Knight"
-            _CLASS_OBJECT = ClassType.lookup("Knight")\on_create weapon_skill: _KNIGHT_WEAPON_SKILL
-            container\add_instance knight_choice_toggle_create(update), Display.CENTER_BOTTOM
+            _CLASS_ARGS = {weapon_skill: _WEAPON_SKILL}
+            update_stat_object()
+            container\add_instance weapon_choice_toggle_create(update), Display.CENTER_BOTTOM
         elseif _CLASS_CHOICE == "Archer"
-            _CLASS_OBJECT = ClassType.lookup("Archer")\on_create {}
-        update_stat_object()
+            update_stat_object()
 
     button_row.step = (x, y) =>
         InstanceLine.step(@, x, y)
@@ -202,7 +199,7 @@ do -- Defines class_choice_buttons_create, hides related functions
     button_row.draw = (x,y) =>
         InstanceLine.draw(@, x,y)
 
-        text = if _CLASS_OBJECT == nil then "" else  _CLASS_OBJECT.name .. ":  " .. _CLASS_OBJECT.description
+        text = if _STAT_OBJECT == nil then "" else  _STAT_OBJECT.class_name .. ":  " .. statsystem.classes[_CLASS_CHOICE].description(_CLASS_ARGS)
         {w,h} = @size
         Display.drawText {
             font: DEFAULT_FONT, :text, font_size: 14
@@ -252,7 +249,7 @@ do -- Defines race_toggle_create, hides related functions
     update = () ->
         -- Calculated on any change of race choice
         sprite = data.get_sprite('sr-' .. _RACE_CHOICE\lower())
-        text = _RACE_CHOICE .. ":\n" ..RaceType.lookup(_RACE_CHOICE).description
+        text = _RACE_CHOICE .. ":\n" ..statsystem.races[_RACE_CHOICE].description
         text_color = TEXT_COLOR
         update_stat_object()
 
@@ -308,7 +305,7 @@ do -- Defines skill_preview_box
         Display.drawText{x: x+3, y: y-2, origin: Display.LEFT_BOTTOM, text: "Stat Preview", font: DEFAULT_FONT, color: Display.COL_YELLOW}
 
         if _STAT_OBJECT == nil then return
-        util_draw_stats.draw_stats(_STAT_OBJECT.derived, x+10, y+10, 0, 15)
+        -- util_draw_stats.draw_stats(_STAT_OBJECT.derived, x+10, y+10, 0, 15)
 
     return box
 
@@ -335,7 +332,7 @@ menu_chargen = (controller, on_back_click, raw_on_start_click) ->
     -- Allow process the start-click callback if _STAT_OBJECT isn't nil
     on_start_click = () -> 
         if _STAT_OBJECT then 
-            raw_on_start_click {class: _CLASS_OBJECT, race: RaceType.resolve(_RACE_CHOICE)}
+            raw_on_start_click {class: _CLASS_CHOICE, race: _RACE_CHOICE, class_args: _CLASS_ARGS}
     box_menu = menu_chargen_content(on_back_click, on_start_click)
     Display.display_add_draw_func () ->
         ErrorReporting.wrap(() -> box_menu\draw(0,0))()

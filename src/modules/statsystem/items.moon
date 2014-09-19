@@ -1,8 +1,13 @@
 -- Provides methods for defining object kinds, and creating item objects.
 
 name_gen = require "@name_gen"
+constants = require "@constants"
 
 M = nilprotect {} -- Submodule
+
+-- Stores items, both by name and by unique integer ID:
+
+M.ITEM_DB = {}
 
 -------------------------------------------------------------------------------
 -- Helpful constants:
@@ -37,6 +42,17 @@ _ItemBase = newtype {
   is_equipment: false
   is_stackable: false
   is_kind_id_necessary: false
+  -- For stackable items only.
+  -- Note that distinct items may stack! They might differ by cursedness.
+  should_occupy_same_slot: (o) =>
+    if not @is_stackable
+      return false
+    if @kind_id != o.kind_id then return false
+    if @identified_cursedness != o.identified_cursedness 
+      return false
+    if @identified_cursedness and o.identified_cursedness
+      return (if @cursedness == o.cursedness then "identical" else false)
+    return true -- Both do not have curse ID'd
 
   -- Overridden by classes that are stackable or need kind-identification
   _get_base_name: () => @kind.name 
@@ -69,13 +85,15 @@ _make_stackable = (type) ->
   -- Remove those if amount == 1.
   type._get_name = () =>
     name = pget_name(@)
+    if @amount > 1
        -- Replace eg "(es)" with "es"
-      name\gsub("(%(.*%))", _EXTRACT_IN_BRACKETS)   if @amount > 1
+      name\gsub("(%(.*%))", _EXTRACT_IN_BRACKETS)
       name = amount .. ' ' .. name
     else
        -- Replace eg "(es)" with ""
       name\gsub("(%(.*%))", "")
     return name
+  return type
 
 -- Modify an item type definition to need kind-identification:
 _make_kind_need_id = (type) ->
@@ -91,6 +109,7 @@ _make_kind_need_id = (type) ->
       return @kind.name 
     else 
       return @kind.unidentified_name
+  return type
 
 -- ITEM TYPES --
 -- Note: Kind requires identification for consumables
@@ -105,7 +124,6 @@ M.Equipment = newtype {
   parent: _ItemBase
   init: (kind_id) =>
     _ItemBase.init(@, kind_id)
-    @equipped = false
     @identified_enchantment = false
   is_equipment: true
 }
@@ -130,6 +148,59 @@ M.make_item = (id) ->
   else
     item = M.Equipment.create(id)
   return item
+
+-------------------------------------------------------------------------------
+-- ItemSet (Mainly == player/monster inventory, but also item piles on the floor) definition:
+-------------------------------------------------------------------------------
+
+-- Item slots are mostly items as defined above -- with one complication
+-- distinct items sometimes get merged into the same slot when the player cannot distinguish them.
+-- It would be possible to make these items non-distinct, and instead differentiate them randomly on identification
+-- however, this route was felt to be more flexible.
+
+M.ItemSet = newtype {
+  init: () =>
+    @item_slots = {}
+  add: (item) => 
+    @_try_merge(item)
+    if #@item_slots >= constants.MAX_ITEMS
+      return false
+    append @item_slots, item
+    return true
+
+  get_amount: (i) => 
+    slot = @item_slots[i]
+    amount = slot.amount or 0 -- Note: Will be 0 here if multiple _distinct_ items occupy the slot
+    if amount > 0 then return amount
+    -- Otherwise, sum over parts:
+    for item in *slot
+      amount += item.amount
+    return amount
+
+  get_item: (i) => 
+    slot = @item_slots[i]
+    if getmetatable(slot) -- If we have a metatable, we are a single item
+      return slot
+    return slot[1]
+
+  size: () => #@item_slots
+
+  _try_merge: (newitem) =>
+    for i=1,#@item_slots
+      slot = @item_slots[i]
+      item = @get_item(i)
+      should_occupy = newitem\should_occupy_same_slot(item)
+      if should_occupy == "identical" and slot == item
+        item.amount += newitem.amount
+        return true
+      elseif should_occupy
+        if slot == item -- Only a single item currently
+          slot = {slot} -- Make a list of items instead, so we can add the new one
+          @item_slots[i] = slot
+        append slot, newitem
+        return true
+    return false
+}
 
 -------------------------------------------------------------------------------
 -- Item definition functions:

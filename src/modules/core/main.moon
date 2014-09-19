@@ -12,7 +12,7 @@ modules = require "core.data"
 mtwist = require 'mtwist'
 util = require 'core.util'
 
-import RaceType, ClassType from require "stats"
+statsystem = require "statsystem"
 import map_object_types, game_state, map_state, map_view from require 'core'
 
 import Display from require "ui"
@@ -39,8 +39,9 @@ _spawn_players = (G, M, stat_components) ->
                 x: px*32+16
                 y: py*32+16
                 radius: 10
-                race: stat_components.race
-                class: stat_components.class
+                race: statsystem.races[stat_components.race]
+                class: statsystem.classes[stat_components.class]
+                class_args: stat_components.class_args
                 solid: true
                 id_player: i
                 speed: 4
@@ -49,7 +50,7 @@ _spawn_players = (G, M, stat_components) ->
 _spawn_monsters = (G, M) ->
     import random_square_spawn_object from require '@util_generate'
 
-    for i=1,10
+    for i=1,0
         random_square_spawn_object M, (px, py) ->
             map_object_types.NPC.create M, {
                 x: px*32+16
@@ -149,7 +150,10 @@ main = () ->
         mchargen = nextf ()  -> MenuCharGen.start(SC, msettings, mviewgame)
         mviewgame = nextf (stat_components) -> view_game(stat_components, mchargen)
         -- Set up first menu
-    	mchargen()
+        if os.getenv("TEST_ARCHER")
+            mviewgame {class: "Archer", race: "Human", class_args: {}}
+        else
+    	   mchargen()
         -- Loop through the menu state machine (SceneController)
         -- For these purposes, the game itself is considered a 'menu'
         while true

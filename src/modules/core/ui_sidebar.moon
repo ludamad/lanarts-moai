@@ -7,10 +7,7 @@ res = require 'resources'
 import setup_script_prop from require '@util_draw'
 import put_text, put_text_center, put_prop from require "ui.Display"
 import COL_GREEN, COL_RED, COL_BLUE, COL_PALE_RED, COL_GOLD, COL_PALE_BLUE, COL_MUTED_GREEN from require "ui.Display"
-import default_cooldown_table from require "stats.stats.CooldownTypes"
-import ui_minimap, ui_inventory, util_draw_stats from require "core"
-
-import StatContext from require "stats"
+import ui_minimap, ui_inventory from require "core"
 
 SIDEBAR_WIDTH = 150
 STATBAR_OFFSET_X = 25
@@ -63,7 +60,7 @@ MANA_BACK_COL = {200/255,200/255,200/255}
 XP_BACK_COL = {169/255, 143/255, 100/255}
 XP_FRONT_COL = {255/255, 215/255, 11/255}
 
-import level_experience_needed from require "stats.stats.ExperienceCalculation"
+import level_experience_needed from require "statsystem"
 
 draw_statbars = (layer, x, y, is_predraw, stat_context) ->
     stats = stat_context.derived

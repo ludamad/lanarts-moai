@@ -2,19 +2,9 @@
 BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
 data = require "core.data"
+statsystem = require "statsystem"
 import camera, util_draw from require "core"
-import FieldOfView, FloodFillPaths, util_stats, util_geometry from require "core"
-
-import Relations, RaceType, MonsterType, StatContext, ActionContext from require "stats"
-import StatUtils from require "stats.stats"
-import add_hp, add_mp, add_cooldown, set_cooldown, temporary_add, permanent_add from require "stats.StatContext"
-
-make_stats = (M, race, name, _class) ->
-    stats = race.on_create(name)
-    if _class
-        context = StatContext.stat_context_create(stats)
-        _class\on_map_init(context)
-    return stats
+import FieldOfView, FloodFillPaths, util_geometry from require "core"
 
 -- Object lifecycle:
 --  Object creation:
@@ -86,20 +76,12 @@ CombatObjectBase = with newtype {parent: ObjectBase}
         @id_rvo = M.rvo_world\add_instance(@x, @y, @radius, @speed)
         append M.combat_object_list, @
 
-    .get.stats = () => @stat_context.derived
-
-    -- Call by child class, separated from init() for cleanliness
-    .init_stats = (base_stats, unarmed_action, race = false) =>
-        -- Set up stats
-        @stat_context = util_stats.stat_context_create(base_stats, @, unarmed_action, race)
     .remove = (M) =>
         ObjectBase.remove(@, M)
         M.collision_world\remove_instance(@id_col)
         M.rvo_world\remove_instance(@id_rvo)
         M.col_id_to_object[@id_col] = nil
         table.remove_occurrences M.combat_object_list, @
-
-    .stat_context_copy = () => @stat_context\copy()
     -- Subsystem synchronization
     .sync_col = (M) =>
         M.collision_world\update_instance(@id_col, @x, @y, @radius, @target_radius, @solid)
@@ -149,15 +131,15 @@ Player = with newtype {parent: CombatObjectBase}
     .init = (M, args) =>
         logI("Player::init")
         CombatObjectBase.init(@, M, args)
-        @race = args.race
-        @class = args.class
         @name = args.name
 
         -- Create the stats object for the player
-        @init_stats(make_stats(M, args.race, args.name, args.class), args.race.unarmed_action, args.race)
+        @stats = statsystem.PlayerStatContext.create(args.name, args.race)
+        args.class.stat_class_adjustments(args.class_args, @stats)
+
         logI("Player::init stats created")
 
-        add_hp @stat_context, -50
+        @stats.attributes.raw_hp -= 50
         @vision_tile_radius = 6
         @player_path_radius = 200
         @id_player = args.id_player

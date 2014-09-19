@@ -1,6 +1,5 @@
 import put_text, put_prop from require "@util_draw"
 import max, min from math
-import Identification from require "stats.stats"
 res = require 'resources'
 import data from require "core"
 

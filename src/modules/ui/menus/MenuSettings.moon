@@ -3,7 +3,6 @@ import DEFAULT_FONT, MENU_FONT, text_label_create, text_button_create, back_and_
     from require "@menus.util_menu_common"
 import ErrorReporting from require 'system'
 import data from require 'core'
-import ClassType from require 'stats'
 
 user_io = require 'user_io'
 res = require 'resources'

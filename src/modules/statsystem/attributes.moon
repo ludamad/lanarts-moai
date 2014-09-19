@@ -28,8 +28,21 @@ M.CORE_ATTRIBUTES = {
   "poison_resist"
 }
 
+M.COOLDOWN_ATTRIBUTES = {
+  "rest_cooldown"
+  "action_cooldown"
+  "move_cooldown"
+}
+
 -- Used to calculate core attributes, and attack attributes.
 M.SKILL_ATTRIBUTES = {
+  "melee"
+  "magic"
+  "armour"
+  "evasion"
+  "curses"
+  "enchantments"
+  "force_spells"
   "piercing_weapons"
   "slashing_weapons"
   "blunt_weapons"
@@ -75,6 +88,21 @@ M.ATTACK_ATTRIBUTES = {
   "enchantment_bonus"
   "slaying_bonus"
 }
+
+-------------------------------------------------------------------------------
+-- Pretty-name lookup, suitable for showing the user.
+-------------------------------------------------------------------------------
+to_camelcase = (str) ->
+    parts = str\split("_")
+    for i,part in ipairs(parts) do
+        parts[i] = part\lower()\gsub("^%l", string.upper)
+    return (" ")\join(parts)
+
+M.CORE_ATTRIBUTE_NAMES   = {attr, to_camelcase(attr) for attr in *M.CORE_ATTRIBUTES}
+M.SKILL_ATTRIBUTE_NAMES  = {attr, to_camelcase(attr) for attr in *M.SKILL_ATTRIBUTES}
+M.ATTACK_ATTRIBUTE_NAMES = {attr, to_camelcase(attr) for attr in *M.ATTACK_ATTRIBUTES}
+-------------------------------------------------------------------------------
+
 -------------------------------------------------------------------------------
 -- new_attr_vector_type:
 -- Local utility. Define an FFI type with a list of attributes as floating-point members of the struct.
@@ -128,6 +156,15 @@ new_attr_vector_type = (args) ->
 M.Skills = new_attr_vector_type {
   struct_name: "__skills_t"
   stat_list: M.SKILL_ATTRIBUTES
+  methods: {
+    copy: (o) => ffi.copy(@, o, ffi.sizeof @)
+  }
+  raw_copies: false
+}
+
+M.Cooldowns = new_attr_vector_type {
+  struct_name: "__cooldown_t"
+  stat_list: M.COOLDOWN_ATTRIBUTES
   methods: {
     copy: (o) => ffi.copy(@, o, ffi.sizeof @)
   }

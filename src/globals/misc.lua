@@ -105,7 +105,7 @@ function newtype(args)
     -- 'Inherit' via simple copying.
     -- Note fall back in __newindex anyway.
     if parent ~= nil then
-        for k,v in pairs(parent) do type[k] = v end
+        for k,v in pairs(parent) do type[k] = type[k] or v end
     end
     type.get,type.set = get,set
     type.parent = parent

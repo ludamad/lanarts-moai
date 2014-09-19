@@ -1,6 +1,8 @@
 M = require "statsystem"
 
 describe "stat system test", () ->
+  it "data definitions", () ->
+    require "statsystem.DefineWeapons"
   it "attribute copying", () ->
     attrs = M.CoreAttributes.create()
     for k in *M.CORE_ATTRIBUTES

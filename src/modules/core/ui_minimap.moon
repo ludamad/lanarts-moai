@@ -5,7 +5,6 @@ import put_text, put_text_center, put_prop from require "ui.Display"
 import COL_GREEN, COL_RED, COL_BLUE, COL_YELLOW from require "ui.Display"
 import TileMap,camera from require "core"
 
-import StatContext from require "stats"
 -- From luajit, for checking flags:
 bit_and = bit.band
 

@@ -1,9 +1,7 @@
 
 import camera, util_movement, util_geometry, game_actions from require "core"
 import Display from require 'ui'
-import StatUtils from require "stats.stats"
-import StatContext from require "stats"
-import default_cooldown_table, reset_rest_cooldown from require "stats.stats.CooldownTypes"
+import REST_COOLDOWN from require "statsystem"
 
 import ObjectBase, CombatObjectBase, Player, NPC, Projectile from require '@map_object_types'
 import player_step, player_handle_io, player_handle_action from require "@map_logic_player"
