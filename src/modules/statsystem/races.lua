@@ -2,12 +2,23 @@ local M = nilprotect {}
 local races = nilprotect {}
 M.races = races
 
+local function base_stat_adjustment(race, stats)
+    local A = stats.attributes
+    A.raw_hp, A.raw_mp, A.raw_max_hp, A.raw_max_mp = race.hp, race.mp, race.hp, race.mp
+    A.raw_hp_regen, A.raw_mp_regen = race.hp_regen, race.mp_regen
+end
+
+
 races.Undead = {
     description = string.pack [[
     A creature of unlife, summoned by an ancient curse. The greatest of the undead can control their new form.
     Undead adventurers do not regenerate HP naturally, instead manipulating their curse to heal themselves.
     They possess great aptitude in the dark arts.
 ]],
+
+    stat_race_adjustments = function(stats)
+        base_stat_adjustment(races.Undead, stats)
+    end,
 
     avatar_sprite = "sr-undead",
     hp = 80,  hp_regen = 0, -- None!
@@ -44,11 +55,14 @@ races.Undead = {
 }
 
 races.Human = {
-    name = "Human",
     description = string.pack [[
     A versatile race. Humans adventurers have high health and mana reserves. 
     They possess great aptitude at using tools and performing physical maneuvers. 
 ]],
+
+    stat_race_adjustments = function(stats)
+        base_stat_adjustment(races.Human, stats)
+    end,
 
     avatar_sprite = "sr-human",
     hp = 100, hp_regen = 0.010,
@@ -65,6 +79,10 @@ races.Orc = {
     Additionally, they possess great aptitude at using magic devices and performing physical maneuvers.
     They train Armour & Force skills 15% faster. 
 ]],
+
+    stat_race_adjustments = function(stats)
+        base_stat_adjustment(races.Orc, stats)
+    end,
 
     avatar_sprite = "sr-orc",
     hp = 100, hp_regen = 0.010,

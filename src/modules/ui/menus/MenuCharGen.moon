@@ -22,7 +22,9 @@ update_stat_object = () ->
     if _CLASS_CHOICE ~= nil
         race = statsystem.races[_RACE_CHOICE]
         stats = statsystem.PlayerStatContext.create(_SETTINGS.player_name, _RACE_CHOICE)
+        race.stat_race_adjustments(stats)
         statsystem.classes[_CLASS_CHOICE].stat_class_adjustments(_CLASS_ARGS, stats)
+        stats\calculate()
         _STAT_OBJECT = stats
 
 local class_choice_buttons_create

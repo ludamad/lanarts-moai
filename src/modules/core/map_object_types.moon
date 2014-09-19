@@ -103,7 +103,6 @@ CombatObjectBase = with newtype {parent: ObjectBase}
         @queue_remove(M)
 
     .draw = (V) =>
-
         healthbar_offsety = 20
         if @target_radius > 16
             healthbar_offsety = @target_radius + 8
@@ -127,15 +126,18 @@ Vision = with newtype()
         @prev_seen_bounds = @current_seen_bounds
         @current_seen_bounds = @fieldofview\tiles_covered()
 
-Player = with newtype {parent: CombatObjectBase}
-    .init = (M, args) =>
+Player = newtype {
+    parent: CombatObjectBase
+    init: (M, args) =>
         logI("Player::init")
         CombatObjectBase.init(@, M, args)
         @name = args.name
 
         -- Create the stats object for the player
         @stats = statsystem.PlayerStatContext.create(args.name, args.race)
+        args.race.stat_race_adjustments(@stats)
         args.class.stat_class_adjustments(args.class_args, @stats)
+        @stats\calculate()
 
         logI("Player::init stats created")
 
@@ -149,17 +151,53 @@ Player = with newtype {parent: CombatObjectBase}
         append M.player_list, @
         logI("Player::init complete")
 
-    .remove = (M) =>
+    remove: (M) =>
         CombatObjectBase.remove(@, M)
         table.remove_occurrences M.player_list, @
 
-    .pre_draw = (V) => 
+    SMALL_SPRITE_ORDER: {
+        "__LEGS", -- Pseudo-slot
+        statsystem.BODY_ARMOUR,
+        statsystem.WEAPON,
+        statsystem.RING,
+        statsystem.GLOVES,
+        statsystem.BOOTS,
+        statsystem.BRACERS,
+        statsystem.AMULET,
+        statsystem.HEADGEAR,
+        statsystem.AMMO,
+    }
+
+    REST_SPRITE: data.get_sprite("stat-rest")
+
+    draw: (V) =>
+        -- Put base sprite
+        sp = data.get_sprite(@stats.race.avatar_sprite)
+        sp\draw(@x, @y, @frame, 1, 0.5, 0.5)
+
+        for equip_type in *@SMALL_SPRITE_ORDER
+            local avatar_sprite
+            -- For now, there is no way to get a legs sprite
+            -- so we hardcode one in so avatars look less naked!
+            if equip_type == "__LEGS"
+                avatar_sprite = "sl-gray-pants"
+            else
+                equip = @stats\get_equipped(equip_type)
+                avatar_sprite = equip and equip.avatar_sprite
+            if avatar_sprite
+                -- Put avatar sprite
+                sp = data.get_sprite(avatar_sprite)
+                sp\draw(@x, @y, @frame, 1, 0.5, 0.5)
+        if @is_resting
+            @REST_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
+        CombatObjectBase.draw(@, V)
+    pre_draw: (V) => 
         -- Last number is priority
         index = (@id_player-1) %2 +1
         -- @stat_context\put_avatar_sprite(V.object_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR)
         -- CombatObjectBase.pre_draw(@, V)
 
-    .nearest_enemy = (M) =>
+    nearest_enemy: (M) =>
         min_obj,min_dist = nil,math.huge
         for obj in *M.npc_list
             dist = util_geometry.object_distance(@, obj)
@@ -168,18 +206,19 @@ Player = with newtype {parent: CombatObjectBase}
                 min_dist = dist
         return min_obj
 
-    .attack = (M) =>
+    attack: (M) =>
         o = @nearest_enemy(M)
         if o
             @stat_context\use_weapon o.stat_context
 
-    .can_see = (obj) =>
+    can_see: (obj) =>
         return @vision.fieldofview\circle_visible(obj.x, obj.y, obj.radius)
 
-    .sync = (M) =>
+    sync: (M) =>
         CombatObjectBase.sync(@, M)
         @vision\update(@x/M.tile_width, @y/M.tile_height)
         @paths_to_player\update(@x, @y, @player_path_radius)
+}
 
 NPC = with newtype {parent: CombatObjectBase}
     .init = (M, args) =>

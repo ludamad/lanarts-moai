@@ -32,6 +32,21 @@ M.StatContext = newtype {
      max_mp: () => @attributes.max_mp
      mp_regen: () => @attributes.mp_regen
    }
+   calculate_attack: (attack) =>
+     attack\revert()
+
+   step: () =>
+     for cooldown in *attributes.COOLDOWN_ATTRIBUTES
+       @cooldowns[cooldown] = math.max(0, @cooldowns[cooldown] - @cooldown_rates[cooldown])
+     @attributes.raw_hp = math.min(@attributes.raw_hp + @hp_regen, @max_hp)
+     @attributes.raw_mp = math.min(@attributes.raw_mp + @mp_regen, @max_mp)
+     @attributes.hp = math.min(@hp + @hp_regen, @max_hp)
+     @attributes.mp = math.min(@mp + @mp_regen, @max_mp)
+
+   -- Calculate derived stats from bonuses and their raw_* counterparts
+   calculate: () =>
+     @attributes\revert()
+     @calculate_attack(@attack)
 }
 
 M.PlayerStatContext = newtype {
@@ -48,6 +63,12 @@ M.PlayerStatContext = newtype {
     for skill in *attributes.SKILL_ATTRIBUTES
       @skill_cost_multipliers[skill] = 1.00
     @skill_weights = attributes.Skills.create()
+   get_equipped: (item_type) =>
+    for i=1,@inventory\size()
+        item = @inventory\get(i)
+        if item.is_equipment and item.item_type == item_type
+            return item
+    return nil
 }
 
 return M

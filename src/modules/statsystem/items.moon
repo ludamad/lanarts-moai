@@ -18,11 +18,11 @@ M.CURSE_DESC = {"Uncursed", "Cursed", "Blessed"}
 
 M.SCROLL, M.POTION = 1,2
 -- Double as item types, and equipment-slot types:
-M.WEAPON, M.AMMO, M.BODY_ARMOUR, M.HELMET, M.GLOVES, M.BOOTS = 2,3,4,5,6,7
+M.WEAPON, M.AMMO, M.BODY_ARMOUR, M.HEADGEAR, M.GLOVES, M.BOOTS = 2,3,4,5,6,7
 -- Rings are special: Can wear two of them (TODO: I want octopodes with eight rings!)
-M.RING = 8
+M.RING, M.BRACERS, M.AMULET = 8, 9, 10
 
-M.EQUIP_SLOTS = {M.WEAPON, M.AMMO, M.BODY_ARMOUR, M.HELMET, M.GLOVES, M.BOOTS, M.RING}
+M.EQUIP_SLOTS = {M.WEAPON, M.AMMO, M.BODY_ARMOUR, M.HEADGEAR, M.GLOVES, M.BOOTS, M.RING, M.BRACERS, M.AMULET}
 
 -------------------------------------------------------------------------------
 -- Item classes:

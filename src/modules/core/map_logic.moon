@@ -2,6 +2,7 @@
 import camera, util_movement, util_geometry, game_actions from require "core"
 import Display from require 'ui'
 import REST_COOLDOWN from require "statsystem"
+import ErrorReporting from require "system"
 
 import ObjectBase, CombatObjectBase, Player, NPC, Projectile from require '@map_object_types'
 import player_step, player_handle_io, player_handle_action from require "@map_logic_player"
@@ -12,8 +13,10 @@ modules = require 'core.data'
 user_io = require 'user_io'
 
 step_objects = (M) ->
-    -- Step all stat contexts
-    -- for obj in *M.combat_object_list
+    --Step all stat contexts
+    for obj in *M.combat_object_list
+        obj.stats\calculate()
+        obj.stats\step()
     --     StatUtils.stat_context_on_step(obj.stat_context)
     --     StatContext.on_calculate(obj.stat_context)
 
@@ -125,7 +128,7 @@ pre_draw = (V) ->
         -- Step the component
         component()
 
-draw = (V) ->
+draw = ErrorReporting.wrap (V) ->
     for obj in *V.map.object_list
         seen = false
         for p in *V.map.player_list

@@ -18,8 +18,8 @@ M.CORE_ATTRIBUTES = {
   "mp"
   "max_mp"
   "mp_regen"
-  "defence"
-  "physical_resist"
+  "defence" -- Direct subtraction from physical_dmg
+  "physical_resist" -- Used with physical_power to determine attack ratio
 
   "fire_resist"
   "water_resist"
