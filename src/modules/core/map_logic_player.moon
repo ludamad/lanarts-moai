@@ -40,7 +40,7 @@ player_perform_move = (M, dx, dy) =>
         dx *= 0.75
         dy *= 0.75
     player_smart_move(@, M, dx, dy, @speed)
-    reset_rest_cooldown(@stat_context)
+    @stats.cooldowns.rest_cooldown = math.max(@stats.cooldowns.rest_cooldown, statsystem.REST_COOLDOWN)
 
 player_perform_action = (M, obj, action) ->
     -- Resolve any special actions queued for this frame
@@ -63,7 +63,7 @@ player_move_with_velocity = (M, vx, vy) =>
 -- Step a player for a single tick of the time
 -- M: The current map
 player_step = (M) =>
-    S = @stat_context
+    S = @stats
 
     -- Set up directions of player
     action = M.gamestate.get_action(@id_player)
@@ -75,17 +75,17 @@ player_step = (M) =>
     -- Default to not resting:
     @is_resting = false
     -- Handling resting due to staying-put
-    if not StatContext.has_cooldown S, "REST_ACTION"
-        needs_hp = (S.derived.hp < S.derived.max_hp and S.base.hp_regen > 0)
-        needs_mp = (S.derived.mp < S.derived.max_mp and S.base.mp_regen > 0)
+    if @stats.cooldowns.rest_cooldown == 0
+        needs_hp = (S.hp < S.max_hp and S.hp_regen > 0)
+        needs_mp = (S.mp < S.max_mp and S.mp_regen > 0)
         if needs_hp or needs_mp
             -- Rest if we can, and if its useful
             @is_resting = true
 
     if @is_resting
         -- Handling healing due to rest
-        S.derived.hp_regen += S.base.hp_regen * 7
-        S.derived.mp_regen += S.base.mp_regen * 7
+        S.attributes.hp_regen += S.attributes.raw_hp_regen * 7
+        S.attributes.mp_regen += S.attributes.raw_mp_regen * 7
 
 MAX_FUTURE_STEPS = 0
 

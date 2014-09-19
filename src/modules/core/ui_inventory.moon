@@ -70,7 +70,7 @@ InventoryDrawer = with newtype()
 _DRAWER = InventoryDrawer.create()
 
 draw = (V, stat_context, x, y) ->
-    _DRAWER\_init(V, stat_context, x, y)
-    _DRAWER\draw()
+    -- _DRAWER\_init(V, stat_context, x, y)
+    -- _DRAWER\draw()
 
 return {:draw}

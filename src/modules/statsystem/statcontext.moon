@@ -19,10 +19,19 @@ M.StatContext = newtype {
     -- or anything they spawned with. Monsters can use items, but often too this
     -- is simply their 'loot'.
     @inventory = items.ItemSet.create()
+    @gold = 0
     @cooldowns = attributes.Cooldowns.create()
     @cooldown_rates = attributes.Cooldowns.create()
     for cooldown in *attributes.COOLDOWN_ATTRIBUTES
       @cooldown_rates[cooldown] = 1.00
+   get: {
+     hp: () => @attributes.hp
+     max_hp: () => @attributes.max_hp
+     hp_regen: () => @attributes.hp_regen
+     mp: () => @attributes.mp
+     max_mp: () => @attributes.max_mp
+     mp_regen: () => @attributes.mp_regen
+   }
 }
 
 M.PlayerStatContext = newtype {

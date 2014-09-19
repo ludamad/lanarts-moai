@@ -4,6 +4,7 @@
 --
 
 res = require 'resources'
+statsystem = require "statsystem"
 import setup_script_prop from require '@util_draw'
 import put_text, put_text_center, put_prop from require "ui.Display"
 import COL_GREEN, COL_RED, COL_BLUE, COL_PALE_RED, COL_GOLD, COL_PALE_BLUE, COL_MUTED_GREEN from require "ui.Display"
@@ -62,16 +63,15 @@ XP_FRONT_COL = {255/255, 215/255, 11/255}
 
 import level_experience_needed from require "statsystem"
 
-draw_statbars = (layer, x, y, is_predraw, stat_context) ->
-    stats = stat_context.derived
+draw_statbars = (layer, x, y, is_predraw, stats) ->
     w,h = 100, 12
     draw_statbar layer, x,y, is_predraw,
         w,h, COL_RED, COL_GREEN,
-        stats.hp, stats.max_hp
+        stats.attributes.hp, stats.attributes.max_hp
     y += 15
     draw_statbar layer, x,y, is_predraw,
         w,h, MANA_BACK_COL, COL_BLUE,
-        stats.mp, stats.max_mp
+        stats.attributes.mp, stats.attributes.max_mp
 
     y += 15
     xp, xp_needed = stats.xp, level_experience_needed(stats.level)
@@ -80,7 +80,7 @@ draw_statbars = (layer, x, y, is_predraw, stat_context) ->
         xp, xp_needed
 
     y += 15
-    cooldown, cooldown_max = (StatContext.get_cooldown stat_context, "REST_ACTION"), default_cooldown_table.REST_ACTION
+    cooldown, cooldown_max = (stats.cooldowns.rest_cooldown), statsystem.REST_COOLDOWN
     if not is_predraw
         ratio = cooldown / cooldown_max
         MOAIGfxDevice.setPenColor(ratio, 1.0 - ratio, 0.0)
@@ -98,16 +98,15 @@ sidebar_put_text_center = (text, x, y, style = sidebar_style) =>
 
 styles = {sidebar_style_white, sidebar_style_pale_red, sidebar_style_muted_green}
 
-sidebar_draw_player_base_stats = (name, _class, stat_context, x, y) =>
-    stats = stat_context.derived
-    sidebar_put_text_center(@, ("'%s'")\format(name), x + SIDEBAR_WIDTH / 2 - 5, y + 15, sidebar_style_pale_blue)
+sidebar_draw_player_base_stats = (stats, x, y) =>
+    sidebar_put_text_center(@, ("'%s'")\format(stats.name), x + SIDEBAR_WIDTH / 2 - 5, y + 15, sidebar_style_pale_blue)
     x1 = x + 5
     x2 = x1 + SIDEBAR_WIDTH / 2
     y1 = y + 95
 
-    sidebar_put_text_center(@, ("Unknown Dungeon")\format(stats.level), x + SIDEBAR_WIDTH / 2, y1 + 5, sidebar_style_white)
+    sidebar_put_text_center(@, "Unknown Dungeon", x + SIDEBAR_WIDTH / 2, y1 + 5, sidebar_style_white)
     y1 += 15
-    sidebar_put_text(@, _class.name, x1, y1, sidebar_style_gold)
+    sidebar_put_text(@, stats.class_name, x1, y1, sidebar_style_gold)
     sidebar_put_text(@, ("Level %d")\format(stats.level), x2, y1, sidebar_style_muted_green)
     y1 += 15
     sidebar_put_text(@, ("Deaths 0")\format(stats.level), x1, y1, sidebar_style_pale_red)
@@ -117,15 +116,15 @@ sidebar_draw_player_base_stats = (name, _class, stat_context, x, y) =>
 sidebar_draw = (is_predraw) =>
     focus = @gamestate.local_player()
     if not focus then return
-    draw_statbars(@layer, @x + STATBAR_OFFSET_X, @y + STATBAR_OFFSET_Y, is_predraw, focus.stat_context)
+    draw_statbars(@layer, @x + STATBAR_OFFSET_X, @y + STATBAR_OFFSET_Y, is_predraw, focus.stats)
     @minimap\draw()
     -- Content position:
     cx, cy = @x + 12, @y + 260
     if is_predraw
-        sidebar_draw_player_base_stats(@, focus.name, focus.class, focus.stat_context, @x, @y)
+        sidebar_draw_player_base_stats(@, focus.stats, @x, @y)
         --util_draw_stats.put_stats(focus.stat_context.derived, @layer, styles, cx, cy, 0, 15)
     else
-        ui_inventory.draw(@view, focus.stat_context, cx, cy)
+        ui_inventory.draw(@view, focus.stats, cx, cy)
 -- Sidebar constructor:
 sidebar_create = (V) -> 
     sidebar = {gamestate: V.gamestate, view: V, map: V.map, layer: V.ui_layer, x: V.cameraw - SIDEBAR_WIDTH, y: 0}

@@ -99,7 +99,6 @@ function pretty_tostring_compact(v)
 end
 
 function newtype(args)
-    local get, set = {}, {}
     local parent = args and args.parent
     local type = args or {}
     -- 'Inherit' via simple copying.
@@ -107,6 +106,7 @@ function newtype(args)
     if parent ~= nil then
         for k,v in pairs(parent) do type[k] = type[k] or v end
     end
+    local get, set = type.get or {}, type.set or {}
     type.get,type.set = get,set
     type.parent = parent
     if type.init == nil then

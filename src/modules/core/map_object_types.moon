@@ -156,7 +156,7 @@ Player = with newtype {parent: CombatObjectBase}
     .pre_draw = (V) => 
         -- Last number is priority
         index = (@id_player-1) %2 +1
-        @stat_context\put_avatar_sprite(V.object_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR)
+        -- @stat_context\put_avatar_sprite(V.object_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR)
         -- CombatObjectBase.pre_draw(@, V)
 
     .nearest_enemy = (M) =>

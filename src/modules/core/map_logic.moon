@@ -13,9 +13,9 @@ user_io = require 'user_io'
 
 step_objects = (M) ->
     -- Step all stat contexts
-    for obj in *M.combat_object_list
-        StatUtils.stat_context_on_step(obj.stat_context)
-        StatContext.on_calculate(obj.stat_context)
+    -- for obj in *M.combat_object_list
+    --     StatUtils.stat_context_on_step(obj.stat_context)
+    --     StatContext.on_calculate(obj.stat_context)
 
     for obj in *M.animation_list
         obj\step(M)

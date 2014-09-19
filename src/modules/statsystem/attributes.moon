@@ -14,8 +14,10 @@ M = nilprotect {} -- Submodule
 M.CORE_ATTRIBUTES = {
   "hp"
   "max_hp"
+  "hp_regen"
   "mp"
   "max_mp"
+  "mp_regen"
   "defence"
   "physical_resist"
 
