@@ -148,7 +148,9 @@ main = () ->
         mmain = nextf ()     -> MenuMain.start(SC, msettings, do_nothing, do_nothing) 
         msettings = nextf () -> MenuSettings.start(SC, mmain, mchargen)
         mchargen = nextf ()  -> MenuCharGen.start(SC, msettings, mviewgame)
-        mviewgame = nextf (stat_components) -> view_game(stat_components, mchargen)
+        mviewgame = nextf (stat_components) -> 
+            view_game(stat_components, mchargen)
+            mviewgame(stat_components)
         -- Set up first menu
         if os.getenv("TEST_ARCHER")
             mviewgame {class: "Archer", race: "Human", class_args: {}}

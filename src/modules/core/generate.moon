@@ -26,14 +26,62 @@ Polygon = newtype {
         @points or= @.points_func(@x, @y, @w, @h, args.n_points or 16)
         args.points = @points
         TileMap.polygon_apply(args)
+    square_distance: (o) =>
+        cx,cy = @center()
+        ocx, ocy = o\center()
+        dx, dy = cx - ocx, cy - ocy
+        return dx*dx + dy*dy
+
     center: () =>
         return math.floor(@x+@w/2), math.floor(@y+@h/2)
     -- Create a line between the two polygons
-    connect: (o, args) =>
-        cx,cy = @center()
-        ocx, ocy = o\center()
-        TileMap.line_apply
+    line_connect: (args) =>
+        args.from_xy = {@center()}
+        args.to_xy = {args.target\center()}
+        TileMap.line_apply(args)
+    arc_connect: (args) =>
+        cx, cy = @center()
+        ocx, ocy = args.target\center()
+        avg_w = (@w+args.target.w)/2 
+        avg_h = (@h+args.target.h)/2 
+        w, h = math.abs(cx - ocx) - avg_w, math.abs(cy - ocy) - avg_h
+        if w < 2 or h < 2
+            return @line_connect(args)
+        -- Set up the ellipse section for our connection:
+        args.width = w * 2
+        args.height = h * 2
+        args.x, args.y = math.floor((cx+ocx)/2), math.floor((cy+ocy)/2)
+        a1 = math.atan2((args.y - cy) / h , (args.x - cx)/w)
+        a2 = math.atan2((args.y - ocy) / h, (args.x - ocx)/w)
+        args.angle1, args.angle2 = a1 + math.pi/2, (a2 - a1)
+        -- args.angle2 = math.atan2(-(args.y - ocy) / h, -(args.x - ocx)/w)
+        TileMap.arc_apply(args)
 }
+
+-- Returns a list of edges
+minimum_spanning_tree = (P) ->
+    -- P: The list of polygons
+    -- C: The connected set
+    C = {false for p in *P}
+    C[1] = true -- Start with the first polygon in the 'connected set'
+    edge_list = {}
+    while true
+        -- Find the next edge to add:
+        min_sqr_dist = math.huge
+        min_i, min_j = nil, nil
+        for i=1,#P do if C[i] 
+            for j=1,#P do if not C[j]
+                sqr_dist = P[i]\square_distance(P[j])
+                if sqr_dist < min_sqr_dist
+                    min_sqr_dist = sqr_dist
+                    min_i, min_j = i, j
+        -- All should be connected by this point
+        if min_i == nil
+            break
+        C[min_j] = true
+        append edge_list, {P[min_i], P[min_j]}
+
+    return edge_list
 
 -- A scheme based on circles dynamically placed in a room
 RVOScheme = newtype {
@@ -64,14 +112,15 @@ generate_circle_scheme = (rng) ->
     padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
     center_x, center_y = padded_size[1]/2, padded_size[2]/2
     ROOM_RADIUS = 25
-    N_CIRCLES = 30
+    N_CIRCLES = rng\random(6,15)
     RVO_ITERATIONS = 20
     -- An RVO scheme with a circular boundary
     R = RVOScheme.create {make_ellipse ROOM_RADIUS+padding[1], ROOM_RADIUS+padding[2], ROOM_RADIUS, ROOM_RADIUS}
 
     for i=1,N_CIRCLES
         -- Make radius of the circle:
-        r = rng\random(2, 5)
+        r = 2
+        for j=1,4 do r += rng\random(0, 2)
         -- Make a random position within the circular room boundary:
         dist = rng\randomf(ROOM_RADIUS - r)
         ang = rng\randomf(0, 2*math.pi)
@@ -79,7 +128,12 @@ generate_circle_scheme = (rng) ->
         y = math.sin(ang) * dist + ROOM_RADIUS + padding[2]
         -- Max drift is 1 tile:
         poly = Polygon.create x, y, r, r, make_ellipse 
-        R\add(poly, () => math.sign_of(@x - center_x), math.sign_of(@y - center_y))
+        local vfunc 
+        if rng\random(0, 2) == 1
+            vfunc = () => math.sign_of(@x - center_x), math.sign_of(@y - center_y)
+        else
+            vfunc = () => math.sign_of(center_x - @x), math.sign_of(center_y - @y)
+        R\add(poly, vfunc)
 
     map = TileMap.map_create { 
         size: padded_size
@@ -99,74 +153,18 @@ generate_circle_scheme = (rng) ->
             n_points: rng\random(4,8)
         }
 
-    -- Connect all the closest polygons:
-
-    return map
-
-generate_circle_scheme_old = (rng) ->
-    -- Create an enclosing circle, in clockwise order.
-    ROOM_RADIUS = 25
-    N_POINTS = 16
-    N_CIRCLES = 30
-    RVO_ITERATIONS = 20
-    boundary = {}
-    for i=1,N_POINTS
-        x = math.sin(i/N_POINTS * 2 * math.pi) * ROOM_RADIUS  + ROOM_RADIUS + 10
-        y = math.cos(i/N_POINTS * 2 * math.pi) * ROOM_RADIUS + ROOM_RADIUS + 10
-        append boundary, {x,y}
-    
-    -- Pass {boundary} as the list of obstacles.
-    rvo_world = RVOWorld.create({boundary})
-
-    for i=0,N_CIRCLES-1
-        r = rng\randomf(2, 4)
-        x = rng\randomf(ROOM_RADIUS - r) + ROOM_RADIUS + 10
-        y = rng\randomf(ROOM_RADIUS - r) + ROOM_RADIUS + 10
-        -- Max drift is 1 tile:
-        rvo_world\add_instance(x, y, r, 1)
-
-    padding = {10, 10}
-    size = {50,50}
-    padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
-    map = TileMap.map_create { 
-        size: padded_size
-        content: T('dungeon_wall')
-        flags: TileMap.FLAG_SOLID
-        instances: {}
-    }
- 
-    apply_circle = (x, y, r, n_points, tile) ->
-        polygon = {}
-        for i=1,n_points
-            ang = i/n_points * 2 * math.pi
-            append polygon, {math.sin(ang) * r + x, math.cos(ang) * r + y}
-        TileMap.polygon_apply {
+    -- Connect all the closest polygon pairs:
+    for {p1, p2} in *minimum_spanning_tree(R.polygons)
+        tile = (if p2.id%5 <= 3 then T('grey_floor') else T('reddish_grey_floor'))
+        p1\arc_connect {
             map: map
-            points: polygon
             area: bbox_create(padding, size)
-            operator: add: TileMap.FLAG_SEETHROUGH, remove: TileMap.FLAG_SOLID, content: tile
+            target: p2
+            line_width: 2
+            operator: {add: TileMap.FLAG_SEETHROUGH, remove: TileMap.FLAG_SOLID, content: tile}
         }
-    for i=1,RVO_ITERATIONS
-        for j=0,N_CIRCLES-1
-            center_x, center_y = padded_size[1]/2, padded_size[2]/2
-            x,y = rvo_world\get_position(j)
-            dx, dy = math.sign_of(center_x - x), math.sign_of(center_y - y)
-            -- 
-            rvo_world\set_preferred_velocity(j, -dx*8, -dy*8)
-        rvo_world\step()
-        for j=0,N_CIRCLES-1
-            x,y = rvo_world\get_position(j)
-            vx,vy = rvo_world\get_velocity(j)
-            rvo_world\set_position(j, x + vx, y + vy)
-    for i=0,N_CIRCLES-1
-        x,y = rvo_world\get_position(i)
-        r = rvo_world\get_radius(i) + 1
-        n_points = rng\random(4,8)
-        apply_circle x,y,r, n_points, (if i%5 <= 3 then T('grey_floor') else T('reddish_grey_floor'))
 
-    --print_map(map, map.instances) -- Uncomment to print
     return map
-
 
 generate_test_model = (rng) ->
     padding = {10, 10}

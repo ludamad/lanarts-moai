@@ -105,6 +105,8 @@ main_thread = (G, on_death) -> profile () ->
             G.drop_old_actions(last_needed - 1)
 
         G.pre_draw()
+        if user_io.key_pressed "K_R"
+            return
         -- MOAISim.forceGC()
 
 setup_network_state = (G) ->

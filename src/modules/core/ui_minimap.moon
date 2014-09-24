@@ -1,7 +1,7 @@
 -- TODO: Make tool to cleanup imports
 res = require 'resources'
 import setup_script_prop from require '@util_draw'
-import put_text, put_text_center, put_prop, camera_tile_region_covered from require "ui.Display"
+import put_text, put_text_center, put_prop, camera_tile_region_covered, ui_layer from require "ui.Display"
 import COL_GREEN, COL_RED, COL_BLUE, COL_YELLOW from require "ui.Display"
 import TileMap from require "core"
 
@@ -42,7 +42,7 @@ MiniMap = newtype {
 
        	-- Set up the view
 		@map = V.map
-		@layer = V.ui_layer
+		@layer = ui_layer
 		@layer\insertProp(@prop)
 
 	mouse_over: () =>
