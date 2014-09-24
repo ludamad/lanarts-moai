@@ -42,7 +42,7 @@ MiniMap = newtype {
 
        	-- Set up the view
 		@map = V.map
-		@layer = ui_layer
+		@layer = V.ui_layer
 		@layer\insertProp(@prop)
 
 	mouse_over: () =>
