@@ -219,6 +219,10 @@ return {
 			assert(data.id_to_tilelist[key])
 
 	get_tilelist_id: (name) -> assert(data.tiles[name].id, name)
-	get_sprite: (name) -> assert(data.sprites[name], name)
+	get_sprite: (key) -> 
+		if type(key) == 'string' 
+			assert(data.sprites[key], key)
+		else 
+			assert(data.id_to_sprite[key])
 	get_map: (name) -> assert(data.maps[name], name)
 }

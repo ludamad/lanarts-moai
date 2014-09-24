@@ -1,5 +1,5 @@
 
-import camera, util_movement, util_geometry, util_draw, game_actions from require "core"
+import util_movement, util_geometry, util_draw, game_actions from require "core"
 statsystem = require "statsystem"
 
 import ObjectBase, CombatObjectBase, Player, NPC, Projectile from require '@map_object_types'
@@ -10,36 +10,107 @@ user_io = require 'user_io'
 
 -- Special movement helper
 
--- Decide on the path the maximizes distance
-player_smart_move = (M, dirx, diry, dist) =>
-    
-    -- Multiply by '0.72' -- adjustment for directional movement
-    total_dx, total_dy, distance = 0,0,0
-    for dir_pref=0,1
-        altdx, altdy, altdist = util_movement.look_ahead(@, M, dir_pref, dirx, diry)
-        if altdist > distance
-            total_dx, total_dy, distance = altdx, altdy, altdist
-    if dirx ~= 0 and diry ~= 0 and distance ~= @speed
-        mag_factor = math.sqrt(dirx*dirx + diry*diry) / math.abs(diry)
-        for dir_pref=0,1
-            altdx, altdy, altdist = util_movement.look_ahead(@, M, dir_pref, 0, diry * mag_factor)
-            if altdist > distance
-                total_dx, total_dy, distance = altdx, altdy, altdist
+-- 'px' and 'py' are the 'projection' displacements
+-- Projections are collision checks to determine how best to skirt around walls we may eventually pass
+player_check_for_slide = (L, dx, dy, px, py, checkdx, checkdy) =>
+    if (not L.tile_check @, checkdx + dx, checkdy + dy) and (not L.tile_check @, checkdx + px, checkdy + py) 
+        return true
+    return false
 
-    -- Finally, take that path:
-    @x += total_dx
-    @y += total_dy
-    if dirx ~= 0 or diry ~= 0
-        @frame += 0.1
+-- Expectation: checkdx & checkdy are dx & dy passed through _biased_round
+-- Returns real dx, dy if step succeeded; nil if step failed.
+player_look_ahead_step  = (L, dist, dir_pref, dx, dy, currdx, currdy) =>
+    -- Control 'p' -- the 'projection' factor
+    -- Projections are collision checks to determine how best to skirt around walls we may eventually pass
+    PROJECT_STEP = 8
+    PROJECT_MAX = 32
+
+    -- This logic is slightly 'duplicated', but there isn't an efficient
+    -- way I could think of for handling different dimensions uniformly
+    if not L.tile_check @, currdx + dx, currdy + dy
+        return dx, dy
+    if dx == 0
+        p = PROJECT_MAX
+        while p > 0
+            if dir_pref == 0 and player_check_for_slide(@, L, dy, 0, p*dy, p*dy, currdx, currdy)
+                return dy, 0
+            if dir_pref == 1 and player_check_for_slide(@, L, -dy, 0, -p*dy, p*dy, currdx, currdy)
+                return -dy, 0
+            p -= PROJECT_STEP
+    if dy == 0
+        p = PROJECT_MAX
+        while p > 0
+            if dir_pref == 0 and player_check_for_slide(@, L, 0, dx, p*dx, p*dx, currdx, currdy, p)
+                return 0, dx
+            if dir_pref == 1 and player_check_for_slide(@, L, 0, -dx ,p*dx, -p*dx, currdx, currdy, p)
+                return 0, -dx
+            p -= PROJECT_STEP
+    if dx ~= 0 
+        dx = (if dx > 0 then dist else -dist)
+        if not L.tile_check @, currdx + dx, currdy 
+            return dx, 0
+    if dy ~= 0
+        dy = (if dy > 0 then dist else -dist)
+        if not L.tile_check @, currdx, currdy + dy
+            return 0, dy
+    return nil
+
+signum = (x) -> 
+    if x > 0 then 1 
+    elseif x < 0 then -1 
+    else 0
+
+player_free_ahead = (M, dx, dy) => (not M.tile_check @, dx, dy) -- and (not M.tile_check @, dx*4, dy*4) 
+player_free_eventually = (M, dx, dy) => 
+    dx, dy = signum(dx), signum(dy)
+    for i=(@stats.move_speed+1),48
+        if player_free_ahead(@, M, dx*i, dy*i)
+            return true
+    return false
+
+-- cdx and cdy: If 0, any direction not opposite to dx, dy (respectively) OK. If not 0, only 0 OK.
+player_adjust_direction = (M, dx, dy, cdx, cdy, speed) =>
+    if not M.tile_check @, dx, dy
+        return dx, dy
+    -- Try to find the best choice, within constraints:
+    -- Handle cases where one dimension is 0:
+    if dx == 0 and cdx > -1 
+        if player_free_ahead(@, M, speed, dy)  then return speed, dy
+        if player_free_ahead(@, M, speed, 0) and player_free_eventually(@, M, speed, dy) then return speed, 0
+    if dx == 0 and cdx < 1 
+        if player_free_ahead(@, M, -speed, dy)  then return -speed, dy
+        if player_free_ahead(@, M, -speed, 0) and player_free_eventually(@, M, -speed, dy)  then return -speed, 0
+    if dy == 0 and cdy < 1
+        if player_free_ahead(@, M, dx, -speed)  then return dx, -speed
+        if player_free_ahead(@, M, 0, -speed) and player_free_eventually(@, M, dx, -speed) then return 0, -speed
+    if dy == 0 and cdy > -1
+        if player_free_ahead(@, M, dx, speed) then return dx, speed
+        if player_free_ahead(@, M, 0, speed) and player_free_eventually(@, M, dx, speed) then return 0, speed
+    -- Handle cases where both dimensions are non-0:
+    if dx ~= 0 and dy ~= 0
+        if player_free_ahead(@, M, 0, dy) then return 0, dy
+        if player_free_ahead(@, M, dx, 0) then return dx, 0
+    -- No valid direction found:
+    return 0,0
 
 -- Pseudomethod
 player_perform_move = (M, dx, dy) =>
     if dx == 0 and dy == 0
         return
-    if dx ~= 0 and dy ~= 0 
-        dx *= 0.75
-        dy *= 0.75
-    player_smart_move(@, M, dx, dy, @speed)
+    dx, dy = dx * @stats.move_speed, dy * @stats.move_speed
+    as = @action_state
+    if as.last_dir_x ~= dx or as.last_dir_y ~= dy
+        as.constraint_dir_x, as.constraint_dir_y = dx, dy
+        as.last_dir_x, as.last_dir_y = dx, dy
+    for speed=@stats.move_speed,1,-1
+        dx, dy = player_adjust_direction(@, M, dx, dy, as.constraint_dir_x, as.constraint_dir_y, speed)
+        if dx ~= 0 or dy ~= 0
+            break
+    -- Tighten the constraints
+    if as.constraint_dir_x == 0 then as.constraint_dir_x = dx
+    if as.constraint_dir_y == 0 then as.constraint_dir_y = dy
+    -- Perform the move
+    @x, @y = @x + dx, @y + dy
     @stats.cooldowns.rest_cooldown = math.max(@stats.cooldowns.rest_cooldown, statsystem.REST_COOLDOWN)
 
 player_perform_action = (M, obj, action) ->
@@ -71,21 +142,6 @@ player_step = (M) =>
         player_perform_action(M, @, action)
     -- Ensure player does not move in RVO
     @set_rvo(M, 0,0)
-
-    -- Default to not resting:
-    @is_resting = false
-    -- Handling resting due to staying-put
-    if @stats.cooldowns.rest_cooldown == 0
-        needs_hp = (S.hp < S.max_hp and S.hp_regen > 0)
-        needs_mp = (S.mp < S.max_mp and S.mp_regen > 0)
-        if needs_hp or needs_mp
-            -- Rest if we can, and if its useful
-            @is_resting = true
-
-    if @is_resting
-        -- Handling healing due to rest
-        S.attributes.hp_regen += S.attributes.raw_hp_regen * 7
-        S.attributes.mp_regen += S.attributes.raw_mp_regen * 7
 
 MAX_FUTURE_STEPS = 0
 

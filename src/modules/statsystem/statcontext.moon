@@ -3,20 +3,47 @@
 
 attributes = require "@attributes"
 items = require "@items"
-constants = require "@constants"
+calculate = require "@calculate"
 
 M = nilprotect {}
 
+make_attribute_getters = (attrs) -> 
+  return {k, (() => @attributes[k]) for k in *attrs}
+make_attribute_setters = (attrs) ->
+  return {k, ((v) => @attributes[k] = v) for k in *attrs}
+
+M.AttackContext = newtype {
+  -- Fallbacks for get and set:
+  get: make_attribute_getters(attributes.ATTACK_ATTRIBUTES)
+  set: make_attribute_setters(attributes.ATTACK_ATTRIBUTES)
+
+  init: (source) =>
+    @source = source
+    @attributes = attributes.AttackAttributes.create()
+  revert: () =>
+    @attributes\revert()
+  copy: (o) => -- Generally, we do not copy the source, as this can be a back-pointer
+    @attributes\copy(o.attributes)
+  -- Note; 'attacker' and 'deferender' are StatContext objects, as defined in statcontext.moon
+  apply: calculate.attack_apply
+}
+
 M.StatContext = newtype {
-  init: (name) =>
+  -- Fallbacks for get and set:
+  get: make_attribute_getters(attributes.CORE_ATTRIBUTES)
+  set: make_attribute_setters(attributes.CORE_ATTRIBUTES)
+
+  init: (owner, name) =>
+    -- The game object owning this context
+    @obj = owner
     @name = name
     @attributes = attributes.CoreAttributes.create()
     -- For monsters, this never changes.
     -- For players, this represents their currently wielded weapon's stats.
     -- Ranged attacks carry their own 'attack' object, in their projectile.
-    @attack = attributes.Attack.create()
+    @attack = M.AttackContext.create(@)
     -- For monsters, these items represent anything picked up by the monster,
-    -- or anything they spawned with. Monsters can use items, but often too this
+    -- or anything they spawned with. Monsters can use items, but often this
     -- is simply their 'loot'.
     @inventory = items.ItemSet.create()
     @gold = 0
@@ -24,38 +51,36 @@ M.StatContext = newtype {
     @cooldown_rates = attributes.Cooldowns.create()
     for cooldown in *attributes.COOLDOWN_ATTRIBUTES
       @cooldown_rates[cooldown] = 1.00
-   get: {
-     hp: () => @attributes.hp
-     max_hp: () => @attributes.max_hp
-     hp_regen: () => @attributes.hp_regen
-     mp: () => @attributes.mp
-     max_mp: () => @attributes.max_mp
-     mp_regen: () => @attributes.mp_regen
-   }
-   calculate_attack: (attack) =>
-     attack\revert()
 
-   step: () =>
-     for cooldown in *attributes.COOLDOWN_ATTRIBUTES
-       @cooldowns[cooldown] = math.max(0, @cooldowns[cooldown] - @cooldown_rates[cooldown])
-     @attributes.raw_hp = math.min(@attributes.raw_hp + @hp_regen, @max_hp)
-     @attributes.raw_mp = math.min(@attributes.raw_mp + @mp_regen, @max_mp)
-     @attributes.hp = math.min(@hp + @hp_regen, @max_hp)
-     @attributes.mp = math.min(@mp + @mp_regen, @max_mp)
+   copy: (S) =>
+     @attributes\copy(S.attributes)
+     @attack\copy(S.attack)
+     @inventory\copy(S.inventory)
+     @gold = S.gold
+     @cooldowns\copy(S.cooldowns)
+     @cooldown_rates\copy(S.cooldown_rates)
 
-   -- Calculate derived stats from bonuses and their raw_* counterparts
-   calculate: () =>
+   clone: (new_owner) =>
+     S = M.StatContext.create(new_owner, @name)
+     S\copy(@)
+     return S
+
+   revert: () => 
      @attributes\revert()
-     @calculate_attack(@attack)
+     @attack\revert()
+   step: calculate.stat_step
+   -- Calculate derived stats from bonuses and their raw_* counterparts
+   calculate: calculate.stat_calculate
 }
 
 M.PlayerStatContext = newtype {
   parent: M.StatContext
-  init: (name, race) =>
-    M.StatContext.init(@, name)
+  init: (owner, name, race) =>
+    M.StatContext.init(@, owner, name)
     @race = race
     @level = 1
     @xp = 0
+    @is_resting = false
     -- The 'Skills' structure is used as an arbitrary structure for holding one float per skill.
     @skill_levels = attributes.Skills.create()
     @skill_points = attributes.Skills.create()
@@ -63,12 +88,16 @@ M.PlayerStatContext = newtype {
     for skill in *attributes.SKILL_ATTRIBUTES
       @skill_cost_multipliers[skill] = 1.00
     @skill_weights = attributes.Skills.create()
+
+   clone: () => error("Not Yet Implemented")
+   step: calculate.player_stat_step
+   calculate: calculate.player_stat_calculate
    get_equipped: (item_type) =>
-    for i=1,@inventory\size()
+     for i=1,@inventory\size()
         item = @inventory\get(i)
         if item.is_equipment and item.item_type == item_type
             return item
-    return nil
+     return nil
 }
 
 return M

@@ -21,6 +21,8 @@ M.CORE_ATTRIBUTES = {
   "defence" -- Direct subtraction from physical_dmg
   "physical_resist" -- Used with physical_power to determine attack ratio
 
+  "move_speed"
+
   "fire_resist"
   "water_resist"
   "earth_resist"
@@ -41,7 +43,7 @@ M.SKILL_ATTRIBUTES = {
   "melee"
   "magic"
   "armour"
-  "evasion"
+  "defending"
   "curses"
   "enchantments"
   "force_spells"
@@ -62,9 +64,10 @@ M.SKILL_ATTRIBUTES = {
 -- Eg a 'magic fire missile' has magic AND fire AND physical.
 M.ATTACK_ATTRIBUTES = {
   -- Weapon type plays a large part:
-  "accuracy"
   "physical_dmg"
   "physical_power"
+  "delay"
+  "range"
 
   -- Various sources, eg enchantments, weapon type:
   "magic_dmg"
@@ -182,7 +185,7 @@ M.CoreAttributes = new_attr_vector_type {
   raw_copies: true
 }
 
-M.Attack = new_attr_vector_type {
+M.AttackAttributes = new_attr_vector_type {
   struct_name: "__attack_t"
   stat_list: M.ATTACK_ATTRIBUTES
   methods: {

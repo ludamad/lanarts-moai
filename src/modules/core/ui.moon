@@ -2,7 +2,7 @@
 
 import thread_create from require 'core.util'
 import get_texture, get_json, get_resource_path, get_font from require "resources"
-import camera from require 'core'
+import Display from require "ui"
 user_io = require "user_io"
 ErrorReporting = require "system.ErrorReporting"
 
@@ -62,18 +62,26 @@ ui_ingame_scroll = (V) ->
 
     mX,mY = user_io.mouse_xy()
     dragging = false
+    dragging_on_minimap = false
 
     return () ->
 
         -- Handle dragging for scroll:
         if user_io.mouse_right_pressed()
             dragging = true
+            dragging_on_minimap = V.sidebar.minimap\mouse_over()
         if user_io.mouse_right_released()
             dragging = false
         if dragging and user_io.mouse_right_down() 
-            newMX,newMY = user_io.mouse_xy()
-            prevX, prevY = V.camera\getLoc()
-            V.camera\setLoc(prevX + (mX - newMX), prevY + (mY - newMY))
+            if dragging_on_minimap
+                newMX,newMY = user_io.mouse_xy()
+                print(newMX - mX, newMY - mY)
+                speed = 128
+                Display.camera_move_delta((mX - newMX) * speed, (mY - newMY) * speed, speed)
+            else -- Dragging on map
+                newMX,newMY = user_io.mouse_xy()
+                prevX, prevY = V.camera\getLoc()
+                V.camera\setLoc(prevX + (mX - newMX), prevY + (mY - newMY))
 
         -- Update last mouse-recorded mouse position:
         mX,mY = user_io.mouse_xy()

@@ -2,7 +2,7 @@
 BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
 modules = require 'core.data'
-import camera, util_geometry from require "core"
+import util_geometry from require "core"
 import ObjectBase, CombatObjectBase, Player, NPC from require 'core.map_object_types'
 import FieldOfView, FloodFillPaths, GameInstSet, RVOWorld, GameTiles from require "core"
 

@@ -3,7 +3,7 @@ BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
 data = require "core.data"
 statsystem = require "statsystem"
-import camera, util_draw from require "core"
+import util_draw from require "core"
 import FieldOfView, FloodFillPaths, util_geometry from require "core"
 
 -- Object lifecycle:
@@ -126,6 +126,15 @@ Vision = with newtype()
         @prev_seen_bounds = @current_seen_bounds
         @current_seen_bounds = @fieldofview\tiles_covered()
 
+-- 'State machine'p for player actions
+PlayerActionState = newtype {
+    init: () =>
+        @last_dir_x = 0
+        @last_dir_y = 0
+        @constraint_dir_x = 0
+        @constraint_dir_y = 0
+}
+
 Player = newtype {
     parent: CombatObjectBase
     init: (M, args) =>
@@ -133,19 +142,20 @@ Player = newtype {
         CombatObjectBase.init(@, M, args)
         @name = args.name
 
+        @action_state = PlayerActionState.create()
+
         -- Create the stats object for the player
-        @stats = statsystem.PlayerStatContext.create(args.name, args.race)
+        @stats = statsystem.PlayerStatContext.create(@, args.name, args.race)
         args.race.stat_race_adjustments(@stats)
         args.class.stat_class_adjustments(args.class_args, @stats)
+        @stats.attributes.raw_move_speed = args.speed
         @stats\calculate()
 
         logI("Player::init stats created")
 
-        @stats.attributes.raw_hp -= 50
         @vision_tile_radius = 6
         @player_path_radius = 200
         @id_player = args.id_player
-        @is_resting = false
         @vision = Vision.create(M, @vision_tile_radius)
         @paths_to_player = FloodFillPaths.create(M.tilemap)
         append M.player_list, @
@@ -188,7 +198,7 @@ Player = newtype {
                 -- Put avatar sprite
                 sp = data.get_sprite(avatar_sprite)
                 sp\draw(@x, @y, @frame, 1, 0.5, 0.5)
-        if @is_resting
+        if @stats.is_resting
             @REST_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
         CombatObjectBase.draw(@, V)
     pre_draw: (V) => 
@@ -224,9 +234,10 @@ NPC = with newtype {parent: CombatObjectBase}
     .init = (M, args) =>
         CombatObjectBase.init(@, M, args)
         append M.npc_list, @
-        @npc_type = MonsterType.lookup(args.type)
+        @npc_type = statsystem.MONSTER_DB[args.type]
         @sprite = data.get_sprite(args.type)
-        @init_stats(StatUtils.stat_clone(@npc_type.base_stats), @npc_type.unarmed_action)
+        -- Clone the MonsterType stat object, with '@' as the new owner
+        @stats = @npc_type.stats\clone(@)
 
     .nearest_enemy = (M) =>
         min_obj,min_dist = nil,math.huge
@@ -238,8 +249,8 @@ NPC = with newtype {parent: CombatObjectBase}
         return min_obj, min_dist
     .perform_action = (M) =>
         min_obj, min_dist = @nearest_enemy(M)
-        if min_obj and @stat_context\can_use_weapon(min_obj.stat_context)
-            @stat_context\use_weapon(min_obj.stat_context)
+        if min_obj and @stats.cooldowns.action_cooldown == 0 and min_dist <= @stats.attack.range
+            @stats.attack\apply(min_obj.stats)
 
     .remove = (M) =>
         CombatObjectBase.remove(@, M)

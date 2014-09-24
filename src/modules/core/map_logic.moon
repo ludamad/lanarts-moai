@@ -1,5 +1,5 @@
 
-import camera, util_movement, util_geometry, game_actions from require "core"
+import util_movement, util_geometry, game_actions from require "core"
 import Display from require 'ui'
 import REST_COOLDOWN from require "statsystem"
 import ErrorReporting from require "system"
@@ -100,15 +100,15 @@ pre_draw = (V) ->
 
     -- Update in-focus object
     pobj = V.map.local_player()
-    if pobj ~= nil -- Do we have a local player?
-        if camera.camera_is_off_center(V, pobj.x, pobj.y)
-            camera.sharp_center_on(V, pobj.x, pobj.y)
+    if pobj ~= nil and not user_io.mouse_right_down() -- Do we have a local player?
+        if Display.camera_is_off_center(pobj.x, pobj.y)
+            Display.camera_sharp_center_on(pobj.x, pobj.y)
         else
-            camera.center_on(V, pobj.x, pobj.y)
+            Display.camera_center_on(pobj.x, pobj.y)
 
     -- Update the sight map
 
-    x1,y1,x2,y2 = camera.tile_region_covered(V)
+    x1,y1,x2,y2 = Display.camera_tile_region_covered()
     for y=y1,y2 do for x=x1,x2
         tile = 2
         for inst in *V.map.player_list

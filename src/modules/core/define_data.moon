@@ -5,11 +5,13 @@ import TileMap from require "core"
 
 logI("Loading tiles")
 
-with tiledef file: 'floor.png', solid: false
+with tiledef file: 'floor-dark.png', solid: false
     .define name: 'undefined', from: {1,1}, to: {2,1}
-    .define name: 'grey_floor', from: {3,1}, to: {11,1}
+    .define name: 'grey_floor', from: {3,1}, to: {10,1}
+    .define name: 'reddish_grey_floor', from: {11,1}, to: {18,1}
+    .define name: 'light_brown_floor', from: {1,2}, to: {4,2}
 
-with tiledef file: 'wall.png', solid: true
+with tiledef file: 'wall-dark.png', solid: true
     .define name: 'dungeon_wall', from: {1,1}, to: {32, 1}
 
 with spritedef file: 'feat.png', size: {32,32}, tiled: true
@@ -271,7 +273,7 @@ logI("Defining maps")
 mapdef.define {
 	name: "start" 
 	generator: (G, rng) ->
-		model = gen.generate_test_model(rng)
+		model = gen.generate_circle_scheme(rng)
 		-- for i=1,50 do spawn rng, model, 
 		-- 	(px, py) -> (L) ->
 		-- 		map_object_types.NPC.create L, {
@@ -287,6 +289,7 @@ mapdef.define {
 for vpath in *{
     -- Skills are used in many other definitions
     "statsystem.DefineWeapons"
+    "statsystem.DefineMonsters"
 
 } do
     logI("Loading " .. vpath)

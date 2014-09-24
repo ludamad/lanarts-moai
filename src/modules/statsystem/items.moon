@@ -7,7 +7,7 @@ M = nilprotect {} -- Submodule
 
 -- Stores items, both by name and by unique integer ID:
 
-M.ITEM_DB = {}
+M.ITEM_DB = nilprotect {}
 
 -------------------------------------------------------------------------------
 -- Helpful constants:
@@ -185,6 +185,8 @@ M.ItemSet = newtype {
 
   size: () => #@item_slots
 
+  copy: (o) =>
+    @item_slots = table.deep_clone(o.item_slots)
   _try_merge: (newitem) =>
     for i=1,#@item_slots
       slot = @item_slots[i]
@@ -215,7 +217,8 @@ _item_define = (t) ->
   next_id = #M.ITEM_DB + 1
   t.id = next_id
   M.ITEM_DB[next_id] = t
-  assert M.ITEM_DB[t.name] == nil, "#{t.item_type} #{t.name} already exists!"
+  assert rawget(M.ITEM_DB, t.name) == nil, "#{t.item_type} #{t.name} already exists!"
+  M.ITEM_DB[t.name] = t
   setmetatable t, ITEM_META
 
 _equipment_define = (t) ->

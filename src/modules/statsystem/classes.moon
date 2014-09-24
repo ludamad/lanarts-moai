@@ -33,7 +33,7 @@ classes.Mage = {
     W[args.weapon_skill] = MINOR
     W.melee = MINOR
     W.armour = MINOR
-    W.evasion = MINOR
+    W.defending = MINOR
 
   spells: {"Minor Missile"}
 }
@@ -50,12 +50,12 @@ classes.Knight = {
 
   -- Takes 'weapon_skill', 'skill'
   stat_class_adjustments: (args, stats) ->
-    stats.class_name = "Knight"
-    W = stats.skill_weights
-    W.melee = MAJOR
-    W[args.weapon_skill] = MAJOR
-    W.armour = MODERATE
-    W.evasion = MINOR
+     stats.class_name = "Knight"
+     W = stats.skill_weights
+     W.melee = MAJOR
+     W[args.weapon_skill] = MAJOR
+     W.armour = MODERATE
+     W.defending = MINOR
 }
 
 classes.Archer = {
@@ -68,30 +68,13 @@ classes.Archer = {
     {type: "Arrow", amount: 50, equipped: true}
   }
   spells: {"Magic Arrow"}
-
-  -- Takes 'weapon_skill', 'skill'
-  stat_class_adjustments: (args, stats) ->
-    stats.class_name = "Knight"
-    W = stats.skill_weights
-    W.melee = MAJOR
-    W[args.weapon_skill] = MAJOR
-    W.armour = MODERATE
-    W.evasion = MINOR
-}
-
-classes.Archer = {
-  name: "Archer"
-  description: (__unused) -> "A master of bow combat. Fires swiftly from afar."
-  
-  spells: {"Magic Arrow"}
-
   stat_class_adjustments: (__unused, stats) ->
     stats.class_name = "Archer"
     W = stats.skill_weights
+    W.melee = MINOR
     W.ranged_weapons = MAJOR
     W.armour = MINOR
-    W.evasion = MAJOR
-    W.magic = MINOR
+    W.defending = MODERATE
 }
 
 table.merge(M, classes)

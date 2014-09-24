@@ -50,7 +50,7 @@ _spawn_players = (G, M, stat_components) ->
 _spawn_monsters = (G, M) ->
     import random_square_spawn_object from require '@util_generate'
 
-    for i=1,0
+    for i=1,1
         random_square_spawn_object M, (px, py) ->
             map_object_types.NPC.create M, {
                 x: px*32+16
@@ -66,7 +66,7 @@ view_game = (stat_components, on_death) ->
     Display.display_setup()
 	MOAISim.setStep(1 / _SETTINGS.frames_per_second)
 
-	rng = mtwist.create(2)--os.time())
+	rng = mtwist.create(os.time())
 
     G = game_state.create_game_state()
 

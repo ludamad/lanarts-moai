@@ -1,5 +1,5 @@
 
-import camera, util_movement, util_geometry, util_draw, game_actions from require "core"
+import util_movement, util_geometry, util_draw, game_actions from require "core"
 
 import ObjectBase, CombatObjectBase, Player, NPC, Projectile from require '@map_object_types'
 

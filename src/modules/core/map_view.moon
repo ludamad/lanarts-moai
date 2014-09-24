@@ -16,7 +16,7 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
 import ui_ingame_scroll, ui_ingame_select from require "core.ui"
 import ui_sidebar from require "core"
 
-import camera, util_draw from require "core"
+import util_draw from require "core"
 
 json = require 'json'
 modules = require 'core.data'
@@ -33,8 +33,7 @@ setup_camera = (V) ->
 
     cx, cy = w * tw / 2, h * th / 2
     assert(not V.camera and not V.viewport, "Double call to setup_view!")
-    V.camera = with MOAICamera2D.new()
-        \setLoc(cx,cy)
+    V.camera = Display.game_camera
     V.viewport = with MOAIViewport.new()
         \setSize(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, V.camerah)
         \setScale(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, -V.camerah)
