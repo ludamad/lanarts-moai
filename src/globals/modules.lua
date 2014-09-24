@@ -21,9 +21,19 @@ for i,loader in ipairs(package.loaders) do
     end
 end
 
+local ROOT_REQUIRER = setmetatable({}, {
+    __index = function (self, k)
+        return require(k)
+    end
+})
+
 -- We could achieve the same effect with a loader for 'require'
 -- but we want to avoid caching modules with similar relative paths.
 function require(vpath, fenv)
+    -- Return a special object for '', to allow root imports via indexing:
+    if vpath == '' then 
+        return ROOT_REQUIRER
+    end
     local caller_fenv = getfenv(2)
     local called_mname = rawget(caller_fenv, "__MODULE") 
 

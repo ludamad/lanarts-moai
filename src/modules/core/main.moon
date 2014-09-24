@@ -63,10 +63,11 @@ _spawn_monsters = (G, M) ->
             }
 
 view_game = (stat_components, on_death) ->
+    logI "main::view_game"
     Display.display_setup()
 	MOAISim.setStep(1 / _SETTINGS.frames_per_second)
 
-	rng = mtwist.create(os.time())
+	rng = mtwist.create(os.time() * 999 + os.clock())
 
     G = game_state.create_game_state()
 

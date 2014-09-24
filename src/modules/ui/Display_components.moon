@@ -18,8 +18,8 @@
 game_camera = MOAICamera2D.new()
 game_viewport = MOAIViewport.new()
 
-game_bg_layer, game_obj_layer, game_fg_layer = MOAILayer2D.new(), MOAILayer2D.new(), MOAILayer2D.new()
-game_layers = {game_bg_layer, game_obj_layer, game_fg_layer}
+game_bg_layer, game_obj_layer, game_fg_layer1, game_fg_layer2 = MOAILayer2D.new(), MOAILayer2D.new(), MOAILayer2D.new(), MOAILayer2D.new()
+game_layers = {game_bg_layer, game_obj_layer, game_fg_layer1, game_fg_layer2}
 
 for game_layer in *game_layers
 	game_layer\setCamera(game_camera) -- All game layers use the same camera
@@ -29,7 +29,7 @@ ui_viewport = MOAIViewport.new()
 ui_layer = with MOAILayer2D.new()
 	\setViewport(ui_viewport)
 
-all_layers = {game_bg_layer, game_obj_layer, game_fg_layer, ui_layer}
+all_layers = {game_bg_layer, game_obj_layer, game_fg_layer1, game_fg_layer2, ui_layer}
 
 -- Track if display_setup has been called yet
 _DISPLAY_INITIALIZED = false
@@ -65,11 +65,11 @@ display_setup = (x=0, y=0, w = _size[1], h = _size[2]) ->
 
 	game_camera\setLoc(x, y)
 	with game_viewport
-		\setOffset(-1, 1)
 		\setSize(w, h)
 		\setScale(w, -h)
 
 	if not _DISPLAY_INITIALIZED
+		logI "Display.display_setup: Initial setup"
 		MOAISim.openWindow "Lanarts", _size[1], _size[2]
 		gl_set_vsync(false)
 		with ui_viewport
@@ -80,11 +80,12 @@ display_setup = (x=0, y=0, w = _size[1], h = _size[2]) ->
 			MOAISim.pushRenderPass(layer)
 		_DISPLAY_INITIALIZED = true
 	else
+		logI "Display.display_setup: Initial setup"
 		display_clear()
 
 return {
-	:game_camera
-	:game_bg_layer, :game_obj_layer, :game_fg_layer, :ui_layer
+	:game_camera, :game_viewport, :ui_viewport
+	:game_bg_layer, :game_obj_layer, :game_fg_layer1, :game_fg_layer2, :ui_layer
 	:display_add_draw_func
 	:display_clear, :display_size, :display_setup
 }

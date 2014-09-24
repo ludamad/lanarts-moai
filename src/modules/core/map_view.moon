@@ -32,11 +32,13 @@ setup_camera = (V) ->
     tw, th = V.map.tile_width, V.map.tile_height
 
     cx, cy = w * tw / 2, h * th / 2
-    assert(not V.camera and not V.viewport, "Double call to setup_view!")
     V.camera = Display.game_camera
-    V.viewport = with MOAIViewport.new()
+    V.viewport = with Display.game_viewport
         \setSize(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, V.camerah)
         \setScale(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, -V.camerah)
+    with Display.ui_viewport
+        \setSize(V.cameraw, V.camerah)
+        \setScale(V.cameraw, -V.camerah)
 
 -------------------------------------------------------------------------------
 -- Set up the layers for the map
@@ -86,22 +88,20 @@ setup_tile_layers = (V) ->
     for y=1,h do for x=1,w
         _set_xy(x, y, V.map.tilemap\get({x,y}).content)
 
-    layer = V.add_layer()
-
-    -- Add all the different textures to the layer
-    for p in *props do layer\insertProp(p)
+    -- Add all the different textures to the background layer
+    for p in *props do Display.game_bg_layer\insertProp(p)
 
 setup_fov_layer = (V) ->
     w,h = V.map.tilemap_width, V.map.tilemap_height
     tw, th = V.map.tile_width, V.map.tile_height
-    tex = res.get_texture "fogofwar.png"
+    tex = res.get_texture "fogofwar-dark.png"
     tex_w, tex_h = tex\getSize()
 
-    V.fov_layer = V.add_layer()
+    fov_layer = Display.game_fg_layer1
     V.fov_grid = with MOAIGrid.new()
         \setSize(w, h, tw, th)
 
-    V.fov_layer\insertProp with MOAIProp2D.new()
+    fov_layer\insertProp with MOAIProp2D.new()
         \setDeck with MOAITileDeck2D.new()
             \setTexture(tex)
             \setSize(tex_w / tw, tex_h / th)
@@ -112,22 +112,19 @@ setup_fov_layer = (V) ->
         V.fov_grid\setTile(x,y, 2)
 
 setup_overlay_layers = (V) ->
-    -- Add the object layer, which holds assorted game objects. 
-    V.object_layer = V.add_layer()
-    -- Add the field of view layer, which hides unexplored regions.
     setup_fov_layer(V)
 
     -- Add the UI layer.
-    V.ui_layer = V.add_layer MOAICamera2D.new(), with MOAIViewport.new()
+    with Display.ui_viewport
         \setOffset(-1, 1)
         \setSize(V.cameraw, V.camerah)
         \setScale(V.cameraw, -V.camerah)
 
     -- Helpers for layer management
-    V.add_ui_prop = (prop) -> V.ui_layer\insertProp(prop)
-    V.remove_ui_prop = (prop) -> V.ui_layer\removeProp(prop)
-    V.add_object_prop = (prop) -> V.object_layer\insertProp(prop)
-    V.remove_object_prop = (prop) -> V.object_layer\removeProp(prop)
+    V.add_ui_prop = (prop) -> Display.ui_layer\insertProp(prop)
+    V.remove_ui_prop = (prop) -> Display.ui_layer\removeProp(prop)
+    V.add_object_prop = (prop) -> Display.game_obj_layer\insertProp(prop)
+    V.remove_object_prop = (prop) -> Display.game_obj_layer\removeProp(prop)
 
 -------------------------------------------------------------------------------
 -- Create a map view
@@ -136,18 +133,16 @@ setup_overlay_layers = (V) ->
 create_map_view = (map, cameraw, camerah) ->
     V = {gamestate: map.gamestate, :map, :cameraw, :camerah}
 
-    -- The MOAI layers to accumulate
-    V.layers = {}
     -- The UI objects that run each step
     V.ui_components = {}
 
-    -- Create and add a layer, sorted by priority (the default sort mode):
-    V.add_layer = (camera = V.camera, viewport = V.viewport) -> 
-        layer = with MOAILayer2D.new()
-            \setCamera(camera) -- All layers use the same camera
-            \setViewport(viewport) -- All layers use the same viewport
-        append(V.layers, layer)
-        return layer
+    -- -- Create and add a layer, sorted by priority (the default sort mode):
+    -- V.add_layer = (camera = V.camera, viewport = V.viewport) -> 
+    --     layer = with MOAILayer2D.new()
+    --         \setCamera(camera) -- All layers use the same camera
+    --         \setViewport(viewport) -- All layers use the same viewport
+    --     append(V.layers, layer)
+    --     return layer
 
     map_logic = (require 'core.map_logic')
 
@@ -158,7 +153,7 @@ create_map_view = (map, cameraw, camerah) ->
     V.draw = () ->
         map_logic.draw(V)
 
-    script_prop = (require 'core.util_draw').setup_script_prop(V.object_layer, V.draw, V.map.pix_width, V.map.pix_height, 999999)
+    script_prop = (require 'core.util_draw').setup_script_prop(Display.game_obj_layer, V.draw, V.map.pix_width, V.map.pix_height, 999999)
 
     -- Note: uses script_prop above
     V.pre_draw = () ->
@@ -166,22 +161,9 @@ create_map_view = (map, cameraw, camerah) ->
 
     -- Setup function
     V.start = () -> 
-         -- Begin rendering the MOAI layers
-        for layer in *V.layers
-           MOAISim.pushRenderPass(layer)
-
         map_logic.start(V)
 
-    V.stop = () ->
-        -- Cease rendering the MOAI layers
-        for layer in *V.layers
-            MOAISim.removeRenderPass(layer)
-
-    V.clear = () ->
-        for layer in *V.layers
-            layer\clear()
-
-    V.sidebar = ui_sidebar.sidebar_create(V)
+    V.sidebar = ui_sidebar.Sidebar.create(V)
     append V.ui_components, ui_ingame_scroll V
     append V.ui_components, ui_ingame_select V
     append V.ui_components, () -> V.sidebar\predraw()
@@ -197,11 +179,6 @@ create_menu_view = (G, w,h, continue_callback) ->
     -- We 'cheat' with our menu map view, just point to same object
     V = {is_menu: true}
     V.map = V
-    V.ui_layer = with MOAILayer2D.new()
-        \setViewport with MOAIViewport.new()
-            \setSize(w,h)
-            \setScale(w,-h)
-
     V.step = () -> nil
 
     menu_style = with MOAITextStyle.new()
@@ -222,7 +199,7 @@ create_menu_view = (G, w,h, continue_callback) ->
 
     V.pre_draw = () ->
         Display.reset_draw_cache()
-        menu_start.draw_setup(V.ui_layer, w, h)
+        menu_start.draw_setup(Display.ui_layer, w, h)
         info = "There are #{#G.players} players."
         if G.gametype == 'client'
             info ..= "\nWaiting for the server..."
@@ -238,7 +215,7 @@ create_menu_view = (G, w,h, continue_callback) ->
         -- Note though this handshake is completely contained within this block, and 
         -- this guarantees that everyone is set up ready to receive game actions!
 
-        Display.put_text(V.ui_layer, menu_style, info, 0, 0, 0.5, 0.5, "center")
+        Display.put_text(Display.ui_layer, menu_style, info, 0, 0, 0.5, 0.5, "center")
 
         if client_starting
             if net_recv("ServerConfirmStartGame")
@@ -264,11 +241,8 @@ create_menu_view = (G, w,h, continue_callback) ->
     V.handle_io = () -> nil
 
     -- Setup function
-    V.start = () -> MOAISim.pushRenderPass(V.ui_layer)
+    V.start = () -> 
     V.stop = () -> 
-        V.ui_layer\clear()
-        MOAISim.removeRenderPass(V.ui_layer)
-
     return V
 
 return {:create_menu_view, :create_map_view}

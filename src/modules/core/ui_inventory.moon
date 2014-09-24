@@ -23,7 +23,7 @@ InventoryDrawer = with newtype()
         @stat_context = stat_context
         @stats = @stat_context.derived
         @inv = @stats.inventory
-        @layer = V.ui_layer
+        @layer = Display.ui_layer
 
     .grid_xy = (gridx, gridy) => return @x + gridx * 32, @y + gridy * 32
 

@@ -42,6 +42,26 @@ _drawTexture = (args) ->
 		ux, uy, ux + uw, uy + uh, 
 		r,g,b,a
 
+_drawTextArgs = (args) ->
+	if args.color
+		setPenColor(unpack(args.color))
+	O = args.origin or {}
+	return MOAIDraw.drawText assert(args.font, "No font!"), args.font_size or nil, 
+		assert(args.text, "No text!"), args.x, args.y, args.font_scale or 1, 
+		0,0, O[1] or args.origin_x or 0, O[2] or args.origin_y or 0, 
+		args.max_width or 0
+
+_drawText = (font, text, x, y, color = Display.COL_WHITE, size = nil, origin_x = 0, origin_y = 0, max_width = 0) ->
+	-- Table passed?
+	if type(font) == "table"
+		return _drawTextArgs(font)
+	-- Arguments passed directly?
+	setPenColor(unpack(color))
+	print text, origin_x, origin_y, max_width
+	drawText assert(font, "No font!"), size, 
+		assert(text, "No text!"), x, y, 1, 
+		0,0, origin_x, origin_y, max_width
+
 SC = string.char -- for colorEscapeCode
 colorEscapeCode = (color) ->
 	{r,g,b,a} = color
@@ -55,14 +75,9 @@ _DRAW_TEXTURE_HELPER = {}
 return {
 	fillRect: _fillRect
 	drawRect: _drawRect
-	drawText: (args) ->
-		if args.color
-			setPenColor(unpack(args.color))
-		O = args.origin or {}
-		return MOAIDraw.drawText assert(args.font, "No font!"), args.font_size or nil, 
-			assert(args.text, "No text!"), args.x, args.y, args.font_scale or 1, 
-			0,0, O[1] or args.origin_x or 0, O[2] or args.origin_y or 0, 
-			args.max_width or 0
+	drawText: _drawText
+	drawTextXCenter: (font, text, x, y, color, size, max_width) ->
+		_drawText(font, text, x, y, color, size, 0.5, 0, max_width)
 	drawTexture: (texture_or_args, x, y, origin = Display.LEFT_TOP) ->
 		local args
 		if type(texture_or_args) == 'userdata'

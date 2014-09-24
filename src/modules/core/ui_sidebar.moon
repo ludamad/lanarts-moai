@@ -6,15 +6,53 @@
 res = require 'resources'
 statsystem = require "statsystem"
 import setup_script_prop from require '@util_draw'
-import put_text, put_text_center, put_prop from require "ui.Display"
+import Display from require "ui"
+import put_text, put_text_center, put_prop from Display
 import COL_GREEN, COL_RED, COL_BLUE, COL_PALE_RED, COL_GOLD, COL_PALE_BLUE, COL_MUTED_GREEN from require "ui.Display"
 import ui_minimap, ui_inventory from require "core"
 
 SIDEBAR_WIDTH = 150
 STATBAR_OFFSET_X = 25
 STATBAR_OFFSET_Y = 32
+SIDEBAR_PROP_PRIORITY = 0
 
 SIDEBAR_FONT = res.get_bmfont 'Liberation-Mono-12.fnt'
+
+Sidebar = newtype {
+    init: (V) =>
+        @gamestate, @map = V.gamestate, V.map
+        disp_w, disp_h = Display.display_size()
+        @x, @y = disp_w - SIDEBAR_WIDTH,  0
+        @minimap = ui_minimap.MiniMap.create(@map, @x + SIDEBAR_WIDTH / 2, @y + 200)
+        Display.display_add_draw_func (() -> @draw())
+    predraw: () =>
+
+    _drawText: (...) => Display.drawText(SIDEBAR_FONT, ...)
+    _drawTextXCenter: (...) => Display.drawTextXCenter(SIDEBAR_FONT, ...)
+    _draw_player_base_stats: (stats, x, y) =>
+        @_drawTextXCenter "'#{stats.name}'", x + SIDEBAR_WIDTH / 2 - 5, y + 15, Display.COL_PALE_BLUE
+        x1 = x + 5
+        x2 = x1 + SIDEBAR_WIDTH / 2
+        y1 = y + 95
+
+        @_drawTextXCenter "Unknown Dungeon", x + SIDEBAR_WIDTH / 2, y1, Display.COL_WHITE
+        y1 += 15
+        @_drawText stats.class_name, x1, y1, Display.COL_GOLD 
+        @_drawText "Level #{stats.level}", x2, y1, Display.COL_MUTED_GREEN 
+        y1 += 15
+        @_drawText "Deaths #{stats.level}", x1, y1, Display.COL_PALE_RED 
+        @_drawText "Kills #{stats.level}", x2, y1, Display.COL_WHITE 
+
+    draw: () =>
+        focus = @gamestate.local_player()
+        if not focus then return
+        @_draw_player_base_stats(focus.stats, @x, @y)
+        @minimap\draw()
+
+    remove: () =>
+        Display.ui_layer\removeProp @prop
+}
+
 
 sidebar_style = with MOAITextStyle.new()
     \setColor 0,0,0 -- Black
@@ -121,13 +159,14 @@ sidebar_draw = (is_predraw) =>
     -- Content position:
     cx, cy = @x + 12, @y + 260
     if is_predraw
-        sidebar_draw_player_base_stats(@, focus.stats, @x, @y)
+        print "HI"
         --util_draw_stats.put_stats(focus.stat_context.derived, @layer, styles, cx, cy, 0, 15)
     else
+        sidebar_draw_player_base_stats(@, focus.stats, @x, @y)
         ui_inventory.draw(@view, focus.stats, cx, cy)
 -- Sidebar constructor:
 sidebar_create = (V) -> 
-    sidebar = {gamestate: V.gamestate, view: V, map: V.map, layer: V.ui_layer, x: V.cameraw - SIDEBAR_WIDTH, y: 0}
+    sidebar = {gamestate: V.gamestate, view: V, map: V.map, layer: Display.ui_layer, x: V.cameraw - SIDEBAR_WIDTH, y: 0}
     sidebar.minimap = ui_minimap.MiniMap.create(V, sidebar.x + SIDEBAR_WIDTH / 2, sidebar.y + 200)
 
     PROP_PRIORITY = 0
@@ -139,7 +178,6 @@ sidebar_create = (V) ->
 
     sidebar.predraw = () => 
         sidebar_draw(@, true)
-        @minimap\pre_draw()
 
     sidebar.remove = () =>
         @layer\removeProp(@prop)
@@ -147,4 +185,4 @@ sidebar_create = (V) ->
 
     return sidebar
 
-return {:SIDEBAR_WIDTH, :sidebar_create}
+return {:SIDEBAR_WIDTH, :sidebar_create, :Sidebar}

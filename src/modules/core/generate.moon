@@ -11,9 +11,9 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap
     from require "core"
 
 
-make_ellipse = (x, y, w, h, n_points = 16) ->
+make_ellipse = (x, y, w, h, n_points = 16, start_angle = 0) ->
     points = {}
-    angle,step = 0,(1/n_points* 2 * math.pi)
+    angle,step = start_angle,(1/n_points* 2 * math.pi)
     for i=1,n_points
         append points, {math.sin(angle) * w + x, math.cos(angle) * h + y}
         angle += step
@@ -42,9 +42,9 @@ Polygon = newtype {
     arc_connect: (args) =>
         cx, cy = @center()
         ocx, ocy = args.target\center()
-        avg_w = (@w+args.target.w)/2 
-        avg_h = (@h+args.target.h)/2 
-        w, h = math.abs(cx - ocx) - avg_w, math.abs(cy - ocy) - avg_h
+        min_w = math.min(@w,args.target.w) 
+        min_h = math.min(@h,args.target.h) 
+        w, h = math.abs(cx - ocx) - min_w, math.abs(cy - ocy) - min_h
         if w < 2 or h < 2
             return @line_connect(args)
         -- Set up the ellipse section for our connection:
@@ -111,28 +111,29 @@ generate_circle_scheme = (rng) ->
     size = {50,50}
     padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
     center_x, center_y = padded_size[1]/2, padded_size[2]/2
-    ROOM_RADIUS = 25
-    N_CIRCLES = rng\random(6,15)
-    RVO_ITERATIONS = 20
+    N_CIRCLES = 40--rng\random(6,15)
+    RVO_ITERATIONS = 200
     -- An RVO scheme with a circular boundary
-    R = RVOScheme.create {make_ellipse ROOM_RADIUS+padding[1], ROOM_RADIUS+padding[2], ROOM_RADIUS, ROOM_RADIUS}
+    outer_points = 20--rng\random(3,20)
+    start_angle = 0--rng\randomf(0,2*math.pi)
+    R = RVOScheme.create {make_ellipse center_x, center_y, size[1]/2, size[1]/2, outer_points, start_angle}
 
     for i=1,N_CIRCLES
         -- Make radius of the circle:
         r = 2
         for j=1,4 do r += rng\random(0, 2)
         -- Make a random position within the circular room boundary:
-        dist = rng\randomf(ROOM_RADIUS - r)
+        dist = rng\randomf(0, 1)
         ang = rng\randomf(0, 2*math.pi)
-        x = math.cos(ang) * dist + ROOM_RADIUS + padding[1]
-        y = math.sin(ang) * dist + ROOM_RADIUS + padding[2]
+        x = math.cos(ang) * dist * (size[1]/2 - r) + center_x
+        y = math.sin(ang) * dist * (size[2]/2 - r) + center_y
         -- Max drift is 1 tile:
         poly = Polygon.create x, y, r, r, make_ellipse 
         local vfunc 
         if rng\random(0, 2) == 1
-            vfunc = () => math.sign_of(@x - center_x), math.sign_of(@y - center_y)
+            vfunc = () => math.sign_of(@x - center_x)*2, math.sign_of(@y - center_y)*2
         else
-            vfunc = () => math.sign_of(center_x - @x), math.sign_of(center_y - @y)
+            vfunc = () => math.sign_of(center_x - @x)*2, math.sign_of(center_y - @y)*2
         R\add(poly, vfunc)
 
     map = TileMap.map_create { 
@@ -164,6 +165,10 @@ generate_circle_scheme = (rng) ->
             operator: {add: TileMap.FLAG_SEETHROUGH, remove: TileMap.FLAG_SOLID, content: tile}
         }
 
+    TileMap.perimeter_apply {
+        map: map
+        operator: {add: TileMap.FLAG_PERIMETER}
+    }
     return map
 
 generate_test_model = (rng) ->

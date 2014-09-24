@@ -54,11 +54,11 @@ textbox_fit_text = (x, y, text, align_x = 0, align_y = 0) =>
 -- V: The map view
 ui_ingame_scroll = (V) -> 
     -- First, create components
-    text_box = with create_text(V.ui_layer)
+    text_box = with create_text(Display.ui_layer)
         \setColor(1,1,0,1)
 
     if SHOW_DEBUG 
-        V.ui_layer\insertProp(text_box)
+        Display.ui_layer\insertProp(text_box)
 
     mX,mY = user_io.mouse_xy()
     dragging = false
@@ -131,7 +131,7 @@ ui_ingame_select = (V) ->
             \setRect -tilew/2, tileh/2, 
                 tilew/2, -tileh/2
 
-    V.ui_layer\insertProp(select_prop)
+    Display.ui_layer\insertProp(select_prop)
 
     return () ->
         -- Get the mouse position

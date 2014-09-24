@@ -19,7 +19,7 @@ IDX_BLUE = 4
 IDX_GREEN = 5
 
 MiniMap = newtype {
-	init: (V, x, y) =>
+	init: (map, x, y) =>
 		-- Initialize the texture, grid, tile-deck and location
 		@minimap_colors = res.get_texture "minimap_colors.png"
 		@grid = MOAIGrid.new()
@@ -41,8 +41,8 @@ MiniMap = newtype {
         	\setLoc(@x,@y)
 
        	-- Set up the view
-		@map = V.map
-		@layer = V.ui_layer
+		@map = map
+		@layer = ui_layer
 		@layer\insertProp(@prop)
 
 	mouse_over: () =>
@@ -70,7 +70,7 @@ MiniMap = newtype {
 		x1,y1,x2,y2 = camera_tile_region_covered()
 		return math.floor((x1+x2 - @tile_w)/2), math.floor((y1+y2 - @tile_h)/2)
 
-	pre_draw: () =>
+	_update: () =>
 		sx, sy = @_start_xy()
 
 		FLAG_SOLID = TileMap.FLAG_SOLID
@@ -99,6 +99,7 @@ MiniMap = newtype {
 			@grid\setTile(x, y, IDX_BLUE)
 
 	draw: () =>
+		@_update()
 		sx, sy = @_start_xy()
 
 		x1,y1,x2,y2 = camera_tile_region_covered()

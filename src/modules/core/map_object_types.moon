@@ -4,6 +4,7 @@ user_io = require 'user_io'
 data = require "core.data"
 statsystem = require "statsystem"
 import util_draw from require "core"
+import Display from require "ui"
 import FieldOfView, FloodFillPaths, util_geometry from require "core"
 
 -- Object lifecycle:
@@ -49,7 +50,7 @@ ObjectBase = with newtype()
 
     .pre_draw = (V) => 
         -- Last number is priority
-        @sprite\put_prop(V.object_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR, @alpha)
+        @sprite\put_prop(Display.game_obj_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR, @alpha)
 
     .draw = (V) => nil
 
@@ -204,7 +205,7 @@ Player = newtype {
     pre_draw: (V) => 
         -- Last number is priority
         index = (@id_player-1) %2 +1
-        -- @stat_context\put_avatar_sprite(V.object_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR)
+        -- @stat_context\put_avatar_sprite(Display.game_obj_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR)
         -- CombatObjectBase.pre_draw(@, V)
 
     nearest_enemy: (M) =>

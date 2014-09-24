@@ -75,7 +75,7 @@ _text_style = with MOAITextStyle.new()
 UI_PRIORITY = 200
 
 _draw_text = (V, text, obj, dx, dy) ->
-    with Display.put_text_center V.object_layer, _text_style, text, obj.x + dx, obj.y + dy
+    with Display.put_text_center Display.game_obj_layer, _text_style, text, obj.x + dx, obj.y + dy
         \setPriority UI_PRIORITY
         \setColor 1,1,1,0.2
 
