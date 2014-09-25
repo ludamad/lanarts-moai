@@ -8,16 +8,35 @@ logI("Loading tiles")
 with tiledef file: 'floor-dark.png', solid: false
     .define name: 'undefined', from: {1,1}, to: {2,1}
     .define name: 'grey_floor', from: {3,1}, to: {10,1}
+    .define name: 'lair_floor', from: {15,6}, to: {30,6}
     .define name: 'reddish_grey_floor', from: {11,1}, to: {18,1}
     .define name: 'light_brown_floor', from: {1,2}, to: {4,2}
 
 with tiledef file: 'wall-dark.png', solid: true
     .define name: 'dungeon_wall', from: {1,1}, to: {32, 1}
+    .define name: 'seethrough_wall', from: {8, 30}
+    .define name: 'crypt_wall', from: {25, 26}, to: {32, 26}--to: {7, 27}
+
+with tiledef file: 'floor_overworld_grass1.png', solid: false
+    .define name: 'grass1', from: {1,1}, to: {8,2}
+
+with tiledef file: 'wall_overworld_trees.png', solid: true
+    .define name: 'tree', from: {1,1}, to: {8,2}
 
 with spritedef file: 'feat.png', size: {32,32}, tiled: true
     .define name: 'door_closed', from: {3, 2}
     .define name: 'door_open',   from: {10, 2}    
     .define name: 'shop',        from: {11,6}, to: {21,6}
+
+with spritedef file: 'dungeon_features/statues.png', size: {32,32}, tiled: true
+    .define name: 'statues', from: {1,1}, to: {18, 1}
+
+with spritedef file: 'dungeon_features/shops.png', size: {32,32}, tiled: true
+    .define name: 'shops', from: {1,1}, to: {10, 1}
+
+with spritedef file: 'dungeon_features/stairs.png', size: {32,32}, tiled: true
+    .define name: 'stairs_down', from: {1,1}
+    .define name: 'stairs_up', from: {2,1}
 
 logI("Loading player components")
 

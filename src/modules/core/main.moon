@@ -50,7 +50,7 @@ _spawn_players = (G, M, stat_components) ->
 _spawn_monsters = (G, M) ->
     import random_square_spawn_object from require '@util_generate'
 
-    for i=1,1
+    for i=1,100
         random_square_spawn_object M, (px, py) ->
             map_object_types.NPC.create M, {
                 x: px*32+16
@@ -79,6 +79,7 @@ view_game = (stat_components, on_death) ->
 		tilemap = modules.get_map("start").generator(G, rng)
 
 	    M = map_state.create_map_state(G, 1, rng, tilemap)
+        tilemap\generate_objects(M)
         append G.maps, M
 
         -- Set the current map as a global variable:

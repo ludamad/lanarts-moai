@@ -47,14 +47,14 @@ camera_move_towards = (px, py, speed = CAMERA_SPEED) ->
 			x = min px - CAMERA_SUBW / 2, x + speed
 		 else
 			x = max px + CAMERA_SUBW / 2, x - speed
-		x = max 0, (min world_width - width, x)
+		x = max -width/2, (min world_width - width / 2, x)
 
 	if (abs dy) > CAMERA_SUBH / 2 
 		if py > y 
 			y = min py - CAMERA_SUBH / 2, y + speed
 		 else 
 			y = max py + CAMERA_SUBH / 2, y - speed
-		y = max 0, (min world_height - height, y)
+		y = max -height/2, (min world_height - height / 2, y)
 
 	-- Note, it is very bad to have the camera not on an integral boundary
 	game_camera\setLoc(math.floor(x+width/2), math.floor(y+height/2))

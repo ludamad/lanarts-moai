@@ -66,7 +66,7 @@ display_setup = (x=0, y=0, w = _size[1], h = _size[2]) ->
 	game_camera\setLoc(x, y)
 	with game_viewport
 		\setSize(w, h)
-		\setScale(w, -h)
+		\setScale(w, h)
 
 	if not _DISPLAY_INITIALIZED
 		logI "Display.display_setup: Initial setup"

@@ -57,7 +57,6 @@ _drawText = (font, text, x, y, color = Display.COL_WHITE, size = nil, origin_x =
 		return _drawTextArgs(font)
 	-- Arguments passed directly?
 	setPenColor(unpack(color))
-	print text, origin_x, origin_y, max_width
 	drawText assert(font, "No font!"), size, 
 		assert(text, "No text!"), x, y, 1, 
 		0,0, origin_x, origin_y, max_width

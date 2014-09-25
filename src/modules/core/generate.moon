@@ -6,6 +6,8 @@ T = modules.get_tilelist_id
 
 import print_map, make_tunnel_oper, make_rectangle_criteria, make_rectangle_oper, place_instances
     from require "@map_util"
+import random_square_spawn_object
+    from require "@util_generate"
 
 import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap
     from require "core"
@@ -23,7 +25,7 @@ Polygon = newtype {
     init: (@x, @y, @w, @h, @points_func) =>
         @points = false
     apply: (args) =>
-        @points or= @.points_func(@x, @y, @w, @h, args.n_points or 16)
+        @points or= @.points_func(@x, @y, @w, @h, args.n_points or 16, args.angle)
         args.points = @points
         TileMap.polygon_apply(args)
     square_distance: (o) =>
@@ -44,8 +46,8 @@ Polygon = newtype {
         ocx, ocy = args.target\center()
         min_w = math.min(@w,args.target.w) 
         min_h = math.min(@h,args.target.h) 
-        w, h = math.abs(cx - ocx) - min_w, math.abs(cy - ocy) - min_h
-        if w < 2 or h < 2
+        w, h = math.abs(cx - ocx) - 1, math.abs(cy - ocy) - 1
+        if w < 2 or h < 2 or w > 15 or h > 15
             return @line_connect(args)
         -- Set up the ellipse section for our connection:
         args.width = w * 2
@@ -106,13 +108,46 @@ RVOScheme = newtype {
             poly.x, poly.y = math.round(poly.x + vx), math.round(poly.y + vy)
 }
 
+make_rooms_with_tunnels = (rng, map) ->
+    size = {80,80}
+    padding = {10, 10}
+    padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
+    oper = TileMap.random_placement_operator {
+        size_range: {3,20}
+        rng: rng
+        area: bbox_create(padding, size)
+        amount_of_placements_range: {5,10}
+        create_subgroup: true
+        child_operator: (map, subgroup, bounds) ->
+            --Purposefully convoluted for test purposes
+            queryfn = () ->
+                query = make_rectangle_criteria()
+                return query(map, subgroup, bounds)
+            oper = make_rectangle_oper(queryfn)
+            if oper(map, subgroup, bounds)
+                --place_instances(rng, map, bounds)
+                return true
+            return false
+    }
+ 
+    -- Apply the binary space partitioning (bsp)
+    oper map, TileMap.ROOT_GROUP, bbox_create(padding, size)
+
+    tunnel_oper = make_tunnel_oper(rng)
+
+    tunnel_oper map, TileMap.ROOT_GROUP, bbox_create(padding, size)
+    return map
+
+FLAG_ALTERNATE = TileMap.FLAG_CUSTOM1
+FLAG_INNER_PERIMETER = TileMap.FLAG_CUSTOM2
+
 generate_circle_scheme = (rng) ->
     padding = {10, 10}
-    size = {50,50}
+    size = {80,80}
     padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
     center_x, center_y = padded_size[1]/2, padded_size[2]/2
-    N_CIRCLES = 40--rng\random(6,15)
-    RVO_ITERATIONS = 200
+    N_CIRCLES = rng\random(10,32)
+    RVO_ITERATIONS = 20
     -- An RVO scheme with a circular boundary
     outer_points = 20--rng\random(3,20)
     start_angle = 0--rng\randomf(0,2*math.pi)
@@ -121,7 +156,7 @@ generate_circle_scheme = (rng) ->
     for i=1,N_CIRCLES
         -- Make radius of the circle:
         r = 2
-        for j=1,4 do r += rng\random(0, 2)
+        for j=1,rng\random(1,10) do r += rng\randomf(0, 1)
         -- Make a random position within the circular room boundary:
         dist = rng\randomf(0, 1)
         ang = rng\randomf(0, 2*math.pi)
@@ -130,10 +165,13 @@ generate_circle_scheme = (rng) ->
         -- Max drift is 1 tile:
         poly = Polygon.create x, y, r, r, make_ellipse 
         local vfunc 
-        if rng\random(0, 2) == 1
+        type = rng\random(0, 2) -- Only first two for now
+        if type == 0
             vfunc = () => math.sign_of(@x - center_x)*2, math.sign_of(@y - center_y)*2
-        else
+        elseif type == 1
             vfunc = () => math.sign_of(center_x - @x)*2, math.sign_of(center_y - @y)*2
+        else --Unused
+            vfunc = () => 0,0
         R\add(poly, vfunc)
 
     map = TileMap.map_create { 
@@ -146,29 +184,89 @@ generate_circle_scheme = (rng) ->
         R\step()
 
     for polygon in *R.polygons
-        tile = (if polygon.id%5 <= 3 then T('grey_floor') else T('reddish_grey_floor'))
-        polygon\apply {
-            map: map
-            area: bbox_create(padding, size)
-            operator: {add: TileMap.FLAG_SEETHROUGH, remove: TileMap.FLAG_SOLID, content: tile}
-            n_points: rng\random(4,8)
-        }
+        n_points, angle = rng\random(3,10), rng\randomf(0, math.pi)
+        if rng\random(4) ~= 1
+            polygon\apply {
+                map: map
+                area: bbox_create(padding, size)
+                operator: {add: TileMap.FLAG_SEETHROUGH, remove: TileMap.FLAG_SOLID, content: T('grey_floor')}
+                :n_points, :angle
+            }
+        else
+            polygon\apply {
+                map: map
+                area: bbox_create(padding, size)
+                operator: {add: {TileMap.FLAG_SEETHROUGH, FLAG_ALTERNATE}, remove: TileMap.FLAG_SOLID, content: T('reddish_grey_floor')}
+                :n_points, :angle
+            }
 
     -- Connect all the closest polygon pairs:
     for {p1, p2} in *minimum_spanning_tree(R.polygons)
-        tile = (if p2.id%5 <= 3 then T('grey_floor') else T('reddish_grey_floor'))
-        p1\arc_connect {
-            map: map
-            area: bbox_create(padding, size)
-            target: p2
-            line_width: 2
-            operator: {add: TileMap.FLAG_SEETHROUGH, remove: TileMap.FLAG_SOLID, content: tile}
-        }
+        tile = T('grey_floor')
+        flags = {TileMap.FLAG_SEETHROUGH}
+        if p2.id%5 <= 3 
+            tile = T('reddish_grey_floor')
+            append flags, FLAG_ALTERNATE
+        if rng\random(4) < 2
+            p1\line_connect {
+                map: map
+                area: bbox_create(padding, size)
+                target: p2
+                line_width: 2 + (if rng\random(5) == 4 then 1 else 0)
+                operator: {matches_none: FLAG_ALTERNATE, add: flags, remove: TileMap.FLAG_SOLID, content: tile}
+            }
+        else            
+            p1\arc_connect {
+                map: map
+                area: bbox_create(padding, size)
+                target: p2
+                line_width: 2 + (if rng\random(5) == 4 then 1 else 0)
+                operator: {matches_none: FLAG_ALTERNATE, add: flags, remove: TileMap.FLAG_SOLID, content: tile}
+            }
 
     TileMap.perimeter_apply {
         map: map
+        candidate_selector: {matches_all: TileMap.FLAG_SOLID}
+        inner_selector: {matches_none: TileMap.FLAG_SOLID}
         operator: {add: TileMap.FLAG_PERIMETER}
     }
+
+    TileMap.perimeter_apply {
+        map: map
+        candidate_selector: {matches_all: TileMap.FLAG_SOLID}
+        inner_selector: {matches_all: FLAG_ALTERNATE, matches_none: TileMap.FLAG_SOLID}
+        add: FLAG_ALTERNATE
+        operator: {content: T('crypt_wall')}
+    }
+
+    make_rooms_with_tunnels rng, map
+
+    TileMap.perimeter_apply {
+        map: map
+        candidate_selector: {matches_none: {TileMap.FLAG_SOLID}}
+        inner_selector: {matches_all: {TileMap.FLAG_PERIMETER, TileMap.FLAG_SOLID}}
+        operator: {add: FLAG_INNER_PERIMETER}
+    }
+
+    map.generate_objects = (M) =>
+        import Feature from require '@map_object_types'
+        gen_feature = (sprite, solid) -> (px, py) -> Feature.create M, {x: px*32+16, y: py*32+16, :sprite, :solid}
+        for i=1,5 do random_square_spawn_object M, gen_feature('statues', true), {
+            matches_none: {FLAG_INNER_PERIMETER, TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
+        }
+        for i=1,1 do random_square_spawn_object M, gen_feature('shops', false), {
+            matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
+        }
+
+        for i=1,3 do random_square_spawn_object M, gen_feature('stairs_down', false), {
+            matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
+        }
+
+        for i=1,3 do random_square_spawn_object M, gen_feature('stairs_up', false), {
+            matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
+        }
+
+
     return map
 
 generate_test_model = (rng) ->
@@ -231,4 +329,7 @@ generate_empty_model = (rng) ->
     --print_map(map, map.instances) -- Uncomment to print
     return map
 
-return {:generate_circle_scheme, :generate_test_model, :generate_empty_model}
+return {
+    :generate_circle_scheme, :generate_test_model, :generate_empty_model
+    :FLAG_ALTERNATE, :FLAG_INNER_PERIMETER
+}

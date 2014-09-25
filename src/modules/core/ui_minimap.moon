@@ -3,7 +3,7 @@ res = require 'resources'
 import setup_script_prop from require '@util_draw'
 import put_text, put_text_center, put_prop, camera_tile_region_covered, ui_layer from require "ui.Display"
 import COL_GREEN, COL_RED, COL_BLUE, COL_YELLOW from require "ui.Display"
-import TileMap from require "core"
+import TileMap, generate from require "core"
 
 import key_down, mouse_xy from require "user_io"
 
@@ -13,10 +13,15 @@ bit_and = bit.band
 -- Color positions in minimap_colors.png
 IDX_CLEAR = 0
 IDX_WHITE = 1
-IDX_BLACK = 2
-IDX_RED = 3
-IDX_BLUE = 4
-IDX_GREEN = 5
+IDX_DARK_PINK = 2
+IDX_BLACK = 3
+IDX_RED = 4
+IDX_BLUE = 5
+IDX_GREEN = 6
+IDX_LIGHT_BROWN = 7
+IDX_BROWN = 8
+IDX_PINK_BROWN = 9
+IDX_RED_BROWN = 10
 
 MiniMap = newtype {
 	init: (map, x, y) =>
@@ -28,7 +33,7 @@ MiniMap = newtype {
             \setTexture(@minimap_colors)
 
         -- Initialize the minimap grid and tiledeck size
-		@set_size(100,100, 2, 2)
+		@set_size(120,120, 2, 2)
 		@scale = 1
 		@x,@y = x - @w/2, y - @h/2
 
@@ -75,6 +80,8 @@ MiniMap = newtype {
 
 		FLAG_SOLID = TileMap.FLAG_SOLID
 		FLAG_PERIMETER = TileMap.FLAG_PERIMETER
+		FLAG_RESERVED1 = TileMap.FLAG_RESERVED1
+		FLAG_ALTERNATE = generate.FLAG_ALTERNATE
 		buff = @row_buffer
 		seen_buff = @seen_buffer
 
@@ -88,15 +95,17 @@ MiniMap = newtype {
 			player.vision.seen_tile_map\get_row(seen_buff, sx, sx + @tile_h, sy + row, false)
 			for i=1,@tile_w
 				flags = buff[i]
-				buff[i] = bit_and(flags, FLAG_PERIMETER) ~= 0 and IDX_GREEN or IDX_CLEAR
-				buff[i] = bit_and(flags, FLAG_SOLID) ~= 0 and buff[i] or IDX_WHITE
+				buff[i] = bit_and(flags, FLAG_PERIMETER) ~= 0 and IDX_DARK_PINK or IDX_CLEAR
+				buff[i] = bit_and(flags, FLAG_SOLID) ~= 0 and buff[i] or IDX_LIGHT_BROWN
+				buff[i] = bit_and(flags, FLAG_ALTERNATE) ~= 0 and IDX_PINK_BROWN or buff[i]
 				buff[i] = (seen_buff[i] or z_is_down) and buff[i] or IDX_CLEAR
+				buff[i] = bit_and(flags, FLAG_RESERVED1) ~= 0 and IDX_RED or buff[i]
 
 			@grid\setRow(row, unpack(buff))
 
 		for p in *@map.player_list
 			x,y = math.ceil(p.x / 32) - sx + 1, math.ceil(p.y / 32) - sy
-			@grid\setTile(x, y, IDX_BLUE)
+			@grid\setTile(x, y, IDX_WHITE)
 
 	draw: () =>
 		@_update()

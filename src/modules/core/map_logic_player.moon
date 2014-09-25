@@ -110,6 +110,10 @@ player_perform_move = (M, dx, dy) =>
     if as.constraint_dir_x == 0 then as.constraint_dir_x = dx
     if as.constraint_dir_y == 0 then as.constraint_dir_y = dy
     -- Perform the move
+    -- Use Pythagorean theorem:
+    mag = math.sqrt(dx*dx + dy*dy)
+    if mag > @stats.move_speed
+        dx, dy = dx/mag*@stats.move_speed, dy/mag*@stats.move_speed
     @x, @y = @x + dx, @y + dy
     @stats.cooldowns.rest_cooldown = math.max(@stats.cooldowns.rest_cooldown, statsystem.REST_COOLDOWN)
 
@@ -141,7 +145,7 @@ player_step = (M) =>
     if action
         player_perform_action(M, @, action)
     -- Ensure player does not move in RVO
-    @set_rvo(M, 0,0)
+    @set_rvo(M, 0,0, 2, 20)
 
 MAX_FUTURE_STEPS = 0
 

@@ -62,7 +62,7 @@ MapObjectStore = with newtype()
                 if d < least_dist
                     least_dist, closest = d, obj2
         -- Return closest object
-        return closest
+        return closest, least_dist
 
     .get_all = (filter) =>
         ret = {}
