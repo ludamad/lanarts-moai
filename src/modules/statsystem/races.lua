@@ -2,10 +2,24 @@ local M = nilprotect {}
 local races = nilprotect {}
 M.races = races
 
+UNARMED = {
+    damage = 5,
+    power =  0,
+    delay = 1.0,
+    range = 4
+}
+
 local function base_stat_adjustment(race, stats)
     local A = stats.attributes
     A.raw_hp, A.raw_mp, A.raw_max_hp, A.raw_max_mp = race.hp, race.mp, race.hp, race.mp
     A.raw_hp_regen, A.raw_mp_regen = race.hp_regen, race.mp_regen
+    atk = stats.attack.attributes
+
+    -- Default unarmed attack
+    atk.raw_physical_dmg = UNARMED.damage
+    atk.raw_physical_power = UNARMED.power
+    atk.raw_delay = require("@constants").BASE_ACTION_COOLDOWN * UNARMED.delay
+    atk.raw_range = UNARMED.range
 end
 
 

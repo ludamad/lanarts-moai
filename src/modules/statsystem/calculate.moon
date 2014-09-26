@@ -23,6 +23,7 @@ M.attack_calculate = (A) ->
 M.attack_apply = (A, dS) ->
   Aa, dSa = A.attributes, dS.attributes
   A.source.cooldowns.action_cooldown = Aa.delay
+  print "ATTACK #{dSa.raw_hp} #{dSa.raw_max_hp} #{Aa.physical_dmg}"
   dSa.raw_hp = math.max(0, dSa.raw_hp - Aa.physical_dmg)
 
   -- "physical_dmg"

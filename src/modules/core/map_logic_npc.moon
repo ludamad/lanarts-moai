@@ -7,7 +7,15 @@ resources = require 'resources'
 modules = require 'core.data'
 user_io = require 'user_io'
 
-DIST_THRESHOLD = 6
+DIST_THRESHOLD = 2
+
+DIST_SORT = (a,b) -> a.__dist < b.__dist
+TABLE_CACHED = {}
+npc_list = (M) ->
+    table.clear(TABLE_CACHED)
+    for npc in *M.npc_list
+        append TABLE_CACHED, npc
+    return TABLE_CACHED
 
 -- Exported
 -- Step a player for a single tick of the time
@@ -33,7 +41,7 @@ npc_step_all = (M) ->
     M.rvo_world\step()
 
     -- Sort NPCs by distance to their target
-    table.sort npcs, (a,b) -> a.__dist < b.__dist
+    table.sort npcs, DIST_SORT
 
     -- Move NPCs
     for obj in *npcs

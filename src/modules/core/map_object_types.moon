@@ -169,7 +169,7 @@ Player = newtype {
 
         logI("Player::init stats created")
 
-        @vision_tile_radius = 9
+        @vision_tile_radius = 4
         @player_path_radius = 300
         @id_player = args.id_player
         @vision = Vision.create(M, @vision_tile_radius)
@@ -217,11 +217,7 @@ Player = newtype {
         if @stats.is_resting
             @REST_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
         CombatObjectBase.draw(@, V)
-    pre_draw: (V) => 
-        -- Last number is priority
-        index = (@id_player-1) %2 +1
-        -- @stat_context\put_avatar_sprite(Display.game_obj_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR)
-        -- CombatObjectBase.pre_draw(@, V)
+    pre_draw: do_nothing
 
     nearest_enemy: (M) =>
         min_obj,min_dist = nil,math.huge
@@ -232,10 +228,11 @@ Player = newtype {
                 min_dist = dist
         return min_obj
 
+    on_death: do_nothing
     attack: (M) =>
         o = @nearest_enemy(M)
         if o
-            @stat_context\use_weapon o.stat_context
+            @stats.attack\apply(o.stats)
 
     can_see: (obj) =>
         return @vision.fieldofview\circle_visible(obj.x, obj.y, obj.radius)
@@ -246,6 +243,7 @@ Player = newtype {
         @paths_to_player\update(@x, @y, @player_path_radius)
 }
 
+local Animation -- Forward declare, used in on_death
 NPC = newtype {
     parent: CombatObjectBase
     init: (M, args) =>
@@ -268,6 +266,12 @@ NPC = newtype {
         min_obj, min_dist = @nearest_enemy(M)
         if min_obj and @stats.cooldowns.action_cooldown == 0 and min_dist <= @stats.attack.range
             @stats.attack\apply(min_obj.stats)
+
+    on_death: (M) =>
+        CombatObjectBase.on_death(@, M)   
+        Animation.create M, {
+            sprite: @sprite, x: @x, y: @y, vx: 0, vy: 0
+        }
 
     remove: (M) =>
         CombatObjectBase.remove(@, M)

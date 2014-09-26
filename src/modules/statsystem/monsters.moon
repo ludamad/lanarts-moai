@@ -25,8 +25,10 @@ M.MonsterType = newtype {
     attr = @stats.attributes
 
     attr.raw_hp = data.hp
+    attr.raw_max_hp = attr.raw_hp
     attr.raw_hp_regen = data.hp_regen
     attr.raw_mp = data.mp or 0
+    attr.raw_max_mp = attr.raw_mp
     attr.raw_mp_regen = data.mp_regen or 0
     attr.raw_move_speed = data.move_speed or 4
 
@@ -36,10 +38,11 @@ M.MonsterType = newtype {
     atk.raw_physical_power = data.power
     atk.raw_delay = BASE_ACTION_COOLDOWN * data.delay
     atk.raw_range = data.range or 4
-    assert(atk.raw_range >= 4, "Range should not be less than 4 pixels!")
     
     -- Copy everything over from the raw_* components.
     @stats\revert()
+    assert(atk.range >= 4, "Monster range should not be less than 4 pixels!")
+    assert(@stats.attributes.hp >= 0, "Monster hp shouldn't be 0!")
 }
 
 -------------------------------------------------------------------------------

@@ -8,9 +8,20 @@ calculate = require "@calculate"
 M = nilprotect {}
 
 make_attribute_getters = (attrs) -> 
-  return {k, (() => @attributes[k]) for k in *attrs}
+  getters = {}
+  for k in *attrs
+    getters[k] = () => @attributes[k]
+    raw_k = 'raw_' .. k
+    getters[raw_k] = () => @attributes[raw_k]
+  return getters
+
 make_attribute_setters = (attrs) ->
-  return {k, ((v) => @attributes[k] = v) for k in *attrs}
+  setters = {}
+  for k in *attrs
+    setters[k] = (v) => @attributes[k] = v
+    raw_k = 'raw_' .. k
+    setters[raw_k] = (v) => @attributes[raw_k] = v
+  return setters
 
 M.AttackContext = newtype {
   -- Fallbacks for get and set:
@@ -63,6 +74,7 @@ M.StatContext = newtype {
    clone: (new_owner) =>
      S = M.StatContext.create(new_owner, @name)
      S\copy(@)
+     assert S.raw_hp == @raw_hp and @raw_hp ~= 0, "Failed sanity check in stat cloning!"
      return S
 
    revert: () => 

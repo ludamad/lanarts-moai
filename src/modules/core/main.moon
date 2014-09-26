@@ -50,7 +50,7 @@ _spawn_players = (G, M, stat_components) ->
 _spawn_monsters = (G, M) ->
     import random_square_spawn_object from require '@util_generate'
 
-    for i=1,100
+    for i=1,10
         random_square_spawn_object M, (px, py) ->
             map_object_types.NPC.create M, {
                 x: px*32+16

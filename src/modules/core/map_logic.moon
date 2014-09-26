@@ -13,6 +13,10 @@ modules = require 'core.data'
 user_io = require 'user_io'
 
 step_objects = (M) ->
+    for obj in *M.npc_list--*M.combat_object_list
+        if obj.stats.raw_hp <= 0
+            obj\on_death(M)
+
     --Step all stat contexts
     for obj in *M.combat_object_list
         obj.stats\calculate()
