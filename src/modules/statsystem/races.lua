@@ -79,7 +79,7 @@ races.Human = {
     end,
 
     avatar_sprite = "sr-human",
-    hp = 100, hp_regen = 0.010,
+    hp = 100, hp_regen = 0.020,
     mp = 100, mp_regen = 0.012,
 
     -- [Apts.SELF_MASTERY] = {2,0,0,0},

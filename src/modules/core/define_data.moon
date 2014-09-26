@@ -211,6 +211,9 @@ with spritedef file: 'status_icon.png', size: {32,32}, tiled: true
     .define name: 'stat-speed', from: {3, 1}
     .define name: 'stat-rest', from: {4, 1}
 
+with spritedef file: 'hand.png', size: {32,32}, tiled: true
+    .define name: 'Unarmed', from: {1, 1}
+
 with spritedef file: 'crawl-weapons.png', size: {32,32}, tiled: true
     .define name: 'Hand Axe', from: {9, 5}
     .define name: 'Dagger', from: {12, 2}
@@ -291,17 +294,8 @@ logI("Defining maps")
 
 mapdef.define {
 	name: "start" 
-	generator: (G, rng) ->
-		model = gen.generate_circle_scheme(rng)
-		-- for i=1,50 do spawn rng, model, 
-		-- 	(px, py) -> (L) ->
-		-- 		map_object_types.NPC.create L, {
-		-- 			x: px*32+16
-		-- 			y: py*32+16
-		-- 			radius: 10
-		-- 			solid: true
-		-- 			speed: 4
-		-- 		}
+	generator: (G, rng, scheme) ->
+		model = gen.generate_circle_scheme(rng, scheme(rng))
 		return model
 }
 

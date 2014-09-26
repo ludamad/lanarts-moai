@@ -133,7 +133,7 @@ function newtype(args)
         local getter = get[k]
         if getter then return getter(self, k) end
         local type_val = type[k]
-        if type_val then return type_val end
+        if type_val ~= nil then return type_val end
         if parent then
             local idx_fun = parent.__index
             if idx_fun then return idx_fun(self, k) end
@@ -186,6 +186,15 @@ local function pretty_s(val)
     return "function " .. info.source .. ":" .. info.linedefined .. "-" .. info.lastlinedefined .. ups .. '}'
 end
 
+function print_pairs(...)
+    for i, obj in ipairs {...} do
+      print "{"
+      for k, v in pairs(obj) do
+          print('\t',k,v)
+      end
+      print "}"
+    end
+end
 -- Convenience print-like function:
 function pretty(...)
     local args = {}

@@ -36,6 +36,8 @@ M.COOLDOWN_ATTRIBUTES = {
   "rest_cooldown"
   "action_cooldown"
   "move_cooldown"
+  "hurt_cooldown"
+  "action_wait"
 }
 
 -- Used to calculate core attributes, and attack attributes.

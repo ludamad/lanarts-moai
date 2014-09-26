@@ -80,7 +80,7 @@ display_setup = (x=0, y=0, w = _size[1], h = _size[2]) ->
 			MOAISim.pushRenderPass(layer)
 		_DISPLAY_INITIALIZED = true
 	else
-		logI "Display.display_setup: Initial setup"
+		logI "Display.display_setup: Clearing display"
 		display_clear()
 
 return {

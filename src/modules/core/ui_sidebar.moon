@@ -8,8 +8,8 @@ statsystem = require "statsystem"
 import setup_script_prop from require '@util_draw'
 import Display from require "ui"
 import put_text, put_text_center, put_prop from Display
-import COL_GREEN, COL_RED, COL_BLUE, COL_PALE_RED, COL_GOLD, COL_PALE_BLUE, COL_MUTED_GREEN from require "ui.Display"
 import ui_minimap, ui_inventory from require "core"
+import level_experience_needed from require "statsystem"
 
 SIDEBAR_WIDTH = 150
 STATBAR_OFFSET_X = 25
@@ -17,6 +17,14 @@ STATBAR_OFFSET_Y = 32
 SIDEBAR_PROP_PRIORITY = 0
 
 SIDEBAR_FONT = res.get_bmfont 'Liberation-Mono-12.fnt'
+
+-- From Lanarts colors:
+MANA_BACK_COL = {200/255,200/255,200/255}
+XP_BACK_COL = {169/255, 143/255, 100/255}
+XP_FRONT_COL = {255/255, 215/255, 11/255}
+
+CAN_REST_COL = Display.COL_BLACK
+CANT_REST_COL = {0.3,0.0,0.0}
 
 Sidebar = newtype {
     init: (V) =>
@@ -29,7 +37,8 @@ Sidebar = newtype {
 
     _drawText: (...) => Display.drawText(SIDEBAR_FONT, ...)
     _drawTextXCenter: (...) => Display.drawTextXCenter(SIDEBAR_FONT, ...)
-    _draw_player_base_stats: (stats, x, y) =>
+    _drawTextCenter: (...) => Display.drawTextCenter(SIDEBAR_FONT, ...)
+    _draw_stats: (stats, x, y) =>
         @_drawTextXCenter "'#{stats.name}'", x + SIDEBAR_WIDTH / 2 - 5, y + 15, Display.COL_PALE_BLUE
         x1 = x + 5
         x2 = x1 + SIDEBAR_WIDTH / 2
@@ -43,10 +52,45 @@ Sidebar = newtype {
         @_drawText "Deaths #{stats.level}", x1, y1, Display.COL_PALE_RED 
         @_drawText "Kills #{stats.level}", x2, y1, Display.COL_WHITE 
 
+
+    _draw_statbar: (x,y, w,h, backcol, frontcol, statmin, statmax) =>
+        ratio = statmin / statmax
+        MOAIGfxDevice.setPenColor(unpack(backcol))
+        MOAIDraw.fillRect(x,y,x+w,y+h)
+        MOAIGfxDevice.setPenColor(unpack(frontcol))
+        MOAIDraw.fillRect(x,y,x+w*ratio,y+h)
+
+        textx,texty = x+w/2, y+h/2
+        @_drawTextCenter ("%d/%d")\format(statmin, statmax), textx, texty, Display.COL_BLACK
+
+    _draw_statbars: (stats, x, y) =>
+        w,h = 100, 12
+        @_draw_statbar x,y, w,h, Display.COL_RED, Display.COL_GREEN,
+            stats.attributes.hp, stats.attributes.max_hp
+        y += 15
+        @_draw_statbar x,y, w,h, MANA_BACK_COL, Display.COL_BLUE,
+            stats.attributes.mp, stats.attributes.max_mp
+
+        y += 15
+        xp, xp_needed = stats.xp, level_experience_needed(stats.level)
+        @_draw_statbar x,y, w,h, XP_BACK_COL, XP_FRONT_COL,
+            xp, xp_needed
+
+        y += 15
+        cooldown, cooldown_max = (stats.cooldowns.rest_cooldown), statsystem.REST_COOLDOWN
+        -- Draw the rest indicator box
+        ratio = cooldown / cooldown_max
+        MOAIGfxDevice.setPenColor(ratio, 1.0 - ratio, 0.0)
+        MOAIDraw.fillRect(x,y,x+w,y+h)
+        -- Draw "can rest"/"cannot rest"
+        textx,texty = x+w/2, y+h/2
+        @_drawTextCenter (if cooldown == 0 then "can rest" else "cannot rest"), textx, texty, (if cooldown == 0 then CAN_REST_COL else CANT_REST_COL)
+
     draw: () =>
         focus = @gamestate.local_player()
         if not focus then return
-        @_draw_player_base_stats(focus.stats, @x, @y)
+        @_draw_stats(focus.stats, @x, @y)
+        @_draw_statbars(focus.stats, @x + STATBAR_OFFSET_X, @y + STATBAR_OFFSET_Y)
         @minimap\draw()
 
     remove: () =>
@@ -54,33 +98,33 @@ Sidebar = newtype {
 }
 
 
-sidebar_style = with MOAITextStyle.new()
-    \setColor 0,0,0 -- Black
-    \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
+-- sidebar_style = with MOAITextStyle.new()
+--     \setColor 0,0,0 -- Black
+--     \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
 
-sidebar_style_white = with MOAITextStyle.new()
-    \setColor 1,1,1 -- White
-    \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
+-- sidebar_style_white = with MOAITextStyle.new()
+--     \setColor 1,1,1 -- White
+--     \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
 
-sidebar_style_pale_red = with MOAITextStyle.new()
-    \setColor(unpack(COL_PALE_RED))
-    \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
+-- sidebar_style_pale_red = with MOAITextStyle.new()
+--     \setColor(unpack(COL_PALE_RED))
+--     \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
 
-sidebar_style_muted_green = with MOAITextStyle.new()
-    \setColor(unpack(COL_MUTED_GREEN))
-    \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
+-- sidebar_style_muted_green = with MOAITextStyle.new()
+--     \setColor(unpack(COL_MUTED_GREEN))
+--     \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
 
-sidebar_style_gold = with MOAITextStyle.new()
-    \setColor(unpack(COL_GOLD))
-    \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
+-- sidebar_style_gold = with MOAITextStyle.new()
+--     \setColor(unpack(COL_GOLD))
+--     \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
 
-sidebar_style_pale_blue = with MOAITextStyle.new()
-    \setColor(unpack(COL_PALE_BLUE))
-    \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
+-- sidebar_style_pale_blue = with MOAITextStyle.new()
+--     \setColor(unpack(COL_PALE_BLUE))
+--     \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
 
-sidebar_style_red = with MOAITextStyle.new()
-    \setColor(0.3,0.0,0.0) -- greyish red
-    \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
+-- sidebar_style_red = with MOAITextStyle.new()
+--     \setColor(0.3,0.0,0.0) -- greyish red
+--     \setFont (res.get_bmfont 'Liberation-Mono-12.fnt')
 
 draw_statbar = (layer, x,y, is_predraw, w,h, backcol, frontcol, statmin, statmax) ->
     ratio = statmin / statmax
@@ -94,17 +138,16 @@ draw_statbar = (layer, x,y, is_predraw, w,h, backcol, frontcol, statmin, statmax
         MOAIGfxDevice.setPenColor(0,0,0)
         MOAIDraw.drawText SIDEBAR_FONT, 12, ("%d/%d")\format(statmin, statmax), textx, texty, 1, 0,0, 0.5, 0.5
 
--- From Lanarts colors:
-MANA_BACK_COL = {200/255,200/255,200/255}
-XP_BACK_COL = {169/255, 143/255, 100/255}
-XP_FRONT_COL = {255/255, 215/255, 11/255}
+-- -- From Lanarts colors:
+-- MANA_BACK_COL = {200/255,200/255,200/255}
+-- XP_BACK_COL = {169/255, 143/255, 100/255}
+-- XP_FRONT_COL = {255/255, 215/255, 11/255}
 
-import level_experience_needed from require "statsystem"
 
 draw_statbars = (layer, x, y, is_predraw, stats) ->
     w,h = 100, 12
     draw_statbar layer, x,y, is_predraw,
-        w,h, COL_RED, COL_GREEN,
+        w,h, Display.COL_RED, COL_GREEN,
         stats.attributes.hp, stats.attributes.max_hp
     y += 15
     draw_statbar layer, x,y, is_predraw,
@@ -134,7 +177,7 @@ sidebar_put_text = (text, x, y, style = sidebar_style) =>
 sidebar_put_text_center = (text, x, y, style = sidebar_style) =>
     put_text_center @layer, style, text, x, y
 
-styles = {sidebar_style_white, sidebar_style_pale_red, sidebar_style_muted_green}
+-- styles = {sidebar_style_white, sidebar_style_pale_red, sidebar_style_muted_green}
 
 sidebar_draw_player_base_stats = (stats, x, y) =>
     sidebar_put_text_center(@, ("'%s'")\format(stats.name), x + SIDEBAR_WIDTH / 2 - 5, y + 15, sidebar_style_pale_blue)

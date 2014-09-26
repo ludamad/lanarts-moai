@@ -23,6 +23,8 @@ IDX_BROWN = 8
 IDX_PINK_BROWN = 9
 IDX_RED_BROWN = 10
 
+IDX_NOT_SEEN_OFFSET = 10
+
 MiniMap = newtype {
 	init: (map, x, y) =>
 		-- Initialize the texture, grid, tile-deck and location
@@ -96,12 +98,24 @@ MiniMap = newtype {
 			for i=1,@tile_w
 				flags = buff[i]
 				buff[i] = bit_and(flags, FLAG_PERIMETER) ~= 0 and IDX_DARK_PINK or IDX_CLEAR
-				buff[i] = bit_and(flags, FLAG_SOLID) ~= 0 and buff[i] or IDX_LIGHT_BROWN
-				buff[i] = bit_and(flags, FLAG_ALTERNATE) ~= 0 and IDX_PINK_BROWN or buff[i]
+				buff[i] = bit_and(flags, FLAG_SOLID) ~= 0 and buff[i] or (IDX_LIGHT_BROWN+IDX_NOT_SEEN_OFFSET)
+				buff[i] = bit_and(flags, FLAG_ALTERNATE) ~= 0 and (IDX_PINK_BROWN+IDX_NOT_SEEN_OFFSET) or buff[i]
 				buff[i] = (seen_buff[i] or z_is_down) and buff[i] or IDX_CLEAR
 				buff[i] = bit_and(flags, FLAG_RESERVED1) ~= 0 and IDX_RED or buff[i]
 
 			@grid\setRow(row, unpack(buff))
+
+		-- Adjust for player vision:
+	    for inst in *@map.player_list
+	       {x1,y1,x2,y2} = inst.vision.current_seen_bounds
+	       x1, x2 = math.max(sx, x1), math.min(x2, sx + @tile_w)
+	       y1, y2 = math.max(sy, y1), math.min(y2, sy + @tile_h)
+	       fov = inst.vision.fieldofview
+	       for y=y1,y2-1 do for x=x1,x2-1
+	            if fov\within_fov(x,y)
+	            	tile = @grid\getTile(x - sx, y - sy)
+	            	if tile > IDX_NOT_SEEN_OFFSET
+	                	@grid\setTile(x - sx, y - sy, tile - IDX_NOT_SEEN_OFFSET) -- Currently seen
 
 		for p in *@map.player_list
 			x,y = math.ceil(p.x / 32) - sx + 1, math.ceil(p.y / 32) - sy

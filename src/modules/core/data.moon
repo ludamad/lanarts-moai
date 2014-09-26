@@ -39,11 +39,11 @@ TileGrid = with newtype()
 TexPart = with newtype()
 	.init = (texture, x, y, w, h) =>
 		@texture, @x, @y, @w, @h = texture, x, y, w, h
-	.draw = (x, y, alpha=1, originx=0, originy=0) =>
+	.draw = (x, y, alpha=1, originx=0, originy=0, r=1, g=1, b=1) =>
 		texw, texh = @texture\getSize()
 		nx, ny = 1 - originx, 1 - originy
 		-- TODO: Make drawTexture not such a long function?
-		MOAIDraw.drawTexture @texture, x-@w*originx, y-@h*originy, x+@w*nx, y + @h*ny, @x/texw, @y/texh, (@x+@w)/texw, (@y+@h)/texh, alpha
+		MOAIDraw.drawTexture @texture, x-@w*originx, y-@h*originy, x+@w*nx, y + @h*ny, @x/texw, @y/texh, (@x+@w)/texw, (@y+@h)/texh, r,g,b, alpha
 	.update_quad = (quad) =>
 		texw, texh = @texture\getSize()
 		with quad 
@@ -78,9 +78,9 @@ Sprite = with newtype()
 		quad = Display.get_quad()
 		@update_quad(quad, (math.floor(frame)-1) % @n_frames() + 1)
 		return quad
-	.draw = (x, y, frame = 1, alpha = 1, originx=0, originy=0) =>
+	.draw = (x, y, frame = 1, alpha = 1, originx=0, originy=0, r=1,g=1,b=1) =>
 		frame = (math.floor(frame)-1) % @n_frames() + 1
-		@tex_parts[frame]\draw(x, y, alpha, originx, originy)
+		@tex_parts[frame]\draw(x, y, alpha, originx, originy,r,g,b)
 	.put_prop = (layer, x, y, frame = 1, priority = 0, alpha = 1) =>
 		return with Display.put_prop(layer)
             \setDeck(@get_quad(frame))

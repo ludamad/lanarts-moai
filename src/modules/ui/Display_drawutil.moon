@@ -77,6 +77,8 @@ return {
 	drawText: _drawText
 	drawTextXCenter: (font, text, x, y, color, size, max_width) ->
 		_drawText(font, text, x, y, color, size, 0.5, 0, max_width)
+	drawTextCenter: (font, text, x, y, color, size, max_width) ->
+		_drawText(font, text, x, y, color, size, 0.5, 0.5, max_width)
 	drawTexture: (texture_or_args, x, y, origin = Display.LEFT_TOP) ->
 		local args
 		if type(texture_or_args) == 'userdata'

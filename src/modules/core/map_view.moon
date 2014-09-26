@@ -68,6 +68,7 @@ setup_tile_layers = (V) ->
                 \setDeck with MOAITileDeck2D.new()
                     \setTexture(res.get_texture(file))
                     \setSize(tex_w / tw, tex_h / th)
+                    \setUVQuad( -0.5, -0.5, 0.5, -0.5, 0.5, 0.5, -0.5, 0.5 )
                 \setGrid(grids[file])
         return grids[file]
 

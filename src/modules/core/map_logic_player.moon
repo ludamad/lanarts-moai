@@ -196,7 +196,5 @@ player_handle_io = (M) =>
             vy: -1
             action: "TODO"
         }
-    if user_io.key_pressed "K_U"
-        M.gamestate.local_player()\attack(M)
 
 return {:player_step, :player_handle_io, :player_perform_action}

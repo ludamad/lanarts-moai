@@ -20,19 +20,27 @@ import FieldOfView, FloodFillPaths, util_geometry from require "core"
 --  Object destruction:
 --   .unregister()
 
--- Priority increment -- note, MUST be an integer
--- Enough to increment the different parts of a player
-PRIORITY_INCR = 25
+ATTACK_ANIMATION_PRIORITY = 98 -- Lower means more 'on top'
+PROJECTILE_PRIORITY = 99
+-- The base priority for combat objects, will never fall below 100 after adjustments.
+BASE_PRIORITY = 101
+FEATURE_PRIORITY = 102
+-- Add Y values * Y_PRIORITY_INCR to adjust the object priority.
+Y_PRIORITY_INCR = -(2^-16)
+
+local Animation -- Forward declare, used throughout
 
 ObjectBase = newtype {
 	---------------------------------------------------------------------------
 	-- Core protocol
 	---------------------------------------------------------------------------
     alpha: 1.0
+    sprite: false
     priority: 0
 	init: (M, args) =>
 		@x, @y, @radius = args.x, args.y, args.radius or 16
         @target_radius, @solid = (args.target_radius or args.radius or 16), args.solid or false
+        if args.priority then @priority = args.priority
         @map = M
         -- Register into world , and store the instance table ID
         @id = M.objects\add(@)
@@ -49,26 +57,29 @@ ObjectBase = newtype {
         M.objects\remove(@)
 
     pre_draw: (V) => 
-        -- Last number is priority
-        @sprite\put_prop(Display.game_obj_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR, @alpha)
+        -- -- Last number is priority
+        -- @sprite\put_prop(Display.game_obj_layer, @x, @y, @frame, @priority + @y * PRIORITY_INCR, @alpha)
 
-    draw: (V) => nil
-
+    draw: (V, r=1, g=1, b=1) => 
+        if @sprite then @sprite\draw(@x, @y, @frame, @alpha, 0.5, 0.5, r, g, b)
     -- Note: Does not sync props
     sync: (M) => nil
 }
 
 Feature = newtype {
     parent: ObjectBase
+    priority: FEATURE_PRIORITY
     init: (M, args) =>
         if args.solid
             tx, ty = math.floor(args.x/32), math.floor(args.y/32)
             M.tilemap\square_apply({tx, ty}, {add: TileMap.FLAG_SOLID})
             args.solid = false -- Avoid setting solidity on the object itself
         ObjectBase.init(@, M, args)
-        @priority = -10
-        @sprite = data.get_sprite(args.sprite)
-        @frame = M.rng\random(1, @sprite\n_frames()+1)
+        @true_sprite = data.get_sprite(args.sprite)
+        @sprite = false -- Last seen sprite
+        @frame = M.rng\random(1, @true_sprite\n_frames()+1)
+    was_seen: () => (@sprite ~= false)
+    mark_seen: () => @sprite = @true_sprite
 }
 
 draw_statbar = (x,y,w,h, ratio) ->
@@ -90,6 +101,7 @@ CombatObjectBase = newtype {
         -- The collision evasion component
         @id_rvo = M.rvo_world\add_instance(@x, @y, @radius, @speed)
         append M.combat_object_list, @
+        @set_priority()
 
     remove: (M) =>
         ObjectBase.remove(@, M)
@@ -104,6 +116,9 @@ CombatObjectBase = newtype {
         ObjectBase.sync(@, M)
         @sync_col(M)
 
+    set_priority: () =>
+        @priority = BASE_PRIORITY + Y_PRIORITY_INCR * @y
+
     -- Set RVO heading
     set_rvo: (M, dx, dy, max_speed = @speed, radius = @radius) =>
         M.rvo_world\update_instance(@id_rvo, @x, @y, radius, max_speed, dx, dy)
@@ -116,7 +131,17 @@ CombatObjectBase = newtype {
     on_death: (M, attacker) =>
         @queue_remove(M)
 
+    _hurt_color_mod: () => 
+        -- Derived from experimental tinkering:
+        h,H = @stats.cooldowns.hurt_cooldown, statsystem.HURT_COOLDOWN
+        if h == 0 then return 1
+        elseif h < H/2 then return h/H*0.35 + 0.3
+        else return (H - h)*0.07 + 0.3
+
     draw: (V) =>
+        hmod = @_hurt_color_mod()
+        -- Use hurt cooldown to modify r,g,b values:
+        ObjectBase.draw(@, V, 1, hmod, hmod)
         healthbar_offsety = 20
         if @target_radius > 16
             healthbar_offsety = @target_radius + 8
@@ -169,7 +194,7 @@ Player = newtype {
 
         logI("Player::init stats created")
 
-        @vision_tile_radius = 4
+        @vision_tile_radius = 5
         @player_path_radius = 300
         @id_player = args.id_player
         @vision = Vision.create(M, @vision_tile_radius)
@@ -197,9 +222,11 @@ Player = newtype {
     REST_SPRITE: data.get_sprite("stat-rest")
 
     draw: (V) =>
+        hmod = @_hurt_color_mod()
         -- Put base sprite
         sp = data.get_sprite(@stats.race.avatar_sprite)
-        sp\draw(@x, @y, @frame, 1, 0.5, 0.5)
+        -- Last 3 numbers: r,g,b
+        sp\draw(@x, @y, @frame, 1, 0.5, 0.5, 1, hmod, hmod)
 
         for equip_type in *@SMALL_SPRITE_ORDER
             local avatar_sprite
@@ -213,7 +240,7 @@ Player = newtype {
             if avatar_sprite
                 -- Put avatar sprite
                 sp = data.get_sprite(avatar_sprite)
-                sp\draw(@x, @y, @frame, 1, 0.5, 0.5)
+                sp\draw(@x, @y, @frame, 1, 0.5, 0.5, 1, hmod, hmod)
         if @stats.is_resting
             @REST_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
         CombatObjectBase.draw(@, V)
@@ -232,7 +259,10 @@ Player = newtype {
     attack: (M) =>
         o = @nearest_enemy(M)
         if o
-            @stats.attack\apply(o.stats)
+            @stats.attack\apply(o.stats)        
+            Animation.create M, {
+                sprite: data.get_sprite("Unarmed"), x: o.x, y: o.y, vx: 0, vy: 0, priority: ATTACK_ANIMATION_PRIORITY,fade_rate: 0.1
+            }
 
     can_see: (obj) =>
         return @vision.fieldofview\circle_visible(obj.x, obj.y, obj.radius)
@@ -243,7 +273,6 @@ Player = newtype {
         @paths_to_player\update(@x, @y, @player_path_radius)
 }
 
-local Animation -- Forward declare, used in on_death
 NPC = newtype {
     parent: CombatObjectBase
     init: (M, args) =>
@@ -270,7 +299,7 @@ NPC = newtype {
     on_death: (M) =>
         CombatObjectBase.on_death(@, M)   
         Animation.create M, {
-            sprite: @sprite, x: @x, y: @y, vx: 0, vy: 0
+            sprite: @sprite, x: @x, y: @y, vx: 0, vy: 0, priority: @priority
         }
 
     remove: (M) =>
@@ -282,12 +311,13 @@ NPC = newtype {
 -- 'Step' is called in animation phase, in map_logic.moon
 Animation = newtype {
     parent: ObjectBase
-    priority: 1
     init: (M, args) =>
         ObjectBase.init(@, M, args)
+        assert args.priority, "Animation requires specifying priority! Alternative is chaos."
         @vx = args.vx or 0
         @vy = args.vy or 0
         @alpha = args.alpha or 1.0
+        @fade_rate = args.fade_rate or 0.05
         @sprite = args.sprite
         append M.animation_list, @
 
@@ -298,7 +328,7 @@ Animation = newtype {
     step: (M) =>
         @x += @vx
         @y += @vy
-        @alpha = math.max(@alpha - 0.05, 0)
+        @alpha = math.max(@alpha - @fade_rate, 0)
         if @alpha == 0
             @queue_remove(M)
 }
@@ -306,7 +336,7 @@ Animation = newtype {
 -- 'Step' is called in projectile phase, in map_logic.moon
 Projectile = newtype {
     parent: ObjectBase
-    priority: 1
+    priority: PROJECTILE_PRIORITY
     init: (M, args) =>
         ObjectBase.init(@, M, args)
         @sprite = args.sprite
@@ -323,11 +353,8 @@ Projectile = newtype {
             obj = M.col_id_to_object[col_id]
             if getmetatable(obj) == NPC
                 Animation.create M, {
-                    sprite: @sprite
-                    x: @x
-                    y: @y
-                    vx: @vx
-                    vy: @vy
+                    sprite: @sprite, x: @x, y: @y
+                    vx: @vx, vy: @vy, priority: @priority
                 }
                 @queue_remove(M)
                 return

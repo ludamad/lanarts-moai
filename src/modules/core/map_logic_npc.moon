@@ -55,11 +55,12 @@ npc_step_all = (M) ->
 
         -- If we are on direct course with a wall, adjust heading:
         if M.tile_check(obj, vx, vy)
-            -- Try rotations (rationale: guarantee to preserve momentum, and not move directly backwards):
-            if not M.tile_check(obj, -vy, vx) then vx, vy = -vy, vx
-            elseif not M.tile_check(obj, vy, vx) then vx, vy = vy, vx
-            elseif not M.tile_check(obj, vy, -vx) then vx, vy = vy, -vx
-            elseif not M.tile_check(obj, -vy, -vx) then vx, vy = -vy, -vx
+            -- Try random rotations (rationale: guarantee to preserve momentum, and not move directly backwards):
+            case = M.rng\random(0,4)
+            if case==0 and not M.tile_check(obj, -vy, vx) then vx, vy = -vy, vx
+            elseif case==1 and not M.tile_check(obj, vy, vx) then vx, vy = vy, vx
+            elseif case==2 and not M.tile_check(obj, vy, -vx) then vx, vy = vy, -vx
+            elseif case==3 and not M.tile_check(obj, -vy, -vx) then vx, vy = -vy, -vx
             else vx, vy = 0,0
 
         -- Advance forward if we don't hit a solid object

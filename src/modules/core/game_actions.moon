@@ -41,10 +41,10 @@ unbox_move_component = (action) ->
     -- Subtract 3 to recreate the directions from make_move_action
     return id_player, step_number, genericbyte1 - 3, genericbyte2 - 3
 
-GameAction = with newtype()
+GameAction = newtype {
     -- Use with either .create(buffer)
     -- or .create(id, type, target, x, y)
-    .init = (id_player_or_buffer, action_type, gb1, gb2, step_number, id_target, x, y) =>
+    init: (id_player_or_buffer, action_type, gb1, gb2, step_number, id_target, x, y) =>
         if type(id_player_or_buffer) ~= 'number'
             -- Not the ID, read from 
             @read(id_player_or_buffer)
@@ -62,7 +62,7 @@ GameAction = with newtype()
         -- Two 64bit floats (semi-general purpose)
         @x, @y = x, y
 
-    .equals = (O) =>
+    equals: (O) =>
         if @id_player ~= O.id_player then return false
         if @action_type ~= O.action_type then return false
         if @step_number ~= O.step_number then return false
@@ -73,9 +73,9 @@ GameAction = with newtype()
         if @y ~= O.y then return false
         return true
 
-    .serialization_size = 26
+    serialization_size: 26
 
-    .read = (buffer) =>
+    read: (buffer) =>
         -- For use with DataBuffer
         @id_player = buffer\read_byte() -- +1
         @action_type = buffer\read_byte() -- +1 = 2
@@ -86,7 +86,7 @@ GameAction = with newtype()
         @x = buffer\read_double() -- + 8 = 20
         @y = buffer\read_double() -- + 8 = 26
 
-    .write = (buffer) => with buffer
+    write: (buffer) => with buffer
         -- For use with DataBuffer
         \write_byte @id_player
         \write_byte @action_type
@@ -96,6 +96,7 @@ GameAction = with newtype()
         \write_int @id_target
         \write_double @x
         \write_double @y
+}
 
 -------------------------------------------------------------------------------
 -- Implementation of GameActionFrameSet and related helpers that form a buffer

@@ -4,7 +4,7 @@ import Display from require 'ui'
 import REST_COOLDOWN from require "statsystem"
 import ErrorReporting from require "system"
 
-import ObjectBase, CombatObjectBase, Player, NPC, Projectile from require '@map_object_types'
+import ObjectBase, CombatObjectBase, Player, NPC, Feature, Projectile from require '@map_object_types'
 import player_step, player_handle_io, player_handle_action from require "@map_logic_player"
 import npc_step_all from require "@map_logic_npc"
 
@@ -13,10 +13,6 @@ modules = require 'core.data'
 user_io = require 'user_io'
 
 step_objects = (M) ->
-    for obj in *M.npc_list--*M.combat_object_list
-        if obj.stats.raw_hp <= 0
-            obj\on_death(M)
-
     --Step all stat contexts
     for obj in *M.combat_object_list
         obj.stats\calculate()
@@ -37,6 +33,13 @@ step_objects = (M) ->
         player_step(obj, M)
 
     npc_step_all(M)
+
+    for obj in *M.combat_object_list
+        -- Set the priority, for the draw event
+        obj\set_priority()
+        -- Process dead objects
+        if obj.stats.raw_hp <= 0
+            obj\on_death(M)
 
     -- Remove any objects queued for removal
     for obj in *M.removal_list
@@ -132,14 +135,31 @@ pre_draw = (V) ->
         -- Step the component
         component()
 
+
+should_draw_object = (V, obj) ->
+    in_sight = false
+    for p in *V.map.player_list
+        if util_geometry.object_distance(obj, p) < 300 and p\can_see(obj)
+            in_sight = true
+            break
+    -- Special logic for features, draw them as the last thing we saw them:
+    if getmetatable(obj) == Feature
+        if in_sight
+            obj\mark_seen()
+        return obj\was_seen()
+    -- For other objects, only draw them when they are in sight:
+    return in_sight
+
+OBJECT_LIST_CACHE = {}
+priority_compare = (a, b) -> (a.priority > b.priority)
 draw = ErrorReporting.wrap (V) ->
+    table.clear(OBJECT_LIST_CACHE)
     for obj in *V.map.object_list
-        seen = false
-        for p in *V.map.player_list
-            if util_geometry.object_distance(obj, p) < 300 and p\can_see(obj)
-                seen = true
-                break
-        if seen
+        append OBJECT_LIST_CACHE, obj
+    table.sort(OBJECT_LIST_CACHE, priority_compare)
+
+    for obj in *OBJECT_LIST_CACHE
+        if should_draw_object(V, obj)
             obj\draw(V)
 
 return {:step, :handle_io, :start, :pre_draw, :draw}

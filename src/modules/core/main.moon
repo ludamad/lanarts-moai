@@ -44,22 +44,7 @@ _spawn_players = (G, M, stat_components) ->
                 class_args: stat_components.class_args
                 solid: true
                 id_player: i
-                speed: 4
-            }
-
-_spawn_monsters = (G, M) ->
-    import random_square_spawn_object from require '@util_generate'
-
-    for i=1,10
-        random_square_spawn_object M, (px, py) ->
-            map_object_types.NPC.create M, {
-                x: px*32+16
-                y: py*32+16
-                type: "Giant Rat"
-                radius: 10
-                solid: true
-                id_player: i
-                speed: 4
+                speed: 6
             }
 
 view_game = (stat_components, on_death) ->
@@ -76,7 +61,7 @@ view_game = (stat_components, on_death) ->
 
     _start_game = () ->
         logI("game start called")
-		tilemap = modules.get_map("start").generator(G, rng)
+		tilemap = modules.get_map("start").generator(G, rng, require("@generate_data").SMALL)
 
 	    M = map_state.create_map_state(G, 1, rng, tilemap)
         tilemap\generate_objects(M)
@@ -88,7 +73,6 @@ view_game = (stat_components, on_death) ->
         logI("Map created")
         map_state.map_set(M)
 	    _spawn_players(G, M, stat_components)
-        _spawn_monsters(G, M)
         logI("players & monsters spawned")
 	    V = map_view.create_map_view(M, w, h)
 
