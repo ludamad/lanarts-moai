@@ -195,15 +195,19 @@ CombatObjectBase = newtype {
 
 -- NB: Controlling logic in map_logic
 
+SHARED_LINE_OF_SIGHT = 2
+
 Vision = newtype {
     init: (M, line_of_sight) =>
         @line_of_sight = line_of_sight
         @seen_tile_map = BoolGrid.create(M.tilemap_width, M.tilemap_height, false)
-        @fieldofview = FieldOfView.create(M.tilemap, @line_of_sight)
+        @fieldofview = FieldOfView.create(@line_of_sight)
+        @shared_fieldofview = FieldOfView.create(SHARED_LINE_OF_SIGHT)
         @prev_seen_bounds = {0,0,0,0}
         @current_seen_bounds = {0,0,0,0}
-    update: (x, y) =>
-        @fieldofview\calculate(x, y)
+    update: (M, x, y) =>
+        @fieldofview\calculate(M.tilemap, x, y)
+        @shared_fieldofview\calculate(M.tilemap, x, y)
         @fieldofview\update_seen_map(@seen_tile_map)
         @prev_seen_bounds = @current_seen_bounds
         @current_seen_bounds = @fieldofview\tiles_covered()
@@ -307,7 +311,7 @@ Player = newtype {
 
     sync: (M) =>
         CombatObjectBase.sync(@, M)
-        @vision\update(@x/M.tile_width, @y/M.tile_height)
+        @vision\update(M, @x/M.tile_width, @y/M.tile_height)
         @paths_to_player\update(@x, @y, @player_path_radius)
 }
 
