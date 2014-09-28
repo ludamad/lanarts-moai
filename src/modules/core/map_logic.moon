@@ -177,9 +177,9 @@ draw = ErrorReporting.wrap (V) ->
             obj\draw(V)
     -- Draw overlay information
     for obj in *V.map.player_list
-        pinfo = V.gamestate.players[obj.id_player]
-        color = {unpack(pinfo.color)}
-        color[4] = 0.8
-        Display.drawTextCenter(PLAYER_NAME_FONT, V.gamestate.player_name(obj), obj.x, obj.y-25, color, 14)
+        -- pinfo = V.gamestate.players[obj.id_player]
+        -- color = {unpack(pinfo.color)}
+        -- color[4] = 0.8
+        Display.drawTextCenter(PLAYER_NAME_FONT, V.gamestate.player_name(obj), obj.x, obj.y-25, Display.COL_RED, 14)
 
 return {:step, :handle_io, :start, :pre_draw, :draw, :assertSync}

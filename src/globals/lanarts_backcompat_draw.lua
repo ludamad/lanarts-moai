@@ -68,9 +68,9 @@ function _G.draw_colored_parts(font, origin, xy, ...)
 end
 
 --- Load a font, first checking if it exists in a cache
-font_cached_load = memoized(Display.font_load)
+--font_cached_load = memoized(Display.font_load)
 --- Load an image, first checking if it exists in a cache
-image_cached_load = memoized(Display.image_load)
+--image_cached_load = memoized(Display.image_load)
 DEBUG_LAYOUTS = false
 
 function _G.DEBUG_BOX_DRAW(self, x, y)

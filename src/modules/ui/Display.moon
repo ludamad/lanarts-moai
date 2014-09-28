@@ -3,7 +3,7 @@
 Module = nilprotect {}
 
 -- TODO: Remove dependency on C++ code here
-table.merge Module, require "lanarts.draw"
+--table.merge Module, require "lanarts.draw"
 
 -- Import extra components
 table.merge Module, require '@Display_drawcache'

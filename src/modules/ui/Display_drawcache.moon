@@ -96,4 +96,10 @@ put_image = (layer, tex, x, y, priority = 0) ->
                 texw/2, -texh/2
         \setPriority priority
 
-return {:put_text, :put_image, :put_text_center, :put_text_right,  :get_quad, :put_prop, :textbox_fit_text, :reset_draw_cache}
+shift_origin = (bbox, origin) ->
+    {x1,y1,x2,y2} = bbox
+    w,h = (x2-x1), (y2-y1)
+    {ox, oy} = origin
+    return {(x1 - w*ox), (y1 - h*ox), (x2 - w*ox), (y2 - h*ox)}
+
+return {:put_text, :put_image, :put_text_center, :put_text_right,  :get_quad, :put_prop, :textbox_fit_text, :reset_draw_cache, :shift_origin}

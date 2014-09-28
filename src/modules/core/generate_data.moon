@@ -4,8 +4,6 @@ T =  modules.get_tilelist_id
 import random_square_spawn_object from require '@util_generate'
 import map_object_types from require 'core'
 
-
-
 spawn_rats = (n_rats) -> (M) ->
     for i=1,n_rats
         random_square_spawn_object M, (px, py) ->
