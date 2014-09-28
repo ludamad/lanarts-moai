@@ -99,14 +99,11 @@ UI_PRIORITY = 200
 _draw_text = (V, text, obj, dx, dy) ->
     with Display.put_text_center Display.game_obj_layer, _text_style, text, obj.x + dx, obj.y + dy
         \setPriority UI_PRIORITY
-        \setColor 1,1,1,0.2
+        \setColor 1,1,0.5,0.4
 
 -- Takes view object
 pre_draw = (V) ->
     Display.reset_draw_cache()
-
-    for obj in *V.map.player_list
-        _draw_text(V, V.gamestate.player_name(obj), obj, 0, -25)
 
     -- print MOAISim.getPerformance()
     if _SETTINGS.headless then return
@@ -134,14 +131,14 @@ pre_draw = (V) ->
     for y=y1,y2 do for x=x1,x2
         tile = 2
         for inst in *V.map.player_list
-            seen = inst.vision.seen_tile_map
+            seen = V.map.player_seen_map(inst.id_player)
             fov = inst.vision.fieldofview
             if seen\get(x,y) then tile = 1
         V.fov_grid\setTile(x, y, tile)
 
     for inst in *V.map.player_list
-       {x1,y1,x2,y2} = inst.vision.current_seen_bounds
-       fov = inst.vision.fieldofview
+       fov, bounds = inst.vision\get_fov_and_bounds(V.map)
+       {x1,y1,x2,y2} = bounds
        for y=y1,y2-1 do for x=x1,x2-1
             if fov\within_fov(x,y)
                 V.fov_grid\setTile(x, y, 0) -- Currently seen
@@ -165,6 +162,8 @@ should_draw_object = (V, obj) ->
     -- For other objects, only draw them when they are in sight:
     return in_sight
 
+PLAYER_NAME_FONT = resources.get_font 'Gudea-Regular.ttf'
+
 OBJECT_LIST_CACHE = {}
 priority_compare = (a, b) -> (a.priority > b.priority)
 draw = ErrorReporting.wrap (V) ->
@@ -176,5 +175,11 @@ draw = ErrorReporting.wrap (V) ->
     for obj in *OBJECT_LIST_CACHE
         if should_draw_object(V, obj)
             obj\draw(V)
+    -- Draw overlay information
+    for obj in *V.map.player_list
+        pinfo = V.gamestate.players[obj.id_player]
+        color = {unpack(pinfo.color)}
+        color[4] = 0.8
+        Display.drawTextCenter(PLAYER_NAME_FONT, V.gamestate.player_name(obj), obj.x, obj.y-25, color, 14)
 
 return {:step, :handle_io, :start, :pre_draw, :draw, :assertSync}

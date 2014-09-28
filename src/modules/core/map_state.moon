@@ -124,6 +124,14 @@ _setup_map_state_helpers = (M) ->
                 return p
         return nil
 
+    _SEEN_MAPS = {}
+    M.player_seen_map = (id_player) ->
+        seen_map = _SEEN_MAPS[id_player]
+        if not seen_map
+            seen_map = BoolGrid.create(M.tilemap_width, M.tilemap_height, false)
+            _SEEN_MAPS[id_player] = seen_map
+        return seen_map
+
     M.npc_iter = () ->
         return M.objects\iter(NPC)
 

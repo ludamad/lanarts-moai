@@ -195,22 +195,35 @@ CombatObjectBase = newtype {
 
 -- NB: Controlling logic in map_logic
 
-SHARED_LINE_OF_SIGHT = 2
+SHARED_LINE_OF_SIGHT = 3
 
-Vision = newtype {
-    init: (M, line_of_sight) =>
+PlayerVision = newtype {
+    init: (M, id_player, line_of_sight) =>
         @line_of_sight = line_of_sight
-        @seen_tile_map = BoolGrid.create(M.tilemap_width, M.tilemap_height, false)
+        @id_player = id_player
         @fieldofview = FieldOfView.create(@line_of_sight)
         @shared_fieldofview = FieldOfView.create(SHARED_LINE_OF_SIGHT)
         @prev_seen_bounds = {0,0,0,0}
         @current_seen_bounds = {0,0,0,0}
+        @shared_prev_seen_bounds = {0,0,0,0}
+        @shared_current_seen_bounds = {0,0,0,0}
+    get_fov_and_bounds: (M) =>
+        if M.gamestate.local_player_id == @id_player
+            return @fieldofview, @current_seen_bounds
+        return @shared_fieldofview, @shared_current_seen_bounds
     update: (M, x, y) =>
         @fieldofview\calculate(M.tilemap, x, y)
         @shared_fieldofview\calculate(M.tilemap, x, y)
-        @fieldofview\update_seen_map(@seen_tile_map)
+        @fieldofview\update_seen_map(M.player_seen_map(@id_player))
+        for other_player in *M.gamestate.players
+            if other_player.id_player ~= @id_player
+                @shared_fieldofview\update_seen_map(M.player_seen_map(other_player.id_player))
+        -- Local state update:
         @prev_seen_bounds = @current_seen_bounds
         @current_seen_bounds = @fieldofview\tiles_covered()
+        -- Shared state update:
+        @shared_prev_seen_bounds = @shared_current_seen_bounds
+        @shared_current_seen_bounds = @shared_fieldofview\tiles_covered()
 }
 
 -- 'State machine'p for player actions
@@ -243,7 +256,7 @@ Player = newtype {
         @vision_tile_radius = 5
         @player_path_radius = 300
         @id_player = args.id_player
-        @vision = Vision.create(M, @vision_tile_radius)
+        @vision = PlayerVision.create(M, @id_player, @vision_tile_radius)
         @paths_to_player = FloodFillPaths.create(M.tilemap)
         append M.player_list, @
         logI("Player::init complete")

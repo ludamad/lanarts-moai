@@ -91,10 +91,11 @@ MiniMap = newtype {
 
 		z_is_down = key_down("K_Z")
 
+		seen_map = @map.player_seen_map(player.id_player)
 		for row=1,@tile_h
 			-- Last number is default fill
 			TileMap.get_row_flags(@map.tilemap, buff, sx, sx + @tile_w, sy + row, FLAG_SOLID)
-			player.vision.seen_tile_map\get_row(seen_buff, sx, sx + @tile_h, sy + row, false)
+			seen_map\get_row(seen_buff, sx, sx + @tile_h, sy + row, false)
 			for i=1,@tile_w
 				flags = buff[i]
 				buff[i] = bit_and(flags, FLAG_PERIMETER) ~= 0 and IDX_DARK_PINK or IDX_CLEAR
@@ -105,12 +106,13 @@ MiniMap = newtype {
 
 			@grid\setRow(row, unpack(buff))
 
+		G = @map.gamestate
 		-- Adjust for player vision:
 	    for inst in *@map.player_list
-	       {x1,y1,x2,y2} = inst.vision.current_seen_bounds
+	       fov, bounds = inst.vision\get_fov_and_bounds(@map)
+	       {x1,y1,x2,y2} = bounds
 	       x1, x2 = math.max(sx, x1), math.min(x2, sx + @tile_w)
 	       y1, y2 = math.max(sy, y1), math.min(y2, sy + @tile_h)
-	       fov = inst.vision.fieldofview
 	       for y=y1,y2-1 do for x=x1,x2-1
 	            if fov\within_fov(x,y)
 	            	tile = @grid\getTile(x - sx, y - sy)
