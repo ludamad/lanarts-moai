@@ -21,6 +21,12 @@ npc_list = (M) ->
 -- Step a player for a single tick of the time
 -- M: The current map
 npc_step_all = (M) ->
+    -- Try to force synchronization
+    M.rvo_world\clear()
+    for obj in *M.combat_object_list
+        obj.id_rvo = M.rvo_world\add_instance(obj.x, obj.y, obj.radius, obj.speed)
+    -----
+
     -- Set up directions of all NPCs
     npcs = [npc for npc in *M.npc_list]
     for obj in *npcs

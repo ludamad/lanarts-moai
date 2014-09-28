@@ -54,6 +54,8 @@ make_local_seed = () -> math.floor(os.time() * (2^12) + os.clock() * (2^6))
 
 shutdown_hook = (G) -> () ->
     logI "shutdown_hook called"
+    if G.net_handler
+        G.net_handler\disconnect()
 
 pregame_setup_and_join_screen = (controller, continue_callback) ->
     logI("pregame_setup_and_join_screen")
@@ -99,7 +101,7 @@ pregame_setup_and_join_screen = (controller, continue_callback) ->
         msg_identifier = "DebugSync(#{label})"
         net_send msg_identifier, payload
         while true
-            if G.net_handler\check_message("Restart", false)
+            if G.net_handler\check_message("Restart", false) or G.net_handler\check_message("ByeBye", false)
                 break
             msgs = net_recv msg_identifier
             if msgs

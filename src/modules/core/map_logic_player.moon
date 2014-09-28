@@ -184,9 +184,9 @@ player_handle_io = (M) =>
     else
         action = game_actions.make_move_action G.game_id, @, step_number, dx, dy
     G.queue_action(action)
-    -- if G.net_handler
+    if G.net_handler
         -- Send last two unacknowledged actions (included the one just queued)
-        -- G.net_handler\send_unacknowledged_actions(2)
+        G.net_handler\send_unacknowledged_actions(1)
 
     if user_io.key_pressed "K_P"
         Projectile.create M, {

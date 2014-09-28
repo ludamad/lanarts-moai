@@ -242,7 +242,6 @@ setup_action_state = (G) ->
     G.queue_action = (action) ->
         if action.game_id == G.game_id
             return G.player_actions\add(action)
-        pretty "LIMBO", action
         append G.limbo_actions, action
         return false
 

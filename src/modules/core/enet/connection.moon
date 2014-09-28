@@ -34,9 +34,10 @@ ServerConnection = with newtype()
 			elseif event.type == "receive"
 				append @messages, event
 			elseif event.type == "disconnect"
+				print("Server got disconnect")
 				append @disconnects, event
 			else
-				pretty("Client got ", event)
+				pretty("Server got ", event)
 
 	.poll = (wait_time = 0) =>
 		event = @host\service(wait_time)
@@ -91,6 +92,7 @@ ClientConnection = with newtype()
 			elseif event.type == "receive"
 				append @messages, event
 			elseif event.type == "disconnect"
+				print("Client got disconnect")
 				append @disconnects, event
 			else
 				pretty("Client got ", event)

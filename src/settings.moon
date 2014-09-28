@@ -22,7 +22,7 @@ frames_per_second_csp: 50
 regen_on_death: true
 
 --Online settings
-network_lockstep: false
+network_lockstep: true
 username: 'User'
 lobby_server_url: 'http://putterson.homedns.org:8080'
 

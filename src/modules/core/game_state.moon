@@ -64,62 +64,70 @@ _net_step = (G) ->
         G.doing_client_side_prediction = true
         G.step()
 
+check_quit_conditions = (G) ->
+    -- Are we initiating a restart?
+    if user_io.key_pressed "K_R"
+        if G.net_handler 
+            new_seed = G.rng\random(0, 2^31)
+            G.net_handler\send_message {type: "Restart", :new_seed}
+            G.net_handler\handshake "RestartAck"
+            G.initialize_rng(new_seed)
+        return true
+    if not G.net_handler
+        return false -- Rest are network triggered
+    -- Did the other user(s) disconnect?
+    if #G.net_handler\get_disconnects() > 0 or G.net_handler\check_message "ByeBye"
+        os.exit() -- TODO: Fix
+
+    -- Did we get a restart message?
+    msg = G.net_handler\check_message "Restart"
+    if msg 
+        G.net_handler\handshake "RestartAck"
+        G.initialize_rng(msg.new_seed)
+        return true
+    return false
+
 main_thread = (G, on_death) -> profile () ->
     last_full_send_time = MOAISim\getDeviceTime()
     last_part_send_time = MOAISim\getDeviceTime()
     while true
         coroutine.yield()
 
-        G.handle_io()
-        if G.net_handler
-            G.net_handler\poll()
-            if _SETTINGS.network_lockstep
-                -- G.net_handler\send_unacknowledged_actions()
-                while G.step_number > G.player_actions\find_latest_complete_frame()
-                    G.net_handler\poll(1)
-                    -- G.net_handler\send_unacknowledged_actions()
-
+        last_best = G.player_actions\find_latest_complete_frame()
+        if G.net_handler then G.net_handler\poll(1)
+        -- Should we make a local player action from user input, for the current frame?
+        if not _SETTINGS.network_lockstep or not G.get_action(G.local_player_id, G.step_number)
+            G.handle_io()
+        if G.net_handler and not _SETTINGS.network_lockstep
+            -- Client side prediction
             if MOAISim\getDeviceTime() > last_full_send_time + (100/1000)
                 G.net_handler\send_unacknowledged_actions()
-                last_full_send_timem = MOAISim\getDeviceTime()
+                last_full_send_time = MOAISim\getDeviceTime()
 
             -- if MOAISim\getDeviceTime() > last_part_send_time + (25/1000)
             --     G.net_handler\send_unacknowledged_actions(2) -- Only 2 frames back in time
             --     last_part_send_time = MOAISim\getDeviceTime()
             before = MOAISim\getDeviceTime()
-
             _net_step(G)
-
             after = MOAISim\getDeviceTime()
-            -- print "'STEP' took #{(after - before)*1000} milliseconds!"
+            logV "'_net_step' took #{(after - before)*1000} milliseconds!"
 
             last_needed = math.min(G.fork_step_number, G.net_handler\min_acknowledged_frame())
             G.drop_old_actions(last_needed - 1)
-        else
+        elseif G.net_handler or G.step_number <= last_best
+            -- Lock-step
             G.doing_client_side_prediction = false
-            if G.step() == "death"
-                on_death()
-                G.map_view.clear()
-                -- TODO: Explicitly tear down all state
-                return -- Continue to next menu
+            G.step()
+            last_needed = math.min(G.fork_step_number, G.net_handler\min_acknowledged_frame())
+            G.drop_old_actions(last_needed - 1)
+        else -- Single player
+            G.doing_client_side_prediction = false
+            G.step()
             G.drop_old_actions(G.step_number - 1)
         G.pre_draw()
-        -- Are we initiating a restart?
-        if user_io.key_pressed "K_R"
-            if G.net_handler 
-                new_seed = G.rng\random(0, 2^31)
-                G.net_handler\send_message {type: "Restart", :new_seed}
-                G.net_handler\handshake "RestartAck"
-                G.initialize_rng(new_seed)
-            return
-        -- Did we get a restart message?
-        if G.net_handler
-            msg = G.net_handler\check_message "Restart"
-            if msg 
-                G.net_handler\handshake "RestartAck"
-                G.initialize_rng(msg.new_seed)
-                return
 
+        if check_quit_conditions(G)
+            return
 
 setup_network_state = (G) ->
     if G.gametype == 'client'

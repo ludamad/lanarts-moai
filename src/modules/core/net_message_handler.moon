@@ -80,6 +80,7 @@ setup_handler_base = (N) ->
         N.connection\connect()
 
     N.disconnect = () =>
+        N\send_message {type: "ByeBye"}
         N.connection\disconnect()
 
     N.get_disconnects = () =>
