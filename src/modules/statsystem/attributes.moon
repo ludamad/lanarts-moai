@@ -69,6 +69,7 @@ M.ATTACK_ATTRIBUTES = {
   "physical_dmg"
   "physical_power"
   "delay"
+  "cooldown"
   "range"
 
   -- Various sources, eg enchantments, weapon type:

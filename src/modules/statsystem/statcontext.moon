@@ -31,10 +31,12 @@ M.AttackContext = newtype {
   init: (source) =>
     @source = source
     @attributes = attributes.AttackAttributes.create()
+    @on_hit_sprite = false
   revert: () =>
     @attributes\revert()
   copy: (o) => -- Generally, we do not copy the source, as this can be a back-pointer
     @attributes\copy(o.attributes)
+    @on_hit_sprite = o.on_hit_sprite
   -- Note; 'attacker' and 'deferender' are StatContext objects, as defined in statcontext.moon
   apply: calculate.attack_apply
 }

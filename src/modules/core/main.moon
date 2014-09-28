@@ -17,7 +17,7 @@ statsystem = require "statsystem"
 import map_object_types, game_state, map_state, map_view from require 'core'
 
 import Display from require "ui"
-import MenuMain, MenuSettings, MenuCharGen from require "ui.menus"
+import MenuMain, MenuSettings, MenuCharGen, MenuDeath from require "ui.menus"
 
 import thread_create from require 'core.util'
 
@@ -242,6 +242,7 @@ main = () ->
         mmain = nextf ()     -> MenuMain.start(SC, msettings, do_nothing, do_nothing) 
         msettings = nextf () -> MenuSettings.start(SC, mmain, mchargen)
         mchargen = nextf ()  -> MenuCharGen.start(SC, msettings, mpregame)
+        mdeath = nextf () -> MenuDeath.start(SC, msettings)
         mpregame = nextf (stat_components) -> 
             pregame_setup_and_join_screen SC, (G) -> 
                 logI("finished pregame_setup_and_join_screen")
@@ -250,7 +251,8 @@ main = () ->
             start_game(G, stat_components, mchargen)
             G.clear_game_data()
             -- Have we restarted?
-            mstartgame(G, stat_components)
+            mdeath()
+            -- mstartgame(G, stat_components)
         -- Set up first menu
         if os.getenv("TEST_ARCHER")
             mpregame {class: "Archer", race: "Human", class_args: {}}

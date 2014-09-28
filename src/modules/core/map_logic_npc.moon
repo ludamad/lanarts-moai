@@ -4,6 +4,7 @@ import util_movement, util_geometry, util_draw, game_actions from require "core"
 import ObjectBase, CombatObjectBase, Player, NPC, Projectile from require '@map_object_types'
 
 resources = require 'resources'
+statsystem = require 'statsystem'
 modules = require 'core.data'
 user_io = require 'user_io'
 
@@ -21,6 +22,7 @@ npc_list = (M) ->
 -- Step a player for a single tick of the time
 -- M: The current map
 npc_step_all = (M) ->
+
     -- Try to force synchronization
     M.rvo_world\clear()
     for obj in *M.combat_object_list
@@ -30,18 +32,27 @@ npc_step_all = (M) ->
     -- Set up directions of all NPCs
     npcs = [npc for npc in *M.npc_list]
     for obj in *npcs
-        p, dist = M.closest_player(obj)
-        if p
+        -- Disable player resting near danger:
+        for p in *M.player_list
+            if util_geometry.object_distance(obj, p) < 300 and p\can_see(obj)
+                p.stats.cooldowns.rest_cooldown = math.max(p.stats.cooldowns.rest_cooldown, statsystem.REST_COOLDOWN)
+                p.stats.is_resting = false
+
+        dx, dy = 0,0
+        p, dist = obj\nearest_enemy(M)
+        S, A = obj.stats, obj.stats.attack
+        if p and obj.stats.cooldowns.action_cooldown <= 0 and (dist <= A.range)
+            -- Resolve actions, for near-enough enemies
+            obj\queue_weapon_attack(p.id)
+        elseif p and obj.stats.cooldowns.move_cooldown <= 0 and (dist <= 0 or dist >= DIST_THRESHOLD)
             x1,y1,x2,y2 = util_geometry.object_bbox(obj)
             dx, dy = p.paths_to_player\interpolated_direction(math.ceil(x1),math.ceil(y1),math.floor(x2),math.floor(y2), obj.speed)
-            if dist > 0 and dist < DIST_THRESHOLD 
-                dx, dy = 0,0
-            obj\set_rvo(M, dx, dy)
-            -- Temporary storage, just for this function:
-            obj.__vx, obj.__vy = dx, dy
-            obj.__dist = dist
-            obj.__target = p
-            obj.__moved = false
+        obj\set_rvo(M, dx, dy)
+        -- Temporary storage, just for this function:
+        obj.__vx, obj.__vy = dx, dy
+        obj.__dist = dist
+        obj.__target = p
+        obj.__moved = false
 
     -- Run the collision avoidance algorithm
     M.rvo_world\step()
@@ -81,9 +92,5 @@ npc_step_all = (M) ->
             obj.x += vx
             obj.y += vy
         obj.__moved = true
-
-    -- Resolve actions
-    for obj in M.npc_iter()
-        obj\perform_action(M)
 
 return {:npc_step_all}

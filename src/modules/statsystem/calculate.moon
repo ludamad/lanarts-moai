@@ -20,10 +20,13 @@ M.stat_step = (S) ->
 M.attack_calculate = (A) ->
   A\revert()
 
-M.attack_apply = (A, dS) ->
-  Aa, dSa = A.attributes, dS.attributes
-  A.source.cooldowns.action_cooldown = Aa.delay
-  dSa.raw_hp = math.max(0, dSa.raw_hp - Aa.physical_dmg)
+M.attack_apply = (A, rng, dS) ->
+  pow = A.physical_power - dS.physical_resist
+  pow = math.max(pow + rng\random(10, 31), 0)
+  dmg = math.max(A.physical_dmg - dS.defence, 0)
+  dmg *= pow * 0.05
+
+  dS.raw_hp = math.max(0, dS.raw_hp - dmg)
   dS.cooldowns.hurt_cooldown = constants.HURT_COOLDOWN
 
   -- "physical_dmg"
@@ -59,16 +62,6 @@ M.stat_calculate = (S) ->
   M.attack_calculate(S.attack)
 
 M.player_stat_step = (S) ->
-   -- Default to not resting:
-   S.is_resting = false
-   -- Handling resting due to staying-put
-   if S.cooldowns.rest_cooldown == 0
-     needs_hp = (S.hp < S.max_hp and S.hp_regen > 0)
-     needs_mp = (S.mp < S.max_mp and S.mp_regen > 0)
-     if needs_hp or needs_mp
-       -- Rest if we can, and if its useful
-       S.is_resting = true
-
    if S.is_resting
      -- Handling healing due to rest
      S.attributes.hp_regen += S.attributes.raw_hp_regen * 7

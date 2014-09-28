@@ -19,7 +19,7 @@ frames_per_second_csp: 50
 :gametype
 :player_name
 
-regen_on_death: true
+regen_on_death: false
 
 --Online settings
 network_lockstep: true

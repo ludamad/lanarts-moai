@@ -31,7 +31,7 @@ Sidebar = newtype {
         @gamestate, @map = V.gamestate, V.map
         disp_w, disp_h = Display.display_size()
         @x, @y = disp_w - SIDEBAR_WIDTH,  0
-        @minimap = ui_minimap.MiniMap.create(@map, @x + SIDEBAR_WIDTH / 2, @y + 200)
+        @minimap = ui_minimap.MiniMap.create(@map, @x + SIDEBAR_WIDTH / 2, @y + 220)
         Display.display_add_draw_func (() -> @draw())
     predraw: () =>
 

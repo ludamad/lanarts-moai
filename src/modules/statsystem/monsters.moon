@@ -1,5 +1,5 @@
 import StatContext from require "@statcontext"
-import BASE_ACTION_COOLDOWN from require "@constants"
+import BASE_ACTION_DELAY, BASE_ACTION_COOLDOWN from require "@constants"
 
 M = nilprotect {}
 
@@ -36,7 +36,9 @@ M.MonsterType = newtype {
     
     atk.raw_physical_dmg = data.damage
     atk.raw_physical_power = data.power
-    atk.raw_delay = BASE_ACTION_COOLDOWN * data.delay
+
+    atk.raw_cooldown = BASE_ACTION_COOLDOWN * data.cooldown
+    atk.raw_delay = BASE_ACTION_DELAY * data.delay    
     atk.raw_range = data.range or 4
     
     -- Copy everything over from the raw_* components.

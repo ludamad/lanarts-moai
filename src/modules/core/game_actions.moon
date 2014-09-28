@@ -25,10 +25,10 @@ make_move_action = (game_id, pobj, step_number, dirx, diry) ->
     return GameAction.create game_id, pobj.id_player, ACTION_NORMAL, 
         dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
 
-make_weapon_action = (game_id, pobj, step_number, dirx, diry) -> 
+make_weapon_action = (game_id, pobj, step_number, id_target, dirx, diry) -> 
     -- Add 3 to directions to force them into the 0-255 range
     return GameAction.create game_id, pobj.id_player, ACTION_USE_WEAPON, 
-        dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
+        dirx + 3, diry + 3, step_number, id_target, pobj.x, pobj.y
 
 -- make_spell_action = (pobj, step_number, dirx, diry) -> 
 --     -- Add 3 to directions to force them into the 0-255 range

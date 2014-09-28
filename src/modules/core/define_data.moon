@@ -210,6 +210,7 @@ with spritedef file: 'status_icon.png', size: {32,32}, tiled: true
     .define name: 'stat-slow', from: {2, 1}
     .define name: 'stat-speed', from: {3, 1}
     .define name: 'stat-rest', from: {4, 1}
+    .define name: 'stat-melee', from: {5, 1}
 
 with spritedef file: 'hand.png', size: {32,32}, tiled: true
     .define name: 'Unarmed', from: {1, 1}

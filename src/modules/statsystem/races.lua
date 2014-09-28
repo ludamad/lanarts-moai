@@ -6,20 +6,23 @@ UNARMED = {
     damage = 5,
     power =  0,
     delay = 1.0,
+    cooldown = 1.0,
     range = 4
 }
 
 local function base_stat_adjustment(race, stats)
-    local A = stats.attributes
-    A.raw_hp, A.raw_mp, A.raw_max_hp, A.raw_max_mp = race.hp, race.mp, race.hp, race.mp
-    A.raw_hp_regen, A.raw_mp_regen = race.hp_regen, race.mp_regen
-    atk = stats.attack.attributes
+    local sA = stats.attributes
+    sA.raw_hp, sA.raw_mp, sA.raw_max_hp, sA.raw_max_mp = race.hp, race.mp, race.hp, race.mp
+    sA.raw_hp_regen, sA.raw_mp_regen = race.hp_regen, race.mp_regen
+    local A = stats.attack
+    A.on_hit_sprite = "Unarmed"
 
     -- Default unarmed attack
-    atk.raw_physical_dmg = UNARMED.damage
-    atk.raw_physical_power = UNARMED.power
-    atk.raw_delay = require("@constants").BASE_ACTION_COOLDOWN * UNARMED.delay
-    atk.raw_range = UNARMED.range
+    A.raw_physical_dmg = UNARMED.damage
+    A.raw_physical_power = UNARMED.power
+    A.raw_delay = require("@constants").BASE_ACTION_DELAY * UNARMED.delay
+    A.raw_cooldown = require("@constants").BASE_ACTION_COOLDOWN * UNARMED.cooldown
+    A.raw_range = UNARMED.range
 end
 
 

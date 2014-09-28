@@ -102,6 +102,15 @@ CombatObjectBase = newtype {
         @id_rvo = M.rvo_world\add_instance(@x, @y, @radius, @speed)
         append M.combat_object_list, @
         @set_priority()
+        @_reset_delayed_action()
+
+    _reset_delayed_action: () =>
+        -- Delayed action information:
+        @delayed_action = false
+        @delayed_action_target_id = false
+        @delayed_action_target_x = false
+        @delayed_action_target_y = false
+        @delayed_action_initial_delay = false
 
     remove: (M) =>
         ObjectBase.remove(@, M)
@@ -127,21 +136,54 @@ CombatObjectBase = newtype {
     get_rvo_heading: (M) =>
         return M.rvo_world\get_preferred_velocity(@id_rvo)
 
+    check_delayed_action: (M) =>
+        if @stats.cooldowns.action_wait <= 0 and @delayed_action
+            switch @delayed_action
+                when 'weapon_attack'
+                    obj = M.objects\get(@delayed_action_target_id)
+                    if obj 
+                        @stats.attack\apply(M.rng, obj.stats)
+                        hit_spr = @stats.attack.on_hit_sprite
+                        if hit_spr
+                            Animation.create M, {
+                                sprite: data.get_sprite(hit_spr), x: obj.x, y: obj.y, vx: 0, vy: 0, priority: ATTACK_ANIMATION_PRIORITY, fade_rate: 0.1
+                            }
+                    @_reset_delayed_action()
+                else
+                    error("Unexpected branch!")
+
+    queue_weapon_attack: (id) =>
+        assert @stats.cooldowns.action_cooldown <= 0
+        @stats.cooldowns.action_cooldown = @stats.attack.cooldown
+        @stats.cooldowns.action_wait =  math.min(@stats.attack.delay, statsystem.MAX_MELEE_QUEUE)
+        @stats.cooldowns.move_cooldown = math.max(@stats.attack.delay, @stats.cooldowns.move_cooldown)
+        @delayed_action = 'weapon_attack'
+        @delayed_action_target_id = id
+        @delayed_action_initial_delay = @stats.attack.delay
+
     -- Stat system hook:
     on_death: (M, attacker) =>
         @queue_remove(M)
 
-    _hurt_color_mod: () => 
+    _spike_color_mod: (v, max) => 
         -- Derived from experimental tinkering:
-        h,H = @stats.cooldowns.hurt_cooldown, statsystem.HURT_COOLDOWN
-        if h == 0 then return 1
-        elseif h < H/2 then return h/H*0.35 + 0.3
-        else return (H - h)*0.07 + 0.3
+        if v == 0 then return 1
+        elseif v < max/2 then return v/max*0.35 + 0.3
+        else return (max - v)*0.07 + 0.3
+
+    _get_rgb: () =>
+        if @delayed_action
+            -- Use action wait to modify r,g,b values:
+            cmod = @_spike_color_mod(@stats.cooldowns.action_wait, @delayed_action_initial_delay)
+            v = cmod/2+.5
+            return v,v,v
+        else
+            -- Use hurt cooldown (if any) to modify r,g,b values:
+            cmod = @_spike_color_mod(@stats.cooldowns.hurt_cooldown, statsystem.HURT_COOLDOWN)
+            return 1, cmod, cmod
 
     draw: (V) =>
-        hmod = @_hurt_color_mod()
-        -- Use hurt cooldown to modify r,g,b values:
-        ObjectBase.draw(@, V, 1, hmod, hmod)
+        ObjectBase.draw(@, V, @_get_rgb())
         healthbar_offsety = 20
         if @target_radius > 16
             healthbar_offsety = @target_radius + 8
@@ -222,11 +264,11 @@ Player = newtype {
     REST_SPRITE: data.get_sprite("stat-rest")
 
     draw: (V) =>
-        hmod = @_hurt_color_mod()
+        r,g,b = @_get_rgb()
         -- Put base sprite
         sp = data.get_sprite(@stats.race.avatar_sprite)
         -- Last 3 numbers: r,g,b
-        sp\draw(@x, @y, @frame, 1, 0.5, 0.5, 1, hmod, hmod)
+        sp\draw(@x, @y, @frame, 1, 0.5, 0.5, r,g,b)
 
         for equip_type in *@SMALL_SPRITE_ORDER
             local avatar_sprite
@@ -240,9 +282,10 @@ Player = newtype {
             if avatar_sprite
                 -- Put avatar sprite
                 sp = data.get_sprite(avatar_sprite)
-                sp\draw(@x, @y, @frame, 1, 0.5, 0.5, 1, hmod, hmod)
+                sp\draw(@x, @y, @frame, 1, 0.5, 0.5, r,g,b)
         if @stats.is_resting
             @REST_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
+
         CombatObjectBase.draw(@, V)
     pre_draw: do_nothing
 
@@ -253,16 +296,11 @@ Player = newtype {
             if dist < min_dist
                 min_obj = obj
                 min_dist = dist
-        return min_obj
+        return min_obj, min_dist
 
-    on_death: do_nothing
-    attack: (M) =>
-        o = @nearest_enemy(M)
-        if o
-            @stats.attack\apply(o.stats)        
-            Animation.create M, {
-                sprite: data.get_sprite("Unarmed"), x: o.x, y: o.y, vx: 0, vy: 0, priority: ATTACK_ANIMATION_PRIORITY,fade_rate: 0.1
-            }
+    on_death: (M) =>
+        logI "Player #{@id_player} has died."
+        M.gamestate.local_death = true
 
     can_see: (obj) =>
         return @vision.fieldofview\circle_visible(obj.x, obj.y, obj.radius)
@@ -291,10 +329,6 @@ NPC = newtype {
                 min_obj = obj
                 min_dist = dist
         return min_obj, min_dist
-    perform_action: (M) =>
-        min_obj, min_dist = @nearest_enemy(M)
-        if min_obj and @stats.cooldowns.action_cooldown == 0 and min_dist <= @stats.attack.range
-            @stats.attack\apply(min_obj.stats)
 
     on_death: (M) =>
         CombatObjectBase.on_death(@, M)   

@@ -65,6 +65,8 @@ _net_step = (G) ->
         G.step()
 
 check_quit_conditions = (G) ->
+    if G.local_death
+        return true
     -- Are we initiating a restart?
     if user_io.key_pressed "K_R"
         if G.net_handler 
@@ -158,6 +160,7 @@ create_game_state = () ->
 
     G.clear_game_data = () ->
         G.step_number = 1
+        G.local_death = false
         if G.net_handler 
             G.net_handler\reset_frame_count()
         G.game_id = (G.game_id + 1) % 256

@@ -11,7 +11,8 @@ monster_define {
 
   level: 1
   move_speed: 2
-  hp: 10, hp_regen: 0.03
-  power: 1, damage: 10
+  hp: 10, hp_regen: 0.001
+  power: 0, damage: 5
+  cooldown: 2.00
   delay: 1.00
 }

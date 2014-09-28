@@ -35,6 +35,9 @@ step_objects = (M) ->
         obj.stats\calculate()
         obj.stats\step()
 
+    for obj in *M.combat_object_list
+        obj\check_delayed_action(M)
+
     for obj in *M.animation_list
         obj\step(M)
 
@@ -45,7 +48,7 @@ step_objects = (M) ->
     -- Handle IO for all players
     -- Handle actions for all players
     for obj in *M.player_list
-        player_step(obj, M)
+        player_step(M, obj)
 
     npc_step_all(M)
 
@@ -80,7 +83,7 @@ handle_io = (M) ->
         os.exit()
     for player in *M.player_list
         if M.gamestate.is_local_player(player)
-            player_handle_io(player, M)
+            player_handle_io(M, player)
 
 start = (V) -> nil
     -- for inst in *V.map.object_list
