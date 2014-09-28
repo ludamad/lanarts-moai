@@ -18,6 +18,7 @@ spawn_rats = (n_rats) -> (M) ->
                 id_player: i
                 speed: 6
             }
+    require("@map_logic").assertSync "step_objects (frame #{M.gamestate.frame})", M
 
 return {
 	SMALL: (rng) -> {
@@ -38,7 +39,7 @@ return {
 			r = 2
         	for j=1,rng\random(0,2) do r += rng\randomf(0, 1)
         	return r
-        generate_objects: spawn_rats(1)
+        generate_objects: spawn_rats(5)
 	}
 
 	MEDIUM: (rng) -> {

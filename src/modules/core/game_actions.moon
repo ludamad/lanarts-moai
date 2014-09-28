@@ -16,18 +16,18 @@ local GameAction
 
 -- TODO combine moves into ALL actions -- it only makes sense
 
-make_none_action = (pobj, step_number) ->
-    return GameAction.create pobj.id_player, ACTION_NORMAL,
+make_none_action = (game_id, pobj, step_number) ->
+    return GameAction.create game_id, pobj.id_player, ACTION_NORMAL,
         0,0, step_number, 0, pobj.x, pobj.y
 
-make_move_action = (pobj, step_number, dirx, diry) -> 
+make_move_action = (game_id, pobj, step_number, dirx, diry) -> 
     -- Add 3 to directions to force them into the 0-255 range
-    return GameAction.create pobj.id_player, ACTION_NORMAL, 
+    return GameAction.create game_id, pobj.id_player, ACTION_NORMAL, 
         dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
 
-make_weapon_action = (pobj, step_number, dirx, diry) -> 
+make_weapon_action = (game_id, pobj, step_number, dirx, diry) -> 
     -- Add 3 to directions to force them into the 0-255 range
-    return GameAction.create pobj.id_player, ACTION_USE_WEAPON, 
+    return GameAction.create game_id, pobj.id_player, ACTION_USE_WEAPON, 
         dirx + 3, diry + 3, step_number, 0, pobj.x, pobj.y
 
 -- make_spell_action = (pobj, step_number, dirx, diry) -> 
@@ -44,14 +44,15 @@ unbox_move_component = (action) ->
 GameAction = newtype {
     -- Use with either .create(buffer)
     -- or .create(id, type, target, x, y)
-    init: (id_player_or_buffer, action_type, gb1, gb2, step_number, id_target, x, y) =>
-        if type(id_player_or_buffer) ~= 'number'
+    init: (game_id_or_buffer, id_player, action_type, gb1, gb2, step_number, id_target, x, y) =>
+        if type(game_id_or_buffer) ~= 'number'
             -- Not the ID, read from 
-            @read(id_player_or_buffer)
+            @read(game_id_or_buffer)
             return
 
+        @game_id = game_id_or_buffer
         -- The player sending the action, 8bit integer
-        @id_player = id_player_or_buffer
+        @id_player = id_player
         -- 8bit integer
         @action_type = action_type
         @step_number = step_number
@@ -63,6 +64,7 @@ GameAction = newtype {
         @x, @y = x, y
 
     equals: (O) =>
+        if @game_id ~= O.game_id then return false
         if @id_player ~= O.id_player then return false
         if @action_type ~= O.action_type then return false
         if @step_number ~= O.step_number then return false
@@ -77,6 +79,7 @@ GameAction = newtype {
 
     read: (buffer) =>
         -- For use with DataBuffer
+        @game_id = buffer\read_byte()
         @id_player = buffer\read_byte() -- +1
         @action_type = buffer\read_byte() -- +1 = 2
         @step_number = buffer\read_int() -- + 4 == 6
@@ -88,6 +91,7 @@ GameAction = newtype {
 
     write: (buffer) => with buffer
         -- For use with DataBuffer
+        \write_byte @game_id
         \write_byte @id_player
         \write_byte @action_type
         \write_int @step_number
@@ -232,9 +236,22 @@ GameActionFrameSet = with newtype()
 
 setup_action_state = (G) ->
     G.player_actions = GameActionFrameSet.create(#G.players)
+    -- Actions that seem to be aimed at a different game incarnation:
+    G.limbo_actions = {}
 
     G.queue_action = (action) ->
-        return G.player_actions\add(action)
+        if action.game_id == G.game_id
+            return G.player_actions\add(action)
+        pretty "LIMBO", action
+        append G.limbo_actions, action
+        return false
+
+    G.reset_action_state = () ->
+        G.player_actions = GameActionFrameSet.create(#G.players)
+        -- Clear and grab the limbo-list
+        old_limbo, G.limbo_actions = G.limbo_actions, {}
+        for action in *old_limbo
+            G.queue_action(action)
 
     G.drop_old_actions = (step_number) ->
         G.player_actions\drop_until(step_number)

@@ -16,9 +16,13 @@ ServerConnection = with newtype()
 		@peers = {}
 		-- Message queue
 		@messages = {}
+		@disconnects = {}
 
 	.get_queued_messages = () => @messages
 	.clear_queued_messages = () => table.clear(@messages)
+
+	.get_disconnects = ()  => @disconnects
+	.clear_disconnects = ()  => table.clear @disconnects
 
 	._handle_event = (event) =>
 		if event
@@ -29,6 +33,8 @@ ServerConnection = with newtype()
 				append @messages, event
 			elseif event.type == "receive"
 				append @messages, event
+			elseif event.type == "disconnect"
+				append @disconnects, event
 			else
 				pretty("Client got ", event)
 
@@ -69,13 +75,13 @@ ClientConnection = with newtype()
 		-- @host\compress_with_range_coder()
 		-- Message queue
 		@messages = {}
+		@disconnects = {}
 
 	.get_queued_messages = () => @messages
 	.clear_queued_messages = () => table.clear(@messages)
 
-	.grab_messages = () =>
-		msgs,@messages = @messages,{}
-		return msgs
+	.get_disconnects = ()  => @disconnects
+	.clear_disconnects = ()  => table.clear @disconnects
 
 	._handle_event = (event) =>
 		if event
@@ -84,6 +90,8 @@ ClientConnection = with newtype()
 				append @messages, event
 			elseif event.type == "receive"
 				append @messages, event
+			elseif event.type == "disconnect"
+				append @disconnects, event
 			else
 				pretty("Client got ", event)
 			return true

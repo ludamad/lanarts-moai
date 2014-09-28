@@ -11,6 +11,8 @@
 -- The object layer is drawn mostly with MOAIProp's created using the put_ API
 -- The interface layer has no camera, unlike the other layers.
 
+import ErrorReporting from require "system"
+
 --------------------------------------------------------------------------------
 -- Private members
 --------------------------------------------------------------------------------
@@ -53,7 +55,7 @@ display_add_draw_func = (draw_func, layer = ui_layer, priority = PRIORITY_INTERF
     -- Step until the draw loop returns false
     script_prop = with MOAIProp2D.new()
         \setDeck with MOAIScriptDeck.new()
-            \setDrawCallback draw_func
+            \setDrawCallback ErrorReporting.wrap(draw_func)
             \setRect x,y,w,h
         \setPriority priority 
     layer\insertProp script_prop

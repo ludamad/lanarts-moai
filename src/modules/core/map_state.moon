@@ -10,24 +10,24 @@ MAX_SPEED = 32
 
 -- Stores all objects for a given map, providing convenience 
 -- methods for accessing subsets of the active objects
-MapObjectStore = with newtype()
-    .init = () =>
+MapObjectStore = newtype {
+    init: () =>
         @list = {}
         @map = {}
         @highest_id = 0
 
-    .add = (obj) => 
+    add: (obj) => 
         assert(type(obj) == 'table')
         @highest_id += 1
         append @list, obj
         @map[@highest_id] = obj
         return @highest_id
 
-    .get = (id) =>
+    get: (id) =>
         assert(type(id) == 'number')
         return @map[id]
 
-    .remove = (obj_or_id) => 
+    remove: (obj_or_id) => 
         id, obj = (obj_or_id), (obj_or_id)
         if type(obj) ~= 'table'
             obj = @get(id)
@@ -37,7 +37,7 @@ MapObjectStore = with newtype()
         @map[id] = nil
         table.remove_occurrences @list, obj
 
-    .iter = (filter = nil) =>
+    iter: (filter = nil) =>
         if filter == nil
             return values(@list)
         if type(filter) == 'table' 
@@ -50,7 +50,7 @@ MapObjectStore = with newtype()
             if val == nil or filter(val)
                 return val
 
-    .closest = (obj1, filter) =>
+    closest: (obj1, filter) =>
         if type(filter) == 'table' 
             -- Assume 'filter' was created by 'newtype'
             filter = filter.isinstance
@@ -64,10 +64,11 @@ MapObjectStore = with newtype()
         -- Return closest object
         return closest, least_dist
 
-    .get_all = (filter) =>
+    get_all: (filter) =>
         ret = {}
         for obj in @iter(filter) do append ret, obj
         return ret
+}
 
 _setup_map_state_helpers = (M) ->
     {w, h} = M.tilemap.size
@@ -109,14 +110,12 @@ _setup_map_state_helpers = (M) ->
     M.solid_check = (obj, dx=0, dy=0, radius=nil) ->
         return M.tile_check(obj, dx, dy, dradius) or M.object_check(obj, dx, dy, radius)
 
-    -- M.object_iter = () ->
-    --     return M.objects\iter()
-
-    -- M.combat_object_iter = () ->
-    --     return M.objects\iter(CombatObjectBase)
-
-    -- M.player_iter = () ->
-    --     return M.objects\iter(Player)
+    M.free_resources = () ->
+        -- Don't need to set things to nil (the Lua GC will handle this)
+        -- but we should explicitly large data blocks allocated on the C++ side,
+        -- as these won't be freed until the _Lua_ memory usage grows too large.
+        M.tilemap\clear()
+        M.rvo_world\clear()
 
     M.local_player = () ->
         G = M.gamestate
@@ -154,14 +153,6 @@ setup_map_state = (M) ->
 
     -- The game collision avoidance 'world'
     M.rvo_world = RVOWorld.create()
-
-    -- Run the generation functions that were delayed until
-    -- the map creation (mainly instance spawning):
-    for gen_func in *M.tilemap.instances
-        gen_func(M)
-
-    -- For good measure, clear generation functions:
-    table.clear(M.tilemap.instances)
 
     map_logic = require 'core.map_logic'
 

@@ -82,8 +82,24 @@ setup_handler_base = (N) ->
     N.disconnect = () =>
         N.connection\disconnect()
 
-    N.unqueue_message = (type) =>
-        N.connection\unqueue_message(type)
+    N.get_disconnects = () =>
+        N.connection\get_disconnects()
+
+    N.clear_disconnects = () =>
+        N.connection\clear_disconnects()
+
+    N.check_message = (type, unqueue) =>
+        N.connection\check_message(type, unqueue)
+
+    N.check_message_all = (type, unqueue) =>
+        N.connection\check_message_all(type, unqueue)
+
+    N.handshake = (type) =>
+        N\send_message {:type}
+        while true
+            if N\check_message_all(type)
+                return true
+            N\poll(1)
 
     N._prep_action_buffer = (ack_to_send) =>
         @buffer\clear()
@@ -133,6 +149,9 @@ ClientMessageHandler = create: (G, args) ->
     }
 
     N.min_acknowledged_frame = () => N.last_acknowledged_frame
+
+    N.reset_frame_count = () =>
+        N.last_acknowledged_frame = 0
 
     N.send_unacknowledged_actions = (lookback = nil) =>
         -- The current player
@@ -208,12 +227,14 @@ ServerMessageHandler = create: (G, args) ->
             min = math.min(min, v)
         return (if min == math.huge then 0 else min)
 
+    N.reset_frame_count = () =>
+        N.last_acknowledged_frame = {}
+
     -- Basic idea: Continuously send something every frame if it was not acknowledge
     N.send_unacknowledged_actions = () =>
         for peer in *@peers()
             if peer ~= msg.peer
                 N.connection\send_unsequenced msg.data, peer
-
 
     _send_unacknowledged_actions = (peer, lookback = nil) =>
         -- The current player
@@ -244,14 +265,11 @@ ServerMessageHandler = create: (G, args) ->
         if @buffer\size() > 4 -- Does it have an action?
             @_flush_action_buffer(channel, peer)
 
-        print("SERVER SENDING PEER #{peer} PID #{pid} #{first_to_send}, to #{G.player_actions\last()}")
+        logV("SERVER SENDING PEER #{peer} PID #{pid} #{first_to_send}, to #{G.player_actions\last()}")
 
     N.send_unacknowledged_actions = (lookback = nil) =>
         for peer in *@peers()
             _send_unacknowledged_actions(@, peer, lookback)
-
-    N.unqueue_message_all = (type) =>
-        N.connection\unqueue_message_all(type)
 
     setup_handler_base(N)
     return N

@@ -94,7 +94,7 @@ ui_ingame_scroll = (V) ->
             -- Handle nils
             tX,tY = tX or "-", tY or "-"
             text = rX .. ", " .. rY .. " => " .. tX .. ", " .. tY .. "\nFPS: " .. MOAISim.getPerformance()
-            text ..= "\nCurrent frame: #{G.step_number}"
+            text ..= "\nCurrent frame: #{G.step_number} (GAME ID #{G.game_id})"
             text ..= "\nLast forked frame: #{G.fork_step_number}"
             for i=1,#G.players
                 is_local = G.players[i].is_controlled

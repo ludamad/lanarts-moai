@@ -180,9 +180,9 @@ player_handle_io = (M) =>
 
     local action
     if user_io.key_pressed "K_Y"
-        action = game_actions.make_weapon_action @, step_number, dx, dy
+        action = game_actions.make_weapon_action G.game_id,  @, step_number, dx, dy
     else
-        action = game_actions.make_move_action @, step_number, dx, dy
+        action = game_actions.make_move_action G.game_id, @, step_number, dx, dy
     G.queue_action(action)
     -- if G.net_handler
         -- Send last two unacknowledged actions (included the one just queued)

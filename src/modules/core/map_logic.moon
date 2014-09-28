@@ -12,13 +12,28 @@ resources = require 'resources'
 modules = require 'core.data'
 user_io = require 'user_io'
 
+assertSync = (msg, M) ->
+    if logS == do_nothing then return
+    if M.gamestate.doing_client_side_prediction then return
+    payload = {}
+    to_ids = (l) -> [o.id for o in *l]
+    for k in *{
+        "combat_object_list", "npc_list", "player_list",
+        "projectile_list", "animation_list", "item_list", "feature_list"
+    } 
+        payload[k] = to_ids(M[k])
+    payload.objects = {}
+    obj_subset = {"x", "y", "radius", "priority", "id_col", "frame", "remove_queued"}
+    for obj in *M.object_list
+        append payload.objects, {k, obj[k] for k in *obj_subset}
+    logS(msg, payload)
+
 step_objects = (M) ->
+    assertSync "step_objects (frame #{M.gamestate.step_number})", M
     --Step all stat contexts
     for obj in *M.combat_object_list
         obj.stats\calculate()
         obj.stats\step()
-    --     StatUtils.stat_context_on_step(obj.stat_context)
-    --     StatContext.on_calculate(obj.stat_context)
 
     for obj in *M.animation_list
         obj\step(M)
@@ -50,9 +65,6 @@ step_objects = (M) ->
         obj\sync(M)
 
 step = (M) ->
-    -- Set the current map as a global variable:
-    _G._MAP = M
-
     step_objects(M)
 
     -- Step the subsystems
@@ -162,4 +174,4 @@ draw = ErrorReporting.wrap (V) ->
         if should_draw_object(V, obj)
             obj\draw(V)
 
-return {:step, :handle_io, :start, :pre_draw, :draw}
+return {:step, :handle_io, :start, :pre_draw, :draw, :assertSync}

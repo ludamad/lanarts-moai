@@ -137,14 +137,6 @@ create_map_view = (map, cameraw, camerah) ->
     -- The UI objects that run each step
     V.ui_components = {}
 
-    -- -- Create and add a layer, sorted by priority (the default sort mode):
-    -- V.add_layer = (camera = V.camera, viewport = V.viewport) -> 
-    --     layer = with MOAILayer2D.new()
-    --         \setCamera(camera) -- All layers use the same camera
-    --         \setViewport(viewport) -- All layers use the same viewport
-    --     append(V.layers, layer)
-    --     return layer
-
     map_logic = (require 'core.map_logic')
 
     setup_camera(V)
@@ -171,79 +163,4 @@ create_map_view = (map, cameraw, camerah) ->
 
     return V
 
--------------------------------------------------------------------------------
--- Create a menu view
--------------------------------------------------------------------------------
-
-create_menu_view = (G, w,h, continue_callback) ->
-    logI("create_menu_view")
-    -- We 'cheat' with our menu map view, just point to same object
-    V = {is_menu: true}
-    V.map = V
-    V.step = () -> nil
-
-    menu_style = with MOAITextStyle.new()
-        \setColor 1,1,0 -- Yellow
-        \setFont (res.get_font 'Gudea-Regular.ttf')
-        \setSize 29
-
-    client_starting = false
-    server_starting = false
-
-    net_send = (type) ->
-        G.net_handler\send_message {:type}
-    net_recv = (type) ->
-        if G.gametype == 'server' 
-            G.net_handler\unqueue_message_all(type)
-        else
-            G.net_handler\unqueue_message(type)
-
-    V.pre_draw = () ->
-        Display.reset_draw_cache()
-        menu_start.draw_setup(Display.ui_layer, w, h)
-        info = "There are #{#G.players} players."
-        if G.gametype == 'client'
-            info ..= "\nWaiting for the server..."
-        else 
-            info ..= "\nPress ENTER to continue."
-
-        -- At the beginning, there is a rather complicated handshake:
-        -- Server sends ServerRequestStartGame, sets up action state
-        --  -> Client receives ServerRequestStartGame, sends ClientAckStartGame, sets up action state
-        --   -> Server receives ClientAckStartGame from _all_ clients, sends ServerConfirmStartGame, starts the game
-        --    -> Client receives ServerConfirmStartGame, starts the game
-        --
-        -- Note though this handshake is completely contained within this block, and 
-        -- this guarantees that everyone is set up ready to receive game actions!
-
-        Display.put_text(Display.ui_layer, menu_style, info, 0, 0, 0.5, 0.5, "center")
-
-        if client_starting
-            if net_recv("ServerConfirmStartGame")
-                continue_callback()
-        elseif server_starting
-            if net_recv("ClientAckStartGame")
-                net_send("ServerConfirmStartGame")
-                continue_callback()
-        elseif G.gametype == 'server' and (user_io.key_pressed("K_ENTER") or user_io.key_pressed("K_SPACE"))
-            server_starting = true
-            game_actions.setup_action_state(G)
-            net_send("ServerRequestStartGame")
-        elseif G.gametype == 'client' and net_recv("ServerRequestStartGame")
-            client_starting = true
-            game_actions.setup_action_state(G)
-            net_send("ClientAckStartGame")
-        elseif G.gametype == 'single_player'
-            logI("create_menu_view: single player detected")
-
-            game_actions.setup_action_state(G)
-            continue_callback()
-
-    V.handle_io = () -> nil
-
-    -- Setup function
-    V.start = () -> 
-    V.stop = () -> 
-    return V
-
-return {:create_menu_view, :create_map_view}
+return {:create_map_view}

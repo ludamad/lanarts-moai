@@ -13,14 +13,26 @@ if os.getenv "LOG" then
          print(...)
     end
 else
-    function log(...)
-    end
+    log = do_nothing
 end
 
 -- Lightly used, can safely always be on
 function logI(...)
     print(...)
 end
+
+-- Can be heavily used
+if os.getenv "LOG" == "verbose" then
+    function logV(...)
+        print(...)
+    end
+else
+    logV = do_nothing
+end
+
+-- logS is used for synchronization logs for the client and server.
+-- This should be set as a convenient closure after the necessary setup.
+logS = do_nothing
 
 -- Set to a metatable that does not allow nil accesses
 function nilprotect(t)
@@ -108,6 +120,9 @@ function newtype(args)
     end
     local get, set = type.get or {}, type.set or {}
     type.get,type.set = get,set
+    if _G.type(get) == 'function' then get = {} end
+    if _G.type(set) == 'function' then set = {} end
+
     type.parent = parent
     if type.init == nil then
         type.init = do_nothing

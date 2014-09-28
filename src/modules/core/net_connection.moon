@@ -43,6 +43,9 @@ RawNetConnection = create: (args) ->
             else
                 N.connection\send_unsequenced(data, channel)
 
+    N.get_disconnects = () => N.connection\get_disconnects()
+    N.clear_disconnects = () => N.connection\clear_disconnects()
+
     N.send_unsequenced = (channel, data, peer = nil) =>
         -- log("RawNetConnection.send_unsequenced", data)
         -- Send an unsequenced message over the specified channel
@@ -98,8 +101,9 @@ NetConnection = create: (args) ->
         port: args.port
         handle_connect: args.handle_connect
         handle_reliable_message: (msg) =>
-            status, obj = json.parse(msg.data)
-            if not status then error(obj)
+            obj = MOAIJsonParser.decode(msg.data)
+            if not obj then
+                error "Invalid JSON string:\n #{msg.data}"
             obj.peer = msg.peer
             -- Try to handle message, otherwise add to the queue
             if not _rel_f(@, obj)
@@ -111,22 +115,27 @@ NetConnection = create: (args) ->
     raw_send_reliable = N.send_reliable
 
     N.send_reliable = (obj, peer = nil) =>
-        data = json.generate(obj)
+        data = MOAIJsonParser.encode(obj)
         raw_send_reliable(@, data, peer)
 
-    N.unqueue_message = (type) =>
+    N.check_message = (type, unqueue = true) =>
         assert(_G.type(type) == 'string', "Unqueue type must be a string!")
         -- TODO: Prevent simple attacks where memory is hogged up by unexpected messages
         for obj in *_msgqueue
             if obj.type == type
-                log("NetConnection.unqueue_message: unqueuing", type)
-                table.remove_occurrences _msgqueue, obj
+                if unqueue
+                    log("NetConnection.check_message: unqueuing", type)
+                    table.remove_occurrences _msgqueue, obj
                 return obj
         return nil
 
-    -- Server only, used for a many-to-one confirmation
+    -- Used for a (potentially) many-to-one confirmation.
+    -- Clients always only get one message maximum in the list.
     -- Eg, if server must receive a message from every client to initiate an action
-    N.unqueue_message_all = (type) =>
+    N.check_message_all = (type, unqueue = true) =>
+        if N.type == 'client'
+            msg = N.check_message(N, type, unqueue)
+            return (if msg then {msg} else nil)
         assert(_G.type(type) == 'string', "Unqueue type must be a string!")
         messages = {}
         for peer in *N\peers()
@@ -136,8 +145,9 @@ NetConnection = create: (args) ->
         -- Did we get a message from every peer?
         if #messages == #N\peers()
             for obj in *messages
-                table.remove_occurrences _msgqueue, obj
-            log("NetConnection.unqueue_message_all: unqueuing", type)
+                if unqueue
+                    table.remove_occurrences _msgqueue, obj
+            log("NetConnection.check_message_all: unqueuing", type)
             return messages
         -- All or nothing
         return nil
