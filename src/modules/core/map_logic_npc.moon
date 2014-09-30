@@ -44,9 +44,13 @@ npc_step_all = (M) ->
         if p and obj.stats.cooldowns.action_cooldown <= 0 and (dist <= A.range)
             -- Resolve actions, for near-enough enemies
             obj\queue_weapon_attack(p.id)
-        elseif p and obj.stats.cooldowns.move_cooldown <= 0 and (dist <= 0 or dist >= DIST_THRESHOLD)
+        elseif p and obj.stats.cooldowns.move_cooldown <= 0 and (dist >= DIST_THRESHOLD and dist < 300)
             x1,y1,x2,y2 = util_geometry.object_bbox(obj)
             dx, dy = p.paths_to_player\interpolated_direction(math.ceil(x1),math.ceil(y1),math.floor(x2),math.floor(y2), obj.speed)
+        elseif dist > 300
+            -- Random heading
+            dir = M.rng\randomf(-math.pi, math.pi)
+            dx, dy = math.cos(dir) * obj.speed, math.sin(dir) * obj.speed
         obj\set_rvo(M, dx, dy)
         -- Temporary storage, just for this function:
         obj.__vx, obj.__vy = dx, dy
@@ -84,7 +88,7 @@ npc_step_all = (M) ->
         collided = false
         for col_id in *M.object_query(obj, vx, vy, obj.radius)
             o = M.col_id_to_object[col_id]
-            if getmetatable(o) == NPC and o.__target == obj.__target and o.__moved
+            if o == obj.__target or (getmetatable(o) == NPC and o.__target == obj.__target and o.__moved)
                 collided = true
                 break
 

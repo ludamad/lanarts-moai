@@ -15,6 +15,7 @@ server_ip: (os.getenv "IP") or 'localhost'
 server_port: 6112
 frames_per_second: 60
 frames_per_second_csp: 50
+use_cursor_sprite: true
 
 :gametype
 :player_name

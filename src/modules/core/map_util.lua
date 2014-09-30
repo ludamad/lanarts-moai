@@ -11,16 +11,26 @@ local function make_rectangle_criteria()
         }
 end
 
-local function make_rectangle_oper(--[[Optional]] area_query)
+local function make_rectangle_oper(floor, wall, wall_seethrough, --[[Optional]] area_query)
+    wall_flags = {TileMap.FLAG_SOLID}
+    remove_wall_flags = {TileMap.FLAG_SEETHROUGH}
+    if wall_seethrough then
+        append(wall_flags, TileMap.FLAG_SEETHROUGH)
+        remove_wall_flags = {}
+    end
     return TileMap.rectangle_operator { 
         area_query = area_query,
         perimeter_width = 1,
-       fill_operator = { add = {TileMap.FLAG_SEETHROUGH}, remove = {TileMap.FLAG_SOLID}, content = T('grey_floor') },
-        perimeter_operator = { add = {TileMap.FLAG_PERIMETER}, content = T('dungeon_wall') },
+       fill_operator = { add = {TileMap.FLAG_SEETHROUGH}, remove = {TileMap.FLAG_SOLID}, content = floor},
+        perimeter_operator = { add = {TileMap.FLAG_PERIMETER}, remove = remove_wall_flags, content = wall },
     }
 end
 
-local function make_tunnel_oper(rng) 
+local function make_tunnel_oper(rng, floor, wall, wall_seethrough) 
+    wall_flags = {TileMap.FLAG_SOLID, TileMap.FLAG_TUNNEL, TileMap.FLAG_PERIMETER}
+    if wall_seethrough then
+        append(wall_flags, TileMap.FLAG_SEETHROUGH)
+    end
     return TileMap.tunnel_operator {
         validity_selector = { 
             fill_selector = { matches_all = TileMap.FLAG_SOLID, matches_none = TileMap.FLAG_TUNNEL },
@@ -31,9 +41,8 @@ local function make_tunnel_oper(rng)
             fill_selector = { matches_none = {TileMap.FLAG_SOLID, TileMap.FLAG_PERIMETER, TileMap.FLAG_TUNNEL} },
             perimeter_selector = { matches_none = TileMap.FLAG_SOLID } 
         },
-
-        fill_operator = { add = {TileMap.FLAG_SEETHROUGH, TileMap.FLAG_TUNNEL}, remove = TileMap.FLAG_SOLID, content = T('grey_floor')},
-        perimeter_operator = { matches_all = TileMap.FLAG_SOLID, add = {TileMap.FLAG_SOLID, TileMap.FLAG_TUNNEL, TileMap.FLAG_PERIMETER}, content = T('dungeon_wall') },
+        fill_operator = { add = {TileMap.FLAG_SEETHROUGH, TileMap.FLAG_TUNNEL}, remove = TileMap.FLAG_SOLID, content = floor},
+        perimeter_operator = { matches_all = TileMap.FLAG_SOLID, add = wall_flags, content = wall},
 
         rng = rng,
         perimeter_width = 1,

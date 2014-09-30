@@ -116,31 +116,4 @@ ui_ingame_scroll = (V) ->
 
             textbox_fit_text(text_box, 0, 0, text)
 
--- Runs a MOAIThread for selecting squares
--- V: The map components, from load_tiled_json
-ui_ingame_select = (V) ->
-
-    texture = (get_texture "highlight32x32.png")
-    tilew, tileh = texture\getSize()
-    select_prop = with MOAIProp2D.new()
-        \setBlendMode(MOAIProp.GL_SRC_ALPHA, MOAIProp.GL_ONE_MINUS_SRC_ALPHA)
-        \setColor(1,1,1,0.1)
-        \setDeck with MOAIGfxQuad2D.new()
-            \setTexture(texture)
-            -- Center tile on origin:
-            \setRect -tilew/2, tileh/2, 
-                tilew/2, -tileh/2
-
-    Display.ui_layer\insertProp(select_prop)
-
-    return () ->
-        -- Get the mouse position
-        tX,tY = tile_mouse_xy(V)
-        if tX and tY
-            sX,sY = V.map.tile_xy_to_real(tX, tY)
-            -- Ad-hoc adjustments
-            sX,sY = sX + 0, sY + 0 
-            -- Set the location
-            select_prop\setLoc(sX, sY)
-
-return { :ui_ingame_scroll, :ui_ingame_select }
+return { :ui_ingame_scroll }

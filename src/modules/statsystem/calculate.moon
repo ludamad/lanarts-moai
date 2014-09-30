@@ -28,6 +28,7 @@ M.attack_apply = (A, rng, dS) ->
 
   dS.raw_hp = math.max(0, dS.raw_hp - dmg)
   dS.cooldowns.hurt_cooldown = constants.HURT_COOLDOWN
+  return math.round(dmg)
 
   -- "physical_dmg"
   -- "physical_power"

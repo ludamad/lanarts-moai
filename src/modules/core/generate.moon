@@ -123,7 +123,7 @@ make_rooms_with_tunnels = (map, rng, scheme) ->
             queryfn = () ->
                 query = make_rectangle_criteria()
                 return query(map, subgroup, bounds)
-            oper = make_rectangle_oper(queryfn)
+            oper = make_rectangle_oper(scheme.floor2, scheme.wall2, scheme.wall2_seethrough, queryfn)
             if oper(map, subgroup, bounds)
                 --place_instances(rng, map, bounds)
                 return true
@@ -133,7 +133,7 @@ make_rooms_with_tunnels = (map, rng, scheme) ->
     -- Apply the binary space partitioning (bsp)
     oper map, TileMap.ROOT_GROUP, bbox_create(padding, size)
 
-    tunnel_oper = make_tunnel_oper(rng)
+    tunnel_oper = make_tunnel_oper(rng, scheme.floor1, scheme.wall1, scheme.wall1_seethrough)
 
     tunnel_oper map, TileMap.ROOT_GROUP, bbox_create(padding, size)
     return map
@@ -146,11 +146,18 @@ generate_circle_scheme = (rng, scheme) ->
     size = scheme.size
     padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
     center_x, center_y = padded_size[1]/2, padded_size[2]/2
-    N_CIRCLES = rng\random(10,32)
-    RVO_ITERATIONS = 20
+    N_CIRCLES = scheme.number_polygons
+    RVO_ITERATIONS = scheme.rvo_iterations
     -- An RVO scheme with a circular boundary
     outer_points = scheme.outer_points
     R = RVOScheme.create {make_ellipse center_x, center_y, size[1]/2, size[1]/2, outer_points}
+
+    map = TileMap.map_create { 
+        size: padded_size
+        content: scheme.wall1
+        flags: TileMap.FLAG_SOLID + (if scheme.wall1_seethrough then TileMap.FLAG_SEETHROUGH else 0)
+        instances: {}
+    }
 
     for i=1,N_CIRCLES
         -- Make radius of the circle:
@@ -162,22 +169,8 @@ generate_circle_scheme = (rng, scheme) ->
         y = math.sin(ang) * dist * (size[2]/2 - r) + center_y
         -- Max drift is 1 tile:
         poly = Polygon.create x, y, r, r, make_ellipse 
-        local vfunc 
-        type = rng\random(0, 2) -- Only first two for now
-        if type == 0
-            vfunc = () => math.sign_of(@x - center_x)*2, math.sign_of(@y - center_y)*2
-        elseif type == 1
-            vfunc = () => math.sign_of(center_x - @x)*2, math.sign_of(center_y - @y)*2
-        else --Unused
-            vfunc = () => 0,0
-        R\add(poly, vfunc)
+        R\add(poly, scheme.polygon_delta_func(map, poly))
 
-    map = TileMap.map_create { 
-        size: padded_size
-        content: scheme.wall1
-        flags: TileMap.FLAG_SOLID
-        instances: {}
-    }
     for i=1,RVO_ITERATIONS
         R\step()
 
@@ -198,7 +191,28 @@ generate_circle_scheme = (rng, scheme) ->
                 :n_points, :angle
             }
 
-    -- Connect all the closest polygon pairs:
+    -- -- Connect all the closest polygon pairs:
+    -- edges = minimum_spanning_tree(R.polygons)
+    -- -- Fuzzy matching & edge adding:
+    -- for p1 in *R.polygons
+    --     if rng\random(0,3) ~= 1
+    --         break
+    --     min_dist, best = math.huge, nil
+    --     for p2 in *R.polygons
+    --         if p1 == p2 or rng\random(0,3) ~= 1
+    --             break
+    --         dist = p1\square_distance(p2)
+    --         if dist < min_dist
+    --             min_dist = dist
+    --             best = p2
+    --     if best
+    --         already_have_edge = false
+    --         for {op1, op2} in *edges
+    --             if op1 == p1 and op2 == best or op2 == p1 and op1 == best
+    --                 already_have_edge = true
+    --                 break
+    --         if not already_have_edge
+    --             append edges, {p1, best}
     for {p1, p2} in *minimum_spanning_tree(R.polygons)
         tile = scheme.floor1
         flags = {TileMap.FLAG_SEETHROUGH}
@@ -210,7 +224,7 @@ generate_circle_scheme = (rng, scheme) ->
                 map: map
                 area: bbox_create(padding, size)
                 target: p2
-                line_width: 2 + (if rng\random(5) == 4 then 1 else 0)
+                line_width: scheme.connect_line_width()
                 operator: {matches_none: FLAG_ALTERNATE, add: flags, remove: TileMap.FLAG_SOLID, content: tile}
             }
         else            
@@ -218,10 +232,12 @@ generate_circle_scheme = (rng, scheme) ->
                 map: map
                 area: bbox_create(padding, size)
                 target: p2
-                line_width: 2 + (if rng\random(5) == 4 then 1 else 0)
+                line_width: scheme.connect_line_width()
                 operator: {matches_none: FLAG_ALTERNATE, add: flags, remove: TileMap.FLAG_SOLID, content: tile}
             }
 
+    -- Diagonal pairs are a bit ugly. We can see through them but not pass them. Just open them up.
+    TileMap.erode_diagonal_pairs {:map, :rng, selector: {matches_all: TileMap.FLAG_SOLID}}
     TileMap.perimeter_apply {
         map: map
         candidate_selector: {matches_all: TileMap.FLAG_SOLID}
@@ -229,12 +245,16 @@ generate_circle_scheme = (rng, scheme) ->
         operator: {add: TileMap.FLAG_PERIMETER}
     }
 
+    remove_alt = {TileMap.FLAG_SEETHROUGH}
+    add_alt = {TileMap.FLAG_ALTERNATE}
+    if scheme.wall2_seethrough
+        remove_alt = {}
+        append add_alt, TileMap.FLAG_SEETHROUGH
     TileMap.perimeter_apply {
         map: map
         candidate_selector: {matches_all: TileMap.FLAG_SOLID}
         inner_selector: {matches_all: FLAG_ALTERNATE, matches_none: TileMap.FLAG_SOLID}
-        add: FLAG_ALTERNATE
-        operator: {content: scheme.wall2}
+        operator: {content: scheme.wall2, remove: remove_alt, add: add_alt}
     }
 
     make_rooms_with_tunnels map, rng, scheme

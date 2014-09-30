@@ -11,7 +11,7 @@ res = require 'resources'
 TEXT_COLOR = {255/255, 250/255, 240/255}
 
 -- 'Global' class choice variables
-_CLASS_CHOICE = nil
+_CLASS_CHOICE = "Knight"
 _CLASS_ARGS = nil
 _RACE_CHOICE = "Human"
 _MAGE_MAGIC_SKILL = "fire_mastery"
@@ -342,6 +342,10 @@ menu_chargen = (controller, on_back_click, raw_on_start_click) ->
 
     while controller\is_active()
         box_menu\step(0,0)
+        if user_io.key_pressed "K_ESCAPE"
+            os.exit()
+        if user_io.key_pressed "K_ENTER"
+            on_start_click()
         coroutine.yield()
 
 return {start: menu_chargen}

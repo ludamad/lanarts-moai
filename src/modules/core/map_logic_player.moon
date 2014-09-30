@@ -1,6 +1,7 @@
 
-import util_movement, util_geometry, util_draw, game_actions from require "core"
+import util_movement, util_geometry, util_draw, game_actions, FloodFillPaths from require "core"
 statsystem = require "statsystem"
+import Display from require "ui"
 
 import ObjectBase, CombatObjectBase, Player, NPC, Projectile from require '@map_object_types'
 
@@ -8,61 +9,9 @@ resources = require 'resources'
 modules = require 'core.data'
 user_io = require 'user_io'
 
--- Special movement helper
-
--- 'px' and 'py' are the 'projection' displacements
--- Projections are collision checks to determine how best to skirt around walls we may eventually pass
-player_check_for_slide = (M, obj, dx, dy, px, py, checkdx, checkdy) ->
-    if (not M.tile_check obj, checkdx + dx, checkdy + dy) and (not M.tile_check obj, checkdx + px, checkdy + py) 
-        return true
-    return false
-
--- Expectation: checkdx & checkdy are dx & dy passed through _biased_round
--- Returns real dx, dy if step succeeded; nil if step failed.
-player_look_ahead_step  = (M, obj, dist, dir_pref, dx, dy, currdx, currdy) ->
-    -- Control 'p' -- the 'projection' factor
-    -- Projections are collision checks to determine how best to skirt around walls we may eventually pass
-    PROJECT_STEP = 8
-    PROJECT_MAX = 32
-
-    -- This logic is slightly 'duplicated', but there isn't an efficient
-    -- way I could think of for handling different dimensions uniformly
-    if not M.tile_check obj, currdx + dx, currdy + dy
-        return dx, dy
-    if dx == 0
-        p = PROJECT_MAX
-        while p > 0
-            if dir_pref == 0 and player_check_for_slide(M, obj, dy, 0, p*dy, p*dy, currdx, currdy)
-                return dy, 0
-            if dir_pref == 1 and player_check_for_slide(M, obj, -dy, 0, -p*dy, p*dy, currdx, currdy)
-                return -dy, 0
-            p -= PROJECT_STEP
-    if dy == 0
-        p = PROJECT_MAX
-        while p > 0
-            if dir_pref == 0 and player_check_for_slide(M, obj, 0, dx, p*dx, p*dx, currdx, currdy, p)
-                return 0, dx
-            if dir_pref == 1 and player_check_for_slide(M, obj, 0, -dx ,p*dx, -p*dx, currdx, currdy, p)
-                return 0, -dx
-            p -= PROJECT_STEP
-    if dx ~= 0 
-        dx = (if dx > 0 then dist else -dist)
-        if not M.tile_check obj, currdx + dx, currdy 
-            return dx, 0
-    if dy ~= 0
-        dy = (if dy > 0 then dist else -dist)
-        if not M.tile_check obj, currdx, currdy + dy
-            return 0, dy
-    return nil
-
-signum = (x) -> 
-    if x > 0 then 1 
-    elseif x < 0 then -1 
-    else 0
-
 player_free_ahead = (M, obj, dx, dy) -> (not M.tile_check obj, dx, dy) -- and (not M.tile_check obj, dx*4, dy*4) 
 player_free_eventually = (M, obj, dx, dy) -> 
-    dx, dy = signum(dx), signum(dy)
+    dx, dy = math.sign_of(dx), math.sign_of(dy)
     for i=(obj.stats.move_speed+1),48
         if player_free_ahead(M, obj, dx*i, dy*i)
             return true
@@ -95,10 +44,9 @@ player_adjust_direction = (M, obj, dx, dy, cdx, cdy, speed) ->
 
 player_perform_move = (M, obj, dx, dy) ->
     if dx == 0 and dy == 0
-        return
+        return 0,0
     if obj.stats.cooldowns.move_cooldown > 0
-        return
-    dx, dy = dx * obj.stats.move_speed, dy * obj.stats.move_speed
+        return 0,0
     as = obj.action_state
     if as.last_dir_x ~= dx or as.last_dir_y ~= dy
         as.constraint_dir_x, as.constraint_dir_y = dx, dy
@@ -111,7 +59,7 @@ player_perform_move = (M, obj, dx, dy) ->
     if as.constraint_dir_x == 0 then as.constraint_dir_x = dx
     if as.constraint_dir_y == 0 then as.constraint_dir_y = dy
     if dx == 0 and dy == 0
-        return
+        return 0,0
     -- Perform the move
     -- Use Pythagorean theorem:
     mag = math.sqrt(dx*dx + dy*dy)
@@ -119,7 +67,9 @@ player_perform_move = (M, obj, dx, dy) ->
         dx, dy = dx/mag*obj.stats.move_speed, dy/mag*obj.stats.move_speed
     obj.x, obj.y = obj.x + dx, obj.y + dy
     -- Moving precludes resting:
+    obj.frame += 0.25
     obj.stats.is_resting = false
+    return dx, dy
 
 player_perform_action = (M, obj, action) ->
     S, A = obj.stats, obj.stats.attack
@@ -143,7 +93,7 @@ player_perform_action = (M, obj, action) ->
     id_player, step_number, dx, dy = game_actions.unbox_move_component(action)
     assert(id_player == obj.id_player)
     assert(step_number == M.gamestate.step_number)
-    player_perform_move(M, obj, dx, dy)
+    return player_perform_move(M, obj, dx, dy)
 
 player_move_with_velocity = (M, obj, vx, vy) ->
     mag = math.sqrt(vx*vx + vy*vy)
@@ -158,18 +108,33 @@ player_step = (M, obj) ->
     -- Set up directions of player
     action = M.gamestate.get_action(obj.id_player)
     if action
-        player_perform_action(M, obj, action)
+        dx, dy = player_perform_action(M, obj, action)
     -- Ensure player does not move in RVO
     obj\set_rvo(M, 0,0, 2, 20)
 
 MAX_FUTURE_STEPS = 0
 
+FLOOD_FILL = FloodFillPaths.create()
+PATHING_TO_MOUSE = false
+PATHING_MAP = nil
+PATH_X, PATH_Y = nil,nil
+
+_set_for_map = (M) ->
+    if M ~= PATHING_MAP
+        seen = M.player_seen_map(M.gamestate.local_player_id)
+        FLOOD_FILL\set_map(M.tilemap, seen)
+        PATHING_TO_MOUSE = false
+        PATHING_MAP = M
+        PATH_X, PATH_Y = nil,nil
+
 -- Exported
 -- Handle keyboard and mouse input for a single frame, for this player
 -- M: The current map
 player_handle_io = (M, obj) ->
+    _set_for_map(M)
     G = M.gamestate
     step_number = G.step_number
+
     while G.get_action(obj.id_player, step_number) 
         -- We already have an action for this frame, think forward
         step_number += 1
@@ -177,24 +142,48 @@ player_handle_io = (M, obj) ->
             -- We do not want to queue up a huge amount of actions to be sent
             return
 
-    dx,dy=0,0
-    if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
-        dy = -1
-    elseif (user_io.key_down "K_DOWN") or (user_io.key_down "K_S") 
-        dy = 1
-    if (user_io.key_down "K_RIGHT") or (user_io.key_down "K_D") 
-        dx = 1
-    elseif (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
-        dx = -1
+    if user_io.mouse_left_down()
+        PATHING_TO_MOUSE = true
+        PATH_X, PATH_Y = Display.mouse_game_xy()
+        dx,dy = PATH_X - obj.x, PATH_Y - obj.y
+        dist = math.sqrt(dx*dx + dy*dy)
+        dx, dy = dx/dist, dy/dist
+        seen = M.player_seen_map(M.gamestate.local_player_id)
+        while dist >= 32
+            was_seen = seen\get(math.ceil(PATH_X/32), math.ceil(PATH_Y/32))
+            if was_seen and not M.tile_check(obj, PATH_X - obj.x, PATH_Y - obj.y, 2)
+                break
+            PATH_X, PATH_Y = PATH_X - dx*32, PATH_Y - dy*32
+            dist -= 32
+        -- radius = math.max(math.abs(mx-obj.x), math.abs(my - obj.y))
+        FLOOD_FILL\update(PATH_X, PATH_Y, 900)
 
-    -- if G.gametype ~= "single_player"
-    --     if dx==0 and dy==0 then 
-    --         dx,dy = rdx,rdy
-    --         if _RNG\random(15) == 1
-    --             rdx,rdy = _RNG\random(-1,2),_RNG\random(-1,2)
+    dx,dy=0,0
+
+    if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
+        dy = -obj.speed
+    elseif (user_io.key_down "K_DOWN") or (user_io.key_down "K_S") 
+        dy = obj.speed
+    if (user_io.key_down "K_RIGHT") or (user_io.key_down "K_D") 
+        dx = obj.speed
+    elseif (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
+        dx = -obj.speed
+
+    -- Arrow keys override mouse movement
+    if dx == 0 and dy == 0 and PATHING_TO_MOUSE
+        dist = math.max(math.abs(PATH_X-obj.x), math.abs(PATH_Y-obj.y))
+        -- Are we 'close enough'?
+        if dist < obj.speed
+            PATHING_TO_MOUSE = false
+        x1,y1,x2,y2 = util_geometry.object_bbox(obj)
+        dx, dy = FLOOD_FILL\interpolated_direction(math.ceil(x1),math.ceil(y1),math.floor(x2),math.floor(y2), obj.speed)
+        if dx == 0 and dy == 0
+            PATHING_TO_MOUSE = false
+    else
+        PATHING_TO_MOUSE = false
 
     action = nil
-    if user_io.key_pressed "K_Y"
+    if user_io.key_down "K_Y"
         e = obj\nearest_enemy(M)
         if e 
             action = game_actions.make_weapon_action G.game_id, obj, step_number, e.id, dx, dy

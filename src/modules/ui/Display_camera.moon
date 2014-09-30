@@ -1,5 +1,6 @@
 import abs, min, max, floor, ceil from math
 import game_camera, display_size from require '@Display_components'
+user_io = require "user_io"
 
 local map_size, map_tile_size, map_tile_pixels -- Lazy imported
 
@@ -110,8 +111,14 @@ camera_xy = () ->
 	w, h = camera_wh()
 	return x - w/2, y - h/2
 
+mouse_game_xy = () ->
+    mx,my = user_io.mouse_xy() 
+    cx,cy = camera_xy()
+    -- TODO Find out why this is so finnicky
+    return mx+cx+64, my+cy
+
 return {
 	:camera_is_off_center, :camera_move_towards, :camera_center_on, :camera_sharp_center_on
 	:camera_move_delta, :camera_region_covered, :camera_tile_region_covered, :camera_rel_xy, :camera_xy
-	:camera_wh
+	:camera_wh, :mouse_game_xy
 }

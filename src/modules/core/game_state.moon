@@ -143,6 +143,7 @@ create_game_state = () ->
     G.maps = {}
     G.step_number = 1
     G.gametype = _SETTINGS.gametype
+    G.local_death = false
     G.doing_client_side_prediction = false
     G.game_id = 0
 

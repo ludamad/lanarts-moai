@@ -13,7 +13,7 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
 -- Other requires
 -------------------------------------------------------------------------------
 
-import ui_ingame_scroll, ui_ingame_select from require "core.ui"
+import ui_ingame_scroll from require "core.ui"
 import ui_sidebar from require "core"
 
 import util_draw from require "core"
@@ -158,7 +158,6 @@ create_map_view = (map, cameraw, camerah) ->
 
     V.sidebar = ui_sidebar.Sidebar.create(V)
     append V.ui_components, ui_ingame_scroll V
-    append V.ui_components, ui_ingame_select V
     append V.ui_components, () -> V.sidebar\predraw()
 
     return V

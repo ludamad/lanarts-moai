@@ -27,7 +27,7 @@ death_screen_create = () ->
         InstanceBox.draw(@, x, y)
         black_box_alpha = math.max(0, black_box_alpha - 0.05)
         w, h = Display.display_size()
-        Display.fillRect(0,0,w,h, {1,1,1, black_box_alpha})
+        Display.fillRect(0,0,w,h, {0,0,0, black_box_alpha})
 
     return box
 

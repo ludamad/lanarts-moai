@@ -172,7 +172,7 @@ start_game = (G, stat_components, on_death) ->
     logS("rng check", G.rng\randomf())
 
     logI("main::start_game: after clear_game_data")
-    tilemap = modules.get_map("start").generator(G, G.rng, require("@generate_data").SMALL)
+    tilemap = modules.get_map("start").generator(G, G.rng, require("@generate_data").OUTSIDE)
 
     M = map_state.create_map_state(G, 1, G.rng, tilemap)
     tilemap\generate_objects(M)
@@ -251,8 +251,10 @@ main = () ->
             start_game(G, stat_components, mchargen)
             G.clear_game_data()
             -- Have we restarted?
-            mdeath()
-            -- mstartgame(G, stat_components)
+            if true or G.local_death
+                mdeath()
+            else
+                mstartgame(G, stat_components)
         -- Set up first menu
         if os.getenv("TEST_ARCHER")
             mpregame {class: "Archer", race: "Human", class_args: {}}

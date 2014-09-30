@@ -9,7 +9,7 @@ import player_step, player_handle_io, player_handle_action from require "@map_lo
 import npc_step_all from require "@map_logic_npc"
 
 resources = require 'resources'
-modules = require 'core.data'
+data = require 'core.data'
 user_io = require 'user_io'
 
 assertSync = (msg, M) ->
@@ -166,7 +166,13 @@ PLAYER_NAME_FONT = resources.get_font 'Gudea-Regular.ttf'
 
 OBJECT_LIST_CACHE = {}
 priority_compare = (a, b) -> (a.priority > b.priority)
-draw = ErrorReporting.wrap (V) ->
+SELECTION_SPRITE = data.get_sprite("selection")
+draw = (V) ->
+    -- Highlight the tile under the mouse
+    mx,my = Display.mouse_game_xy()
+    mx,my = math.floor(mx/32)*32, math.floor(my/32)*32
+    SELECTION_SPRITE\draw(mx, my, 1, 0.5)
+
     table.clear(OBJECT_LIST_CACHE)
     for obj in *V.map.object_list
         append OBJECT_LIST_CACHE, obj

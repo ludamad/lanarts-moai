@@ -11,7 +11,8 @@ _fillRect = (x1,y1,x2,y2, color) ->
 	if type(x1) == 'table'
 		assert(not x2 and not y2 and not color)
 		return _fillRect(x1[1],x1[2],x1[3],x1[4], y1)
-	setPenColor(unpack(color))
+	{r,g,b,a} = color
+	setPenColor(r,g,b,a)
 	fillRect(x1,y1,x2,y2)
 
 -- Convenience wrapper around drawRect.
@@ -71,8 +72,14 @@ colorEscapeCode = (color) ->
 -- Reusable object for drawTexture:
 _DRAW_TEXTURE_HELPER = {}
 
+_packColor32 = (color) ->
+	{r,g,b,a} = color
+	a or= 1
+	return math.floor(r*255) + math.floor(g*255) * 2^8 + math.floor(b*255) * 2^16 + math.floor(a*255) * 2^24
+
 return {
 	fillRect: _fillRect
+	packColor32: _packColor32
 	drawRect: _drawRect
 	drawText: _drawText
 	drawTextXCenter: (font, text, x, y, color, size, max_width) ->

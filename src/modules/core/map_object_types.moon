@@ -1,6 +1,7 @@
 
 BoolGrid = require 'BoolGrid'
 user_io = require 'user_io'
+res = require "resources"
 data = require "core.data"
 statsystem = require "statsystem"
 import util_draw, TileMap from require "core"
@@ -20,6 +21,7 @@ import FieldOfView, FloodFillPaths, util_geometry from require "core"
 --  Object destruction:
 --   .unregister()
 
+DAMAGE_TEXT_PRIORITY = 98 -- Lower means more 'on top'
 ATTACK_ANIMATION_PRIORITY = 98 -- Lower means more 'on top'
 PROJECTILE_PRIORITY = 99
 -- The base priority for combat objects, will never fall below 100 after adjustments.
@@ -28,7 +30,7 @@ FEATURE_PRIORITY = 102
 -- Add Y values * Y_PRIORITY_INCR to adjust the object priority.
 Y_PRIORITY_INCR = -(2^-16)
 
-local Animation -- Forward declare, used throughout
+local Animation, Player -- Forward declare, used throughout
 
 ObjectBase = newtype {
 	---------------------------------------------------------------------------
@@ -62,6 +64,7 @@ ObjectBase = newtype {
 
     draw: (V, r=1, g=1, b=1) => 
         if @sprite then @sprite\draw(@x, @y, @frame, @alpha, 0.5, 0.5, r, g, b)
+
     -- Note: Does not sync props
     sync: (M) => nil
 }
@@ -142,12 +145,23 @@ CombatObjectBase = newtype {
                 when 'weapon_attack'
                     obj = M.objects\get(@delayed_action_target_id)
                     if obj 
-                        @stats.attack\apply(M.rng, obj.stats)
+                        dmg = @stats.attack\apply(M.rng, obj.stats)
+                        tx, ty = obj.x, obj.y
+                        -- Calculate direction towards the object being attacked
+                        dx, dy = obj.x - @x, obj.y - @y
+                        mag = math.sqrt(dx*dx+dy*dy)
+                        dx, dy = dx/mag, dy/mag
                         hit_spr = @stats.attack.on_hit_sprite
                         if hit_spr
                             Animation.create M, {
                                 sprite: data.get_sprite(hit_spr), x: obj.x, y: obj.y, vx: 0, vy: 0, priority: ATTACK_ANIMATION_PRIORITY, fade_rate: 0.1
                             }
+                        -- Create floating damage text
+                        is_player = (getmetatable(@) == Player)
+                        text_color = (if is_player then Display.COL_LIGHT_GRAY else Display.COL_PALE_RED)
+                        Animation.create M, {
+                            drawn_text: tostring(dmg), x: tx, y: ty, vx: dx, vy: dy, color: text_color, priority: DAMAGE_TEXT_PRIORITY, fade_rate: 0.04
+                        }
                     @_reset_delayed_action()
                 else
                     error("Unexpected branch!")
@@ -253,11 +267,12 @@ Player = newtype {
 
         logI("Player::init stats created")
 
-        @vision_tile_radius = 5
+        @vision_tile_radius = 8
         @player_path_radius = 300
         @id_player = args.id_player
         @vision = PlayerVision.create(M, @id_player, @vision_tile_radius)
-        @paths_to_player = FloodFillPaths.create(M.tilemap)
+        @paths_to_player = FloodFillPaths.create()
+        @paths_to_player\set_map(M.tilemap)
         append M.player_list, @
         logI("Player::init complete")
 
@@ -369,8 +384,17 @@ Animation = newtype {
         @vy = args.vy or 0
         @alpha = args.alpha or 1.0
         @fade_rate = args.fade_rate or 0.05
-        @sprite = args.sprite
+        @sprite = args.sprite or false
+        @drawn_text = args.drawn_text or false
+        @color = table.clone(args.color or Display.COL_WHITE)
         append M.animation_list, @
+
+    font: res.get_bmfont 'Liberation-Mono-20.fnt'
+    draw: (V) =>
+        ObjectBase.draw(@, V)
+        if @drawn_text
+            @color[4] = @alpha/2 + .5
+            Display.drawTextCenter @font, @drawn_text, @x, @y, @color
 
     remove: (M) =>
         ObjectBase.remove(@, M)
