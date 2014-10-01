@@ -154,7 +154,7 @@ CombatObjectBase = newtype {
                         hit_spr = @stats.attack.on_hit_sprite
                         if hit_spr
                             Animation.create M, {
-                                sprite: data.get_sprite(hit_spr), x: obj.x, y: obj.y, vx: 0, vy: 0, priority: ATTACK_ANIMATION_PRIORITY, fade_rate: 0.1
+                                sprite: data.get_sprite(hit_spr), x: obj.x, y: obj.y, vx: 0, vy: 0, priority: ATTACK_ANIMATION_PRIORITY, fade_rate: 0.04
                             }
                         -- Create floating damage text
                         is_player = (getmetatable(@) == Player)
@@ -314,8 +314,8 @@ Player = newtype {
             if equip_type == "__LEGS"
                 avatar_sprite = "sl-gray-pants"
             else
-                equip = @stats\get_equipped(equip_type)
-                avatar_sprite = equip and equip.avatar_sprite
+                equip = @stats.inventory\get_equipped(equip_type)
+                avatar_sprite = equip and equip.id_avatar
             if avatar_sprite
                 -- Put avatar sprite
                 sp = data.get_sprite(avatar_sprite)

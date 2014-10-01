@@ -12,7 +12,7 @@ _random_choice = (t) -> t[RNG\random(1, #t+1)]
 _call_until_unique = (t, f) ->
   for tries=1,BAIL_TRIES
     result = f()
-    if t[result] ~= nil
+    if t[result] == nil
       t[result] = true
       return result
   error "Tried more than 'BAIL_TRIES' times!"

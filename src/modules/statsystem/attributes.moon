@@ -72,6 +72,7 @@ M.ATTACK_ATTRIBUTES = {
   "physical_dmg"
   "physical_power"
   "delay"
+  "multiplier"
   "cooldown"
   "range"
 

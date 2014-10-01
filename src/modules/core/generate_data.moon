@@ -43,6 +43,7 @@ world_generation = () ->
 
 return {
 	OUTSIDE: (rng) -> {
+		map_label: "Plain Valley"
 		size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
 		number_polygons: rng\random(30,40)
 		outer_points: 20
@@ -66,9 +67,10 @@ return {
 			bound = rng\random(1,20)
         	for j=1,rng\random(0,bound) do r += rng\randomf(0, 1)
         	return r
-        generate_objects: spawn_mons {["Giant Rat"]: 35, ["Storm Elemental"]: 5}
+        generate_objects: spawn_mons {["Giant Rat"]: 12, ["Storm Elemental"]: 5}
 	}
 	SMALL: (rng) -> {
+		map_label: "A Dungeon"
 		size: {35, 35}
 		number_polygons: rng\random(8,10)
 		outer_points: 20
@@ -94,6 +96,7 @@ return {
 	}
 
 	MEDIUM: (rng) -> {
+		map_label: "A Dungeon"
 		size: {80,80}
 		number_polygons: rng\random(10,32)
 		outer_points: 20

@@ -330,7 +330,7 @@ create_map = (G, schemef) ->
         instances: {}
     }
     generate_circle_tilemap(tilemap, G.rng, scheme)
-    M = map_state.create_map_state(G, 1, G.rng, tilemap, scheme.line_of_sight)
+    M = map_state.create_map_state(G, 1, G.rng, scheme.map_label, tilemap, scheme.line_of_sight)
     
     import Feature from require '@map_object_types'
     gen_feature = (sprite, solid) -> (px, py) -> Feature.create M, {x: px*32+16, y: py*32+16, :sprite, :solid}

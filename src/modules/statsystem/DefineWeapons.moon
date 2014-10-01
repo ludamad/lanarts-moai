@@ -10,8 +10,10 @@ weapon_define {
     gold_worth: 15
     difficulty: 0
     effectiveness: 6
-    damage: 4
-    delay: 1.0
+    damage: 8
+    power: 1
+    delay: 1
+    cooldown: 0.75
 }
 
 weapon_define {

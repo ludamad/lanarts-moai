@@ -319,6 +319,8 @@ for vpath in *{
     -- Skills are used in many other definitions
     "statsystem.DefineWeapons"
     "statsystem.DefineMonsters"
+    "statsystem.DefineConsumables"
+    "statsystem.DefineArmour"
 
 } do
     logI("Loading " .. vpath)

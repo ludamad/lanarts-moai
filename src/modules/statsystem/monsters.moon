@@ -41,18 +41,13 @@ M.MonsterType = newtype {
     -- Move speed, default same as player
     attr.raw_move_speed = data.move_speed or 6
 
-    atk = @stats.attack.attributes
-    
-    atk.raw_physical_dmg = data.damage
-    atk.raw_physical_power = data.power
+    import make_weapon_attack from require "@items"
+    @stats.attack\copy(make_weapon_attack(data))
+    @stats.attack.on_hit_sprite = false
 
-    atk.raw_cooldown = BASE_ACTION_COOLDOWN * data.cooldown
-    atk.raw_delay = BASE_ACTION_DELAY * data.delay    
-    atk.raw_range = data.range or 4
-    
     -- Copy everything over from the raw_* components.
     @stats\revert()
-    assert(atk.range >= 4, "Monster range should not be less than 4 pixels!")
+    assert(@stats.attack.range >= 4, "Monster range should not be less than 4 pixels!")
     assert(@stats.attributes.hp >= 0, "Monster hp shouldn't be 0!")
 }
 
@@ -66,12 +61,12 @@ MONSTER_META = {__constant: true}
 
 -- Item definition helpers
 M.monster_define = (t) ->
-  next_id = #M.MONSTER_DB + 1
-  t.id = next_id
-  t = M.MonsterType.create(t)
-  M.MONSTER_DB[next_id] = t
-  assert rawget(M.MONSTER_DB, t.name) == nil, "Monster #{t.name} already exists!"
-  M.MONSTER_DB[t.name] = t
-  setmetatable t, MONSTER_META
+    next_id = #M.MONSTER_DB + 1
+    t.id = next_id
+    t = M.MonsterType.create(t)
+    M.MONSTER_DB[next_id] = t
+    assert rawget(M.MONSTER_DB, t.name) == nil, "Monster #{t.name} already exists!"
+    M.MONSTER_DB[t.name] = t
+    setmetatable t, MONSTER_META
 
 return M

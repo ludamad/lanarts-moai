@@ -156,7 +156,10 @@ player_handle_io = (M, obj) ->
             -- We do not want to queue up a huge amount of actions to be sent
             return
 
-    if user_io.mouse_left_down()
+    mx, my = user_io.mouse_xy()
+    disp_w, disp_h = Display.display_size()
+    mouse_on_sidebar = (mx > disp_w - 150)
+    if user_io.mouse_left_down() and not mouse_on_sidebar
         PATHING_TO_MOUSE = true
         ATTACK_MOVE = (user_io.key_down "K_Y")
         PATH_X, PATH_Y = Display.mouse_game_xy()
@@ -202,7 +205,9 @@ player_handle_io = (M, obj) ->
     action = nil
     if user_io.key_down "K_Y" or (PATHING_TO_MOUSE and ATTACK_MOVE)
         e = obj\nearest_enemy(M)
-        if e 
+        if e and obj\can_see(e)
+            if dx == 0 and dy == 0 and util_geometry.object_distance(e, obj) > obj.stats.attack.range
+                dx, dy = util_geometry.object_towards(obj, e, obj.stats.move_speed)
             action = game_actions.make_weapon_action G.game_id, obj, step_number, e.id, dx, dy, will_sprint
 
     -- No special action done?

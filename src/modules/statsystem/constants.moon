@@ -11,6 +11,6 @@ return {
 	REST_COOLDOWN: 300
 
 	-- Physical action constants
-	SPRINT_ENERGY_COST: 3/60 -- 2 per second
+	SPRINT_ENERGY_COST: 3/60 --  per second
 	SPRINT_SPEEDUP: 2
 }

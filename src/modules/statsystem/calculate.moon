@@ -40,17 +40,26 @@ M.player_stat_calculate = (S, do_step = true) ->
          -- Handling healing due to rest
          S.hp_regen += S.raw_hp_regen * 7
          S.mp_regen += S.raw_mp_regen * 7
+         S.ep_regen += S.raw_ep_regen * 7
     common_stat_calculate(S, do_step)
 
 -- Attack calculations
 M.attack_calculate = (A) ->
-    A\revert()
+    inv = A.source.inventory
+    weapon = inv\get_equipped(items.WEAPON)
+    if weapon
+        attack = weapon.kind.attack
+        A\copy(attack)
+    elseif A.source.is_player
+        A\copy(A.source.race.attack)
+    else
+        A\revert()
 
 M.attack_apply = (A, rng, dS) ->
     pow = A.physical_power - dS.physical_resist
     pow = math.max(pow + rng\random(10, 31), 0)
     dmg = math.max(A.physical_dmg - dS.defence, 0)
-    dmg *= pow * 0.05
+    dmg *= A.multiplier * pow * 0.05
 
     dS.raw_hp = math.max(0, dS.raw_hp - dmg)
     dS.cooldowns.hurt_cooldown = constants.HURT_COOLDOWN

@@ -11,8 +11,9 @@ monster_define {
 
   level: 1
   move_speed: 6
-  hp: 10, hp_regen: 0.001
+  hp: 30, hp_regen: 0.001
   power: 0, damage: 12
+  multiplier: 1 -- Don't compensate for cooldown
   cooldown: 2.00
   delay: 2.00
   chase_distances: {100,150}

@@ -87,8 +87,8 @@ TileList = newtype {
 
 Sprite = newtype {
     __constant: true -- For serialization
-    init: (tex_parts, kind, w, h) => 
-        @tex_parts, @kind, @w, @h = tex_parts, kind, w, h
+    init: (tex_parts, kind, w, h, id) => 
+        @tex_parts, @kind, @w, @h, @id = tex_parts, kind, w, h, id
     update_quad: (quad, frame = 1) =>
         @tex_parts[frame]\update_quad(quad)
     n_frames: () =>
@@ -209,9 +209,10 @@ setup_define_functions = (fenv, module_name) ->
         frames = for x, y in part_xy_iterator(_from, to) 
             TexPart.create(res.get_texture(file), (x-1)*w, (y-1)*h, w, h)
 
-        sprite = Sprite.create(frames, kind, w, h)
+        id = data.next_sprite_id
+        sprite = Sprite.create(frames, kind, w, h, id)
         data.sprites[name] = sprite
-        data.id_to_sprite[data.next_sprite_id] = sprite
+        data.id_to_sprite[id] = sprite
 
         -- Increment sprite number
         data.next_sprite_id += 1

@@ -2,30 +2,25 @@ local M = nilprotect {}
 local races = nilprotect {}
 M.races = races
 
-UNARMED = {
-    damage = 5,
+local items = require "@items"
+
+local UNARMED = {
+    name = "Unarmed",
+    damage = 7,
     power =  0,
     delay = 1.0,
-    cooldown = 1.0,
-    range = 4
+    cooldown = 0.75
 }
 
-local function base_stat_adjustment(race, stats)
-    local sA = stats.attributes
-    sA.raw_hp, sA.raw_mp, sA.raw_ep = race.hp, race.mp, race.ep
-    sA.raw_max_hp, sA.raw_max_mp, sA.raw_max_ep = race.hp, race.mp, race.ep
-    sA.raw_hp_regen, sA.raw_mp_regen = race.hp_regen, race.mp_regen
-    local A = stats.attack
-    A.on_hit_sprite = "Unarmed"
+local unarmed_attack = items.make_weapon_attack(UNARMED)
 
-    -- Default unarmed attack
-    A.raw_physical_dmg = UNARMED.damage
-    A.raw_physical_power = UNARMED.power
-    A.raw_delay = require("@constants").BASE_ACTION_DELAY * UNARMED.delay
-    A.raw_cooldown = require("@constants").BASE_ACTION_COOLDOWN * UNARMED.cooldown
-    A.raw_range = UNARMED.range
+local function base_stat_adjustment(race, S)
     -- Unlikely to change, for any race:
-    sA.raw_move_speed = 6
+    S.raw_move_speed = 6
+    S.raw_hp, S.raw_mp, S.raw_ep = race.hp, race.mp, race.ep
+    S.raw_max_hp, S.raw_max_mp, S.raw_max_ep = race.hp, race.mp, race.ep
+    S.raw_hp_regen, S.raw_mp_regen = race.hp_regen, race.mp_regen, race.ep_regen
+    S.attack:copy(race.attack)
 end
 
 races.Undead = {
@@ -39,6 +34,7 @@ races.Undead = {
         base_stat_adjustment(races.Undead, stats)
     end,
 
+    attack = unarmed_attack,
     avatar_sprite = "sr-undead",
     hp = 80,  hp_regen = 0, -- None!
     ep = 25, ep_regen = 0.020,
@@ -84,6 +80,7 @@ races.Human = {
         base_stat_adjustment(races.Human, stats)
     end,
 
+    attack = unarmed_attack,
     avatar_sprite = "sr-human",
     hp = 100, hp_regen = 0.020,
     ep = 25, ep_regen = 0.020,
@@ -105,6 +102,7 @@ races.Orc = {
         base_stat_adjustment(races.Orc, stats)
     end,
 
+    attack = unarmed_attack,
     avatar_sprite = "sr-orc",
     hp = 100, hp_regen = 0.010,
     ep = 25, ep_regen = 0.020,
