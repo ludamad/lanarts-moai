@@ -21,21 +21,15 @@ _pack_move = (v) ->
 _unpack_move = (v) ->
     return (v - 10*MAX_SPEED) / 10
 
--- TODO combine moves into ALL actions -- it only makes sense
-
-make_none_action = (game_id, pobj, step_number) ->
-    return GameAction.create game_id, pobj.id_player, ACTION_NORMAL,
-        0,0, step_number, 0, pobj.x, pobj.y
-
-make_move_action = (game_id, pobj, step_number, dirx, diry) -> 
+make_move_action = (game_id, pobj, step_number, dirx, diry, is_sprinting) -> 
     -- Add 3 to directions to force them into the 0-255 range
     return GameAction.create game_id, pobj.id_player, ACTION_NORMAL, 
-        _pack_move(dirx), _pack_move(diry), step_number, 0, pobj.x, pobj.y
+        _pack_move(dirx), _pack_move(diry), (is_sprinting and 1 or 0), 0, step_number, 0, pobj.x, pobj.y
 
-make_weapon_action = (game_id, pobj, step_number, id_target, dirx, diry) -> 
+make_weapon_action = (game_id, pobj, step_number, id_target, dirx, diry, is_sprinting) -> 
     -- Add 3 to directions to force them into the 0-255 range
     return GameAction.create game_id, pobj.id_player, ACTION_USE_WEAPON, 
-        _pack_move(dirx), _pack_move(diry), step_number, id_target, pobj.x, pobj.y
+        _pack_move(dirx), _pack_move(diry), (is_sprinting and 1 or 0), 0, step_number, id_target, pobj.x, pobj.y
 
 -- make_spell_action = (pobj, step_number, dirx, diry) -> 
 --     -- Add 3 to directions to force them into the 0-255 range
@@ -44,14 +38,15 @@ make_weapon_action = (game_id, pobj, step_number, id_target, dirx, diry) ->
 
 -- All actions have a move-component
 unbox_move_component = (action) ->
-    {:id_player, :step_number, :genericbyte1, :genericbyte2} = action
-    -- Subtract 3 to recreate the directions from make_move_action
-    return id_player, step_number, _unpack_move(genericbyte1), _unpack_move(genericbyte2)
+    {:id_player, :step_number, :genericbyte1, :genericbyte2, :genericbyte3} = action
+    -- Recreate the directions from make_move_action
+    -- genericbyte3: is_sprinting encoded
+    return id_player, step_number, _unpack_move(genericbyte1), _unpack_move(genericbyte2), (genericbyte3 == 1)
 
 GameAction = newtype {
     -- Use with either .create(buffer)
     -- or .create(id, type, target, x, y)
-    init: (game_id_or_buffer, id_player, action_type, gb1, gb2, step_number, id_target, x, y) =>
+    init: (game_id_or_buffer, id_player, action_type, gb1, gb2, gb3, gb4, step_number, id_target, x, y) =>
         if type(game_id_or_buffer) ~= 'number'
             -- Not the ID, read from 
             @read(game_id_or_buffer)
@@ -64,7 +59,7 @@ GameAction = newtype {
         @action_type = action_type
         @step_number = step_number
         -- 2 one-byte numbers for general purpose
-        @genericbyte1,@genericbyte2 = gb1,gb2
+        @genericbyte1,@genericbyte2,@genericbyte3,@genericbyte4 = gb1,gb2,gb3,gb4
         -- 32bit integer (semi-general purpose)
         @id_target = id_target
         -- Two 64bit floats (semi-general purpose)
@@ -77,24 +72,29 @@ GameAction = newtype {
         if @step_number ~= O.step_number then return false
         if @genericbyte1 ~= O.genericbyte1 then return false
         if @genericbyte2 ~= O.genericbyte2 then return false
+        if @genericbyte3 ~= O.genericbyte3 then return false
+        if @genericbyte4 ~= O.genericbyte4 then return false
         if @id_target ~= O.id_target then return false
         if @x ~= O.x then return false
         if @y ~= O.y then return false
         return true
 
-    serialization_size: 26
 
     read: (buffer) =>
         -- For use with DataBuffer
-        @game_id = buffer\read_byte()
-        @id_player = buffer\read_byte() -- +1
-        @action_type = buffer\read_byte() -- +1 = 2
-        @step_number = buffer\read_int() -- + 4 == 6
-        @genericbyte1 = buffer\read_byte() -- + 1 == 7
-        @genericbyte2 = buffer\read_byte() -- + 1 == 8
-        @id_target = buffer\read_int() -- + 4 == 12
-        @x = buffer\read_double() -- + 8 = 20
-        @y = buffer\read_double() -- + 8 = 26
+        @game_id = buffer\read_byte() -- 1
+        @id_player = buffer\read_byte() -- +1 = 2
+        @action_type = buffer\read_byte() -- +1 = 3
+        @step_number = buffer\read_int() -- + 4 == 7
+        @genericbyte1 = buffer\read_byte() -- + 1 == 8
+        @genericbyte2 = buffer\read_byte() -- + 1 == 9
+        @genericbyte3 = buffer\read_byte() -- + 1 == 10
+        @genericbyte4 = buffer\read_byte() -- + 1 == 11
+        @id_target = buffer\read_int() -- + 4 == 15
+        @x = buffer\read_double() -- + 8 = 23
+        @y = buffer\read_double() -- + 8 = 31
+    -- By above sum:
+    serialization_size: 31
 
     write: (buffer) => with buffer
         -- For use with DataBuffer
@@ -104,6 +104,8 @@ GameAction = newtype {
         \write_int @step_number
         \write_byte @genericbyte1
         \write_byte @genericbyte2
+        \write_byte @genericbyte3
+        \write_byte @genericbyte4
         \write_int @id_target
         \write_double @x
         \write_double @y
@@ -292,7 +294,7 @@ setup_action_state = (G) ->
 
 return {
     :GameAction, :GameActionFrame, :GameActionFrameSet, 
-    :setup_action_state, :make_move_action, :make_none_action, :make_weapon_action,
+    :setup_action_state, :make_move_action, :make_weapon_action,
     :unbox_move_component,
     :ACTION_NORMAL, :ACTION_USE_WEAPON, :ACTION_USE_ITEM, :ACTION_USE_SPELL
 }

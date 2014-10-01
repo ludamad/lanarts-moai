@@ -13,6 +13,8 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap
     from require "core"
 
 
+PADDING = {10, 10}
+
 make_ellipse = (x, y, w, h, n_points = 16, start_angle = 0) ->
     points = {}
     angle,step = start_angle,(1/n_points* 2 * math.pi)
@@ -110,12 +112,11 @@ RVOScheme = newtype {
 
 make_rooms_with_tunnels = (map, rng, scheme) ->
     size = scheme.size
-    padding = {10, 10}
-    padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
+    padded_size = {size[1]+PADDING[1]*2, size[2]+PADDING[2]*2}
     oper = TileMap.random_placement_operator {
         size_range: scheme.rect_room_size_range
         rng: rng
-        area: bbox_create(padding, size)
+        area: bbox_create(PADDING, size)
         amount_of_placements_range: scheme.rect_room_num_range
         create_subgroup: true
         child_operator: (map, subgroup, bounds) ->
@@ -131,33 +132,25 @@ make_rooms_with_tunnels = (map, rng, scheme) ->
     }
  
     -- Apply the binary space partitioning (bsp)
-    oper map, TileMap.ROOT_GROUP, bbox_create(padding, size)
+    oper map, TileMap.ROOT_GROUP, bbox_create(PADDING, size)
 
     tunnel_oper = make_tunnel_oper(rng, scheme.floor1, scheme.wall1, scheme.wall1_seethrough)
 
-    tunnel_oper map, TileMap.ROOT_GROUP, bbox_create(padding, size)
+    tunnel_oper map, TileMap.ROOT_GROUP, bbox_create(PADDING, size)
     return map
 
 FLAG_ALTERNATE = TileMap.FLAG_CUSTOM1
 FLAG_INNER_PERIMETER = TileMap.FLAG_CUSTOM2
 
-generate_circle_scheme = (rng, scheme) ->
-    padding = {10, 10}
+generate_circle_tilemap = (map, rng, scheme) ->
     size = scheme.size
-    padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
+    padded_size = map.size
     center_x, center_y = padded_size[1]/2, padded_size[2]/2
     N_CIRCLES = scheme.number_polygons
     RVO_ITERATIONS = scheme.rvo_iterations
     -- An RVO scheme with a circular boundary
     outer_points = scheme.outer_points
     R = RVOScheme.create {make_ellipse center_x, center_y, size[1]/2, size[1]/2, outer_points}
-
-    map = TileMap.map_create { 
-        size: padded_size
-        content: scheme.wall1
-        flags: TileMap.FLAG_SOLID + (if scheme.wall1_seethrough then TileMap.FLAG_SEETHROUGH else 0)
-        instances: {}
-    }
 
     for i=1,N_CIRCLES
         -- Make radius of the circle:
@@ -179,40 +172,40 @@ generate_circle_scheme = (rng, scheme) ->
         if rng\random(4) ~= 1
             polygon\apply {
                 map: map
-                area: bbox_create(padding, size)
+                area: bbox_create(PADDING, size)
                 operator: {add: TileMap.FLAG_SEETHROUGH, remove: TileMap.FLAG_SOLID, content: scheme.floor1}
                 :n_points, :angle
             }
         else
             polygon\apply {
                 map: map
-                area: bbox_create(padding, size)
+                area: bbox_create(PADDING, size)
                 operator: {add: {TileMap.FLAG_SEETHROUGH, FLAG_ALTERNATE}, remove: TileMap.FLAG_SOLID, content: scheme.floor2}
                 :n_points, :angle
             }
 
-    -- -- Connect all the closest polygon pairs:
-    -- edges = minimum_spanning_tree(R.polygons)
-    -- -- Fuzzy matching & edge adding:
-    -- for p1 in *R.polygons
-    --     if rng\random(0,3) ~= 1
-    --         break
-    --     min_dist, best = math.huge, nil
-    --     for p2 in *R.polygons
-    --         if p1 == p2 or rng\random(0,3) ~= 1
-    --             break
-    --         dist = p1\square_distance(p2)
-    --         if dist < min_dist
-    --             min_dist = dist
-    --             best = p2
-    --     if best
-    --         already_have_edge = false
-    --         for {op1, op2} in *edges
-    --             if op1 == p1 and op2 == best or op2 == p1 and op1 == best
-    --                 already_have_edge = true
-    --                 break
-    --         if not already_have_edge
-    --             append edges, {p1, best}
+    -- Connect all the closest polygon pairs:
+    edges = minimum_spanning_tree(R.polygons)
+    -- Fuzzy matching & edge adding:
+    for p1 in *R.polygons
+        if rng\random(0,3) ~= 1
+            break
+        min_dist, best = math.huge, nil
+        for p2 in *R.polygons
+            if p1 == p2 or rng\random(0,3) ~= 1
+                break
+            dist = p1\square_distance(p2)
+            if dist < min_dist
+                min_dist = dist
+                best = p2
+        if best
+            already_have_edge = false
+            for {op1, op2} in *edges
+                if op1 == p1 and op2 == best or op2 == p1 and op1 == best
+                    already_have_edge = true
+                    break
+            if not already_have_edge
+                append edges, {p1, best}
     for {p1, p2} in *minimum_spanning_tree(R.polygons)
         tile = scheme.floor1
         flags = {TileMap.FLAG_SEETHROUGH}
@@ -222,7 +215,7 @@ generate_circle_scheme = (rng, scheme) ->
         if rng\random(4) < 2
             p1\line_connect {
                 map: map
-                area: bbox_create(padding, size)
+                area: bbox_create(PADDING, size)
                 target: p2
                 line_width: scheme.connect_line_width()
                 operator: {matches_none: FLAG_ALTERNATE, add: flags, remove: TileMap.FLAG_SOLID, content: tile}
@@ -230,7 +223,7 @@ generate_circle_scheme = (rng, scheme) ->
         else            
             p1\arc_connect {
                 map: map
-                area: bbox_create(padding, size)
+                area: bbox_create(PADDING, size)
                 target: p2
                 line_width: scheme.connect_line_width()
                 operator: {matches_none: FLAG_ALTERNATE, add: flags, remove: TileMap.FLAG_SOLID, content: tile}
@@ -266,32 +259,11 @@ generate_circle_scheme = (rng, scheme) ->
         operator: {add: FLAG_INNER_PERIMETER}
     }
 
-    map.generate_objects = (M) =>
-        import Feature from require '@map_object_types'
-        gen_feature = (sprite, solid) -> (px, py) -> Feature.create M, {x: px*32+16, y: py*32+16, :sprite, :solid}
-        for i=1,scheme.n_statues do random_square_spawn_object M, gen_feature('statues', true), {
-            matches_none: {FLAG_INNER_PERIMETER, TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
-        }
-        for i=1,scheme.n_shops do random_square_spawn_object M, gen_feature('shops', false), {
-            matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
-        }
-
-        for i=1,scheme.n_stairs_down do random_square_spawn_object M, gen_feature('stairs_down', false), {
-            matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
-        }
-
-        for i=1,scheme.n_stairs_up do random_square_spawn_object M, gen_feature('stairs_up', false), {
-            matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
-        }
-        scheme.generate_objects(M)
-
-
     return map
 
 generate_test_model = (rng) ->
-    padding = {10, 10}
     size = {120, 80}
-    padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
+    padded_size = {size[1]+PADDING[1]*2, size[2]+PADDING[2]*2}
 
     map = TileMap.map_create { 
         size: padded_size
@@ -318,7 +290,7 @@ generate_test_model = (rng) ->
     }
  
     -- Apply the binary space partitioning (bsp)
-    oper map, TileMap.ROOT_GROUP, bbox_create(padding, size)
+    oper map, TileMap.ROOT_GROUP, bbox_create(PADDING, size)
 
     tunnel_oper = make_tunnel_oper(rng)
 
@@ -329,9 +301,8 @@ generate_test_model = (rng) ->
 
 -- Simple model for exemplary purposes
 generate_empty_model = (rng) ->
-    padding = {10, 10}
     size = {48, 20}
-    padded_size = {size[1]+padding[1]*2, size[2]+padding[2]*2}
+    padded_size = {size[1]+PADDING[1]*2, size[2]+PADDING[2]*2}
     map = TileMap.map_create { 
         size: padded_size
         content: T('dungeon_wall')
@@ -348,7 +319,41 @@ generate_empty_model = (rng) ->
     --print_map(map, map.instances) -- Uncomment to print
     return map
 
+create_map = (G, schemef) ->
+    import map_state from require "core"
+    scheme = schemef(G.rng)
+    padded_size = {scheme.size[1]+PADDING[1]*2, scheme.size[2]+PADDING[2]*2}
+    tilemap = TileMap.map_create { 
+        size: padded_size
+        content: scheme.wall1
+        flags: TileMap.FLAG_SOLID + (if scheme.wall1_seethrough then TileMap.FLAG_SEETHROUGH else 0)
+        instances: {}
+    }
+    generate_circle_tilemap(tilemap, G.rng, scheme)
+    M = map_state.create_map_state(G, 1, G.rng, tilemap, scheme.line_of_sight)
+    
+    import Feature from require '@map_object_types'
+    gen_feature = (sprite, solid) -> (px, py) -> Feature.create M, {x: px*32+16, y: py*32+16, :sprite, :solid}
+    for i=1,scheme.n_statues do random_square_spawn_object M, gen_feature('statues', true), {
+        matches_none: {FLAG_INNER_PERIMETER, TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
+    }
+    for i=1,scheme.n_shops do random_square_spawn_object M, gen_feature('shops', false), {
+        matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
+    }
+
+    for i=1,scheme.n_stairs_down do random_square_spawn_object M, gen_feature('stairs_down', false), {
+        matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
+    }
+
+    for i=1,scheme.n_stairs_up do random_square_spawn_object M, gen_feature('stairs_up', false), {
+        matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
+    }
+    scheme.generate_objects(M)
+
+    return M
+
 return {
-    :generate_circle_scheme, :generate_test_model, :generate_empty_model
+    :create_map
+    :generate_circle_tilemap, :generate_test_model, :generate_empty_model
     :FLAG_ALTERNATE, :FLAG_INNER_PERIMETER
 }

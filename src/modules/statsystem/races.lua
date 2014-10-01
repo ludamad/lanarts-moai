@@ -12,7 +12,8 @@ UNARMED = {
 
 local function base_stat_adjustment(race, stats)
     local sA = stats.attributes
-    sA.raw_hp, sA.raw_mp, sA.raw_max_hp, sA.raw_max_mp = race.hp, race.mp, race.hp, race.mp
+    sA.raw_hp, sA.raw_mp, sA.raw_ep = race.hp, race.mp, race.ep
+    sA.raw_max_hp, sA.raw_max_mp, sA.raw_max_ep = race.hp, race.mp, race.ep
     sA.raw_hp_regen, sA.raw_mp_regen = race.hp_regen, race.mp_regen
     local A = stats.attack
     A.on_hit_sprite = "Unarmed"
@@ -23,8 +24,9 @@ local function base_stat_adjustment(race, stats)
     A.raw_delay = require("@constants").BASE_ACTION_DELAY * UNARMED.delay
     A.raw_cooldown = require("@constants").BASE_ACTION_COOLDOWN * UNARMED.cooldown
     A.raw_range = UNARMED.range
+    -- Unlikely to change, for any race:
+    sA.raw_move_speed = 6
 end
-
 
 races.Undead = {
     description = string.pack [[
@@ -39,6 +41,7 @@ races.Undead = {
 
     avatar_sprite = "sr-undead",
     hp = 80,  hp_regen = 0, -- None!
+    ep = 25, ep_regen = 0.020,
     mp = 100, mp_regen = 0.012,
 
     -- [Apts.DARK] = {2,1,2,1}, 
@@ -83,6 +86,7 @@ races.Human = {
 
     avatar_sprite = "sr-human",
     hp = 100, hp_regen = 0.020,
+    ep = 25, ep_regen = 0.020,
     mp = 100, mp_regen = 0.012,
 
     -- [Apts.SELF_MASTERY] = {2,0,0,0},
@@ -103,6 +107,7 @@ races.Orc = {
 
     avatar_sprite = "sr-orc",
     hp = 100, hp_regen = 0.010,
+    ep = 25, ep_regen = 0.020,
     mp = 80,  mp_regen = 0.008,
 
     -- [Apts.MELEE] = {-2,1,0,0},

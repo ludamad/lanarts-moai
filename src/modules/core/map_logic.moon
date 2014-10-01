@@ -5,7 +5,7 @@ import REST_COOLDOWN from require "statsystem"
 import ErrorReporting from require "system"
 
 import ObjectBase, CombatObjectBase, Player, NPC, Feature, Projectile from require '@map_object_types'
-import player_step, player_handle_io, player_handle_action from require "@map_logic_player"
+import player_step, player_handle_io, player_handle_action, draw_player_target from require "@map_logic_player"
 import npc_step_all from require "@map_logic_npc"
 
 resources = require 'resources'
@@ -33,7 +33,6 @@ step_objects = (M) ->
     --Step all stat contexts
     for obj in *M.combat_object_list
         obj.stats\calculate()
-        obj.stats\step()
 
     for obj in *M.combat_object_list
         obj\check_delayed_action(M)
@@ -172,6 +171,7 @@ draw = (V) ->
     mx,my = Display.mouse_game_xy()
     mx,my = math.floor(mx/32)*32, math.floor(my/32)*32
     SELECTION_SPRITE\draw(mx, my, 1, 0.5)
+    draw_player_target(V.map)
 
     table.clear(OBJECT_LIST_CACHE)
     for obj in *V.map.object_list
@@ -183,9 +183,9 @@ draw = (V) ->
             obj\draw(V)
     -- Draw overlay information
     for obj in *V.map.player_list
-        -- pinfo = V.gamestate.players[obj.id_player]
-        -- color = {unpack(pinfo.color)}
-        -- color[4] = 0.8
-        Display.drawTextCenter(PLAYER_NAME_FONT, V.gamestate.player_name(obj), obj.x, obj.y-25, Display.COL_RED, 14)
+        pinfo = V.gamestate.players[obj.id_player]
+        color = {unpack(pinfo.color)}
+        color[4] = 0.8
+        Display.drawTextCenter(PLAYER_NAME_FONT, V.gamestate.player_name(obj), obj.x, obj.y-25, color, 14)
 
 return {:step, :handle_io, :start, :pre_draw, :draw, :assertSync}

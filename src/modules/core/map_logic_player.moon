@@ -2,6 +2,7 @@
 import util_movement, util_geometry, util_draw, game_actions, FloodFillPaths from require "core"
 statsystem = require "statsystem"
 import Display from require "ui"
+data = require "core.data"
 
 import ObjectBase, CombatObjectBase, Player, NPC, Projectile from require '@map_object_types'
 
@@ -90,9 +91,12 @@ player_perform_action = (M, obj, action) ->
             obj\queue_weapon_attack(action.id_target)
 
     -- Finally, resolve the movement component of the action
-    id_player, step_number, dx, dy = game_actions.unbox_move_component(action)
+    id_player, step_number, dx, dy, will_sprint = game_actions.unbox_move_component(action)
     assert(id_player == obj.id_player)
     assert(step_number == M.gamestate.step_number)
+
+    -- Sprint only if requested:
+    S.will_sprint_if_can = (will_sprint)
     return player_perform_move(M, obj, dx, dy)
 
 player_move_with_velocity = (M, obj, vx, vy) ->
@@ -118,6 +122,16 @@ FLOOD_FILL = FloodFillPaths.create()
 PATHING_TO_MOUSE = false
 PATHING_MAP = nil
 PATH_X, PATH_Y = nil,nil
+ATTACK_MOVE = false
+
+SELECTION_SPRITE = data.get_sprite("selection")
+-- TODO Find a better home for the state above
+draw_player_target = (M) ->
+    if PATHING_TO_MOUSE and PATH_X and PATH_Y and PATHING_MAP == M
+        r,g,b = 0.2,1,0.2
+        if ATTACK_MOVE
+            r,g,b = 1,0.2,0.2
+        SELECTION_SPRITE\draw(math.floor(PATH_X/32)*32, math.floor(PATH_Y/32)*32,1,0.5, 0,0, r,g,b)
 
 _set_for_map = (M) ->
     if M ~= PATHING_MAP
@@ -144,6 +158,7 @@ player_handle_io = (M, obj) ->
 
     if user_io.mouse_left_down()
         PATHING_TO_MOUSE = true
+        ATTACK_MOVE = (user_io.key_down "K_Y")
         PATH_X, PATH_Y = Display.mouse_game_xy()
         dx,dy = PATH_X - obj.x, PATH_Y - obj.y
         dist = math.sqrt(dx*dx + dy*dy)
@@ -151,7 +166,7 @@ player_handle_io = (M, obj) ->
         seen = M.player_seen_map(M.gamestate.local_player_id)
         while dist >= 32
             was_seen = seen\get(math.ceil(PATH_X/32), math.ceil(PATH_Y/32))
-            if was_seen and not M.tile_check(obj, PATH_X - obj.x, PATH_Y - obj.y, 2)
+            if was_seen and not M.tile_check(obj, PATH_X - obj.x, PATH_Y - obj.y, 8)
                 break
             PATH_X, PATH_Y = PATH_X - dx*32, PATH_Y - dy*32
             dist -= 32
@@ -161,35 +176,38 @@ player_handle_io = (M, obj) ->
     dx,dy=0,0
 
     if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
-        dy = -obj.speed
+        dy = -obj.stats.move_speed
     elseif (user_io.key_down "K_DOWN") or (user_io.key_down "K_S") 
-        dy = obj.speed
+        dy = obj.stats.move_speed
     if (user_io.key_down "K_RIGHT") or (user_io.key_down "K_D") 
-        dx = obj.speed
+        dx = obj.stats.move_speed
     elseif (user_io.key_down "K_LEFT") or (user_io.key_down "K_A") 
-        dx = -obj.speed
+        dx = -obj.stats.move_speed
 
     -- Arrow keys override mouse movement
     if dx == 0 and dy == 0 and PATHING_TO_MOUSE
         dist = math.max(math.abs(PATH_X-obj.x), math.abs(PATH_Y-obj.y))
         -- Are we 'close enough'?
-        if dist < obj.speed
+        if dist < obj.stats.move_speed
             PATHING_TO_MOUSE = false
         x1,y1,x2,y2 = util_geometry.object_bbox(obj)
-        dx, dy = FLOOD_FILL\interpolated_direction(math.ceil(x1),math.ceil(y1),math.floor(x2),math.floor(y2), obj.speed)
+        dx, dy = FLOOD_FILL\interpolated_direction(math.ceil(x1),math.ceil(y1),math.floor(x2),math.floor(y2), obj.stats.move_speed)
         if dx == 0 and dy == 0
             PATHING_TO_MOUSE = false
     else
         PATHING_TO_MOUSE = false
 
+    will_sprint = (user_io.key_down "K_U")
+
     action = nil
-    if user_io.key_down "K_Y"
+    if user_io.key_down "K_Y" or (PATHING_TO_MOUSE and ATTACK_MOVE)
         e = obj\nearest_enemy(M)
         if e 
-            action = game_actions.make_weapon_action G.game_id, obj, step_number, e.id, dx, dy
+            action = game_actions.make_weapon_action G.game_id, obj, step_number, e.id, dx, dy, will_sprint
+
     -- No special action done?
     if not action 
-        action = game_actions.make_move_action G.game_id, obj, step_number, dx, dy
+        action = game_actions.make_move_action G.game_id, obj, step_number, dx, dy, will_sprint
     G.queue_action(action)
     if G.net_handler
         -- Send last two unacknowledged actions (included the one just queued)
@@ -204,4 +222,4 @@ player_handle_io = (M, obj) ->
             action: "TODO"
         }
 
-return {:player_step, :player_handle_io, :player_perform_action}
+return {:player_step, :player_handle_io, :player_perform_action, :draw_player_target}

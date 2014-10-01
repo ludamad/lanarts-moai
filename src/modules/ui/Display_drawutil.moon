@@ -67,7 +67,7 @@ colorEscapeCode = (color) ->
 	{r,g,b,a} = color
 	-- Change into integers, accounting for the fact that alpha may not be specified
 	r,g,b,a = math.floor(r*255), math.floor(g*255), math.floor(b*255), math.floor((a or 1)*255)
-	return '\0' .. SC(r) .. SC(g) .. SC(b) .. SC(a)
+	return SC(27, r, g, b, a)
 
 -- Reusable object for drawTexture:
 _DRAW_TEXTURE_HELPER = {}
@@ -84,6 +84,8 @@ return {
 	drawText: _drawText
 	drawTextXCenter: (font, text, x, y, color, size, max_width) ->
 		_drawText(font, text, x, y, color, size, 0.5, 0, max_width)
+	drawTextYCenter: (font, text, x, y, color, size, max_width) ->
+		_drawText(font, text, x, y, color, size, 0, 0.5, max_width)
 	drawTextCenter: (font, text, x, y, color, size, max_width) ->
 		_drawText(font, text, x, y, color, size, 0.5, 0.5, max_width)
 	drawTexture: (texture_or_args, x, y, origin = Display.LEFT_TOP) ->

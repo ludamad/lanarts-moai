@@ -4,18 +4,16 @@ T =  modules.get_tilelist_id
 import random_square_spawn_object from require '@util_generate'
 import map_object_types from require 'core'
 
-spawn_rats = (n_rats) -> (M) ->
-    for i=1,n_rats
-        random_square_spawn_object M, (px, py) ->
-            map_object_types.NPC.create M, {
-                x: px*32+16
-                y: py*32+16
-                type: "Giant Rat"
-                radius: 13
-                solid: true
-                id_player: i
-                speed: 6
-            }
+spawn_mons = (mons) -> (M) ->
+	for mon, n in pairs mons
+	    for i=1,n
+	        assert random_square_spawn_object M, (px, py) ->
+	            map_object_types.NPC.create M, {
+	                x: px*32+16
+	                y: py*32+16
+	                type: mon
+	                solid: true
+	            }
     require("@map_logic").assertSync "step_objects (frame #{M.gamestate.frame})", M
 
 default_poly_delta_func = (rng) -> (map, poly) ->
@@ -42,8 +40,6 @@ ring_poly_delta_func = (rng) -> (map, poly) ->
 -- Populate our world with the major locations that will be included
 world_generation = () ->
 	W = {}
-	
-
 
 return {
 	OUTSIDE: (rng) -> {
@@ -55,6 +51,7 @@ return {
 		wall1: T('tree')
 		wall1_seethrough: true
 		wall2: T('dungeon_wall')
+		line_of_sight: 8
 		rect_room_num_range: {4,10}
 		rect_room_size_range: {10,15}
 		n_statues: 10
@@ -69,7 +66,7 @@ return {
 			bound = rng\random(1,20)
         	for j=1,rng\random(0,bound) do r += rng\randomf(0, 1)
         	return r
-        generate_objects: spawn_rats(5)
+        generate_objects: spawn_mons {["Giant Rat"]: 35, ["Storm Elemental"]: 5}
 	}
 	SMALL: (rng) -> {
 		size: {35, 35}
@@ -79,6 +76,7 @@ return {
 		floor2: T('reddish_grey_floor')
 		wall1: T('dungeon_wall')
 		wall2: T('crypt_wall')
+		line_of_sight: 6
 		rect_room_num_range: {1,4}
 		rect_room_size_range: {3,8}
 		n_statues: 3
@@ -103,6 +101,7 @@ return {
 		floor2: T('reddish_grey_floor')
 		wall1: T('dungeon_wall')
 		wall2: T('crypt_wall')
+		line_of_sight: 6
 		rect_room_num_range: {5,10}
 		rect_room_size_range: {3,20}
 		n_statues: 10

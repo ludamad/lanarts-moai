@@ -1,4 +1,4 @@
--- Every combat entity has a StatContext object
+-- Every combat entity has a *StatContext object
 -- Note this file should not be used directly, except internally. Use 'require "statsystem"', instead.
 
 attributes = require "@attributes"
@@ -41,7 +41,7 @@ M.AttackContext = newtype {
   apply: calculate.attack_apply
 }
 
-M.StatContext = newtype {
+M.NPCStatContext = newtype {
   -- Fallbacks for get and set:
   get: make_attribute_getters(attributes.CORE_ATTRIBUTES)
   set: make_attribute_setters(attributes.CORE_ATTRIBUTES)
@@ -74,7 +74,7 @@ M.StatContext = newtype {
      @cooldown_rates\copy(S.cooldown_rates)
 
    clone: (new_owner) =>
-     S = M.StatContext.create(new_owner, @name)
+     S = M.NPCStatContext.create(new_owner, @name)
      S\copy(@)
      assert S.raw_hp == @raw_hp and @raw_hp ~= 0, "Failed sanity check in stat cloning!"
      return S
@@ -82,19 +82,22 @@ M.StatContext = newtype {
    revert: () => 
      @attributes\revert()
      @attack\revert()
-   step: calculate.stat_step
    -- Calculate derived stats from bonuses and their raw_* counterparts
-   calculate: calculate.stat_calculate
+   -- calculate takes (do_step = true)
+   calculate: calculate.npc_stat_calculate
 }
 
 M.PlayerStatContext = newtype {
-  parent: M.StatContext
+  parent: M.NPCStatContext
   init: (owner, name, race) =>
-    M.StatContext.init(@, owner, name)
+    M.NPCStatContext.init(@, owner, name)
     @race = race
     @level = 1
     @xp = 0
     @is_resting = false
+    -- Will the player try to sprint next step
+    @will_sprint_if_can = false
+    @is_sprinting = false
     -- The 'Skills' structure is used as an arbitrary structure for holding one float per skill.
     @skill_levels = attributes.Skills.create()
     @skill_points = attributes.Skills.create()
@@ -104,7 +107,7 @@ M.PlayerStatContext = newtype {
     @skill_weights = attributes.Skills.create()
 
    clone: () => error("Not Yet Implemented")
-   step: calculate.player_stat_step
+   -- calculate takes (do_step = true)
    calculate: calculate.player_stat_calculate
    get_equipped: (item_type) =>
      for i=1,@inventory\size()

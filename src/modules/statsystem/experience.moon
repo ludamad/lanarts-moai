@@ -65,7 +65,7 @@ amount_needed = (xp, level) -> M.level_experience_needed(level) - xp
 on_spend_skill_points = (stats, skill, points, logger = nil) ->
     old_level = stats.skill_levels[skill]
     stats.skill_points[skill] += points
-    new_level = M..skill_level_from_cost(stats.skill_cost_multipliers[skill], stats.skill_points[skill])
+    new_level = M.skill_level_from_cost(stats.skill_cost_multipliers[skill], stats.skill_points[skill])
     stats.skill_levels[skill] = new_level
     if logger and math.floor(old_level) < math.floor(new_level) then
         logger "$YOUR %s skill has reached level %d!", 
@@ -77,19 +77,21 @@ allocate_skill_points = (stats, skill_points, logger = nil) ->
     total_weight = 0
     for skill in *attributes.SKILL_ATTRIBUTES
         total_weight += stats.skill_weights[skill]
-    assert total > 0, "Should have at least one skill chosen!"
+    assert total_weight > 0, "Should have at least one skill chosen!"
     for skill in *attributes.SKILL_ATTRIBUTES
         allocation = (stats.skill_weights[skill] * skill_points / total_weight)
         on_spend_skill_points(stats, skill, allocation, logger)
 
-M.level_up = () ->
+M.level_up = (stats) ->
     stats.level += 1
-    stats.attributes.raw_hp += 10
-    stats.attributes.raw_mp += 10
+    stats.raw_hp += 10
+    stats.raw_max_hp += 10
+    stats.raw_mp += 10
+    stats.raw_max_mp += 10
 
 M.gain_xp = (stats, xp, log = nil) ->
     assert(xp >= 0, "Cannot gain negative experience!")
-    old_hp, old_mp = stats.attributes.raw_max_hp, stats.attributes.raw_max_mp
+    old_hp, old_mp = stats.raw_max_hp, stats.raw_max_mp
     old_level = stats.level
     skill_points_gained = 0
 
@@ -106,7 +108,7 @@ M.gain_xp = (stats, xp, log = nil) ->
         for i=intervals_prev+1,intervals_new do
             skill_points_gained += M.skill_points_at_level_up(stats.level) / SKILL_POINT_INTERVALS 
 
-        needed = math.max(0, amount_needed(old_xp, B.level))
+        needed = math.max(0, amount_needed(old_xp, stats.level))
         xp_spent = math.min(xp, needed)
         xp = xp - xp_spent
         stats.xp = stats.xp + xp_spent
@@ -125,7 +127,7 @@ M.gain_xp = (stats, xp, log = nil) ->
         log("$YOU (has)[have] levelled up! $YOU (is)[are] now level %d!", level_str, stats.level)
 
     -- Log any changes to MP or HP
-    hp_gained, mp_gained = B.attributes.raw_max_hp - old_hp, B.attributes.raw_max_mp - old_mp
+    hp_gained, mp_gained = stats.raw_max_hp - old_hp, stats.raw_max_mp - old_mp
     if mp_gained > 0 and log
         log("$You gain(s) %d MP!", mp_gained)
     if hp_gained > 0  and log

@@ -206,16 +206,21 @@ with spritedef file: 'monsters.png', size: {32,32}, tiled: true
     .define name: 'Sheep', from: {9, 1}
     .define name: 'Big Spider', from: {10, 1}
     .define name: 'Enchanted Chicken', from: {11, 1}
+    .define name: 'Cloud Elemental', from: {1, 2}, to: {2, 2}
+    .define name: 'Storm Elemental', from: {3, 2}
+    .define name: 'Ciri', from: {4,2}
 
+-- Projectile sprites:
 with spritedef file: 'cloud-projectile.png', size: {32,32}, tiled: true, kind: 'animation'
-    .define name: 'Storm Cloud', from: {1,1}
+    .define name: 'projectile-cloud', from: {1,1}
 
 with spritedef file: 'status_icon.png', size: {32,32}, tiled: true
     .define name: 'stat-haste', from: {1, 1}
-    .define name: 'stat-slow', from: {2, 1}
+    .define name: 'stat-wait', from: {2, 1}
     .define name: 'stat-speed', from: {3, 1}
     .define name: 'stat-rest', from: {4, 1}
     .define name: 'stat-melee', from: {5, 1}
+    .define name: 'stat-random', from: {6, 1}
 
 with spritedef file: 'hand.png', size: {32,32}, tiled: true
     .define name: 'Unarmed', from: {1, 1}

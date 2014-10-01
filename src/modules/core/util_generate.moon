@@ -8,9 +8,11 @@ random_square_spawn_object = (L, spawner, selector = DEFAULT_SELECTOR) ->
 		:selector
 		operator: add: TileMap.FLAG_HAS_OBJECT
 	}
-
+	if not sqr
+		return false
 	{px, py} = sqr
 
 	spawner(px, py)
+	return true
 
 return {:random_square_spawn_object}

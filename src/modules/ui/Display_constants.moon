@@ -4,11 +4,11 @@ return nilprotect {
     -- Priority constants
     -------------------------------------------------------------------------------
 
-    PRIORITY_BACKGROUND: 5 * PRIORITY_INCREMENT
-    PRIORITY_OBJECT: 4* PRIORITY_INCREMENT
+    PRIORITY_BACKGROUND: 1 * PRIORITY_INCREMENT
+    PRIORITY_OBJECT: 2 * PRIORITY_INCREMENT
     PRIORITY_FOREGROUND: 3 * PRIORITY_INCREMENT
-    PRIORITY_INTERFACE: 2 * PRIORITY_INCREMENT
-    PRIORITY_CURSOR: 1 * PRIORITY_INCREMENT
+    PRIORITY_INTERFACE: 4 * PRIORITY_INCREMENT
+    PRIORITY_CURSOR: 5 * PRIORITY_INCREMENT
 
     -------------------------------------------------------------------------------
     -- Orientation constants

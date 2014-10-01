@@ -45,7 +45,6 @@ _spawn_players = (G, M, stat_components) ->
                 class_args: stat_components.class_args
                 solid: true
                 id_player: i
-                speed: 6
             }
 
 -- For the seed, try to mix CPU time and wall-clock time without overlapping the bits.
@@ -172,10 +171,8 @@ start_game = (G, stat_components, on_death) ->
     logS("rng check", G.rng\randomf())
 
     logI("main::start_game: after clear_game_data")
-    tilemap = modules.get_map("start").generator(G, G.rng, require("@generate_data").OUTSIDE)
+    M = require("@generate").create_map(G, require("@generate_data").OUTSIDE)
 
-    M = map_state.create_map_state(G, 1, G.rng, tilemap)
-    tilemap\generate_objects(M)
     append G.maps, M
 
     logI("main::start_game: Map created")

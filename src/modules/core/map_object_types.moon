@@ -40,7 +40,7 @@ ObjectBase = newtype {
     sprite: false
     priority: 0
 	init: (M, args) =>
-		@x, @y, @radius = args.x, args.y, args.radius or 16
+		@x, @y, @radius = args.x, args.y, args.radius or 15
         @target_radius, @solid = (args.target_radius or args.radius or 16), args.solid or false
         if args.priority then @priority = args.priority
         @map = M
@@ -93,16 +93,16 @@ draw_statbar = (x,y,w,h, ratio) ->
 
 CombatObjectBase = newtype {
     parent: ObjectBase
-    init: (M, args) =>
+    init: (M, stats, args) =>
         args.solid = true
         ObjectBase.init(@, M, args)
-        @speed = args.speed
+        @stats = stats
         -- The collision detection component
         -- Subsystem registration
         @id_col = M.collision_world\add_instance(@x, @y, @radius, @target_radius, @solid)
         M.col_id_to_object[@id_col] = @
         -- The collision evasion component
-        @id_rvo = M.rvo_world\add_instance(@x, @y, @radius, @speed)
+        @id_rvo = M.rvo_world\add_instance(@x, @y, @radius, @stats.move_speed)
         append M.combat_object_list, @
         @set_priority()
         @_reset_delayed_action()
@@ -132,7 +132,7 @@ CombatObjectBase = newtype {
         @priority = BASE_PRIORITY + Y_PRIORITY_INCR * @y
 
     -- Set RVO heading
-    set_rvo: (M, dx, dy, max_speed = @speed, radius = @radius) =>
+    set_rvo: (M, dx, dy, max_speed = @stats.move_speed, radius = @radius) =>
         M.rvo_world\update_instance(@id_rvo, @x, @y, radius, max_speed, dx, dy)
     get_rvo_velocity: (M) =>
         return M.rvo_world\get_velocity(@id_rvo)
@@ -188,16 +188,21 @@ CombatObjectBase = newtype {
     _get_rgb: () =>
         if @delayed_action
             -- Use action wait to modify r,g,b values:
-            cmod = @_spike_color_mod(@stats.cooldowns.action_wait, @delayed_action_initial_delay)
-            v = cmod/2+.5
-            return v,v,v
+            v1 = @_spike_color_mod(@stats.cooldowns.action_wait, @delayed_action_initial_delay)
+            v2 = v1 * 0.25 + 0.75
+            return v2,v2,v1
+        elseif @stats.cooldowns.move_cooldown > 0
+            return 0.5, 0.5, 0.5
         else
             -- Use hurt cooldown (if any) to modify r,g,b values:
             cmod = @_spike_color_mod(@stats.cooldowns.hurt_cooldown, statsystem.HURT_COOLDOWN)
             return 1, cmod, cmod
 
+    WAIT_SPRITE: data.get_sprite("stat-wait")
     draw: (V) =>
         ObjectBase.draw(@, V, @_get_rgb())
+        if @stats.cooldowns.move_cooldown > 0
+            @WAIT_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
         healthbar_offsety = 20
         if @target_radius > 16
             healthbar_offsety = @target_radius + 8
@@ -253,24 +258,23 @@ Player = newtype {
     parent: CombatObjectBase
     init: (M, args) =>
         logI("Player::init")
-        CombatObjectBase.init(@, M, args)
+
+        -- Create the stats object for the player
+        stats = statsystem.PlayerStatContext.create(@, args.name, args.race)
+        args.race.stat_race_adjustments(stats)
+        args.class.stat_class_adjustments(args.class_args, stats)
+        stats\calculate(false)
+
+        CombatObjectBase.init(@, M, stats, args)
         @name = args.name
 
         @action_state = PlayerActionState.create()
 
-        -- Create the stats object for the player
-        @stats = statsystem.PlayerStatContext.create(@, args.name, args.race)
-        args.race.stat_race_adjustments(@stats)
-        args.class.stat_class_adjustments(args.class_args, @stats)
-        @stats.attributes.raw_move_speed = args.speed
-        @stats\calculate()
-
         logI("Player::init stats created")
 
-        @vision_tile_radius = 8
         @player_path_radius = 300
         @id_player = args.id_player
-        @vision = PlayerVision.create(M, @id_player, @vision_tile_radius)
+        @vision = PlayerVision.create(M, @id_player, M.line_of_sight)
         @paths_to_player = FloodFillPaths.create()
         @paths_to_player\set_map(M.tilemap)
         append M.player_list, @
@@ -294,6 +298,7 @@ Player = newtype {
     }
 
     REST_SPRITE: data.get_sprite("stat-rest")
+    SPRINT_SPRITE: data.get_sprite("stat-speed")
 
     draw: (V) =>
         r,g,b = @_get_rgb()
@@ -317,6 +322,8 @@ Player = newtype {
                 sp\draw(@x, @y, @frame, 1, 0.5, 0.5, r,g,b)
         if @stats.is_resting
             @REST_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
+        if @stats.is_sprinting
+            @SPRINT_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
 
         CombatObjectBase.draw(@, V)
     pre_draw: do_nothing
@@ -343,30 +350,50 @@ Player = newtype {
         @paths_to_player\update(@x, @y, @player_path_radius)
 }
 
+NPC_RANDOM_WALK, NPC_CHASING = 0,1
+
 NPC = newtype {
     parent: CombatObjectBase
     init: (M, args) =>
-        CombatObjectBase.init(@, M, args)
-        append M.npc_list, @
         @npc_type = statsystem.MONSTER_DB[args.type]
-        @sprite = data.get_sprite(args.type)
+        args.radius = @npc_type.radius
         -- Clone the MonsterType stat object, with '@' as the new owner
-        @stats = @npc_type.stats\clone(@)
+        CombatObjectBase.init(@, M, @npc_type.stats\clone(@), args)
+        append M.npc_list, @
+        @sprite = data.get_sprite(args.type)
+        @ai_action = NPC_RANDOM_WALK
+        @ai_target = false
+        @ai_vx = 0
+        @ai_vy = 0
 
     nearest_enemy: (M) =>
         min_obj,min_dist = nil,math.huge
         for obj in *M.player_list do
             dist = util_geometry.object_distance(@, obj)
-            if dist < min_dist
+            if dist < min_dist 
                 min_obj = obj
                 min_dist = dist
         return min_obj, min_dist
 
     on_death: (M) =>
-        CombatObjectBase.on_death(@, M)   
+        CombatObjectBase.on_death(@, M)
+        -- Players gain experience points, as long as they are on the same map:
+        n_players = #M.player_list
+        for obj in *M.player_list do
+            xp_gain = statsystem.challenge_rating_to_xp_gain obj.stats.level, @npc_type.level
+            -- Divide XP up by players:
+            xp_gain = math.round(xp_gain / n_players)
+            statsystem.gain_xp(obj.stats, xp_gain)
+
         Animation.create M, {
             sprite: @sprite, x: @x, y: @y, vx: 0, vy: 0, priority: @priority
         }
+
+    RANDOM_WALK_SPRITE: data.get_sprite("stat-random")
+    draw: (V) =>
+        CombatObjectBase.draw(@, V)
+        if @ai_action == NPC_RANDOM_WALK
+            @RANDOM_WALK_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
 
     remove: (M) =>
         CombatObjectBase.remove(@, M)
@@ -441,4 +468,4 @@ Projectile = newtype {
         table.remove_occurrences M.projectile_list, @
 }
 
-return {:ObjectBase, :Feature, :CombatObjectBase, :Player, :NPC, :Projectile}
+return {:ObjectBase, :Feature, :CombatObjectBase, :Player, :NPC, :Projectile, :NPC_RANDOM_WALK, :NPC_CHASING}
