@@ -243,6 +243,8 @@ ServerMessageHandler = create: (G, args) ->
         first_to_send = if lookback then G.step_number - lookback else (N.last_acknowledged_frame[peer] or 0) + 1
         -- last_ack = G.player_actions\first()
         last_action = G.seek_action(pid)
+        if last_action 
+            return 
         ack_to_send = (if last_action then last_action.step_number else G.fork_step_number - 1)
         -- Channel to send over
         channel = if lookback then 1 else 2
