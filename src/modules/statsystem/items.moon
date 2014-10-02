@@ -263,7 +263,7 @@ M.make_weapon_attack = (t) ->
     import AttackContext from require "@statcontext"
 
     A = AttackContext.create(false)
-    A.on_hit_sprite = t.name
+    A.attack_sprite = t.name
     -- Default unarmed attack
     A.raw_physical_dmg = t.damage
     A.raw_physical_power = t.power or 0
@@ -271,6 +271,10 @@ M.make_weapon_attack = (t) ->
     A.raw_multiplier = t.multiplier or t.cooldown or 1
     A.raw_cooldown = constants.BASE_ACTION_COOLDOWN * (t.cooldown or 1)
     A.raw_range = (t.range or 4)
+    A.uses_projectile = (t.uses_projectile or false)
+    if A.uses_projectile
+        A.projectile_radius = (t.projectile_radius or 13)
+        A.projectile_speed = (t.projectile_speed)
     A\revert()
     return A
 

@@ -88,18 +88,6 @@ start = (V) -> nil
     -- for inst in *V.map.object_list
     --     inst\register_prop(V)
 
-_text_style = with MOAITextStyle.new()
-    \setColor 1,1,1 -- Yellow
-    \setFont (resources.get_font 'Gudea-Regular.ttf')
-    \setSize 14
-
-UI_PRIORITY = 200
-
-_draw_text = (V, text, obj, dx, dy) ->
-    with Display.put_text_center Display.game_obj_layer, _text_style, text, obj.x + dx, obj.y + dy
-        \setPriority UI_PRIORITY
-        \setColor 1,1,0.5,0.4
-
 -- Takes view object
 pre_draw = (V) ->
     Display.reset_draw_cache()
@@ -175,16 +163,22 @@ draw = (V) ->
 
     table.clear(OBJECT_LIST_CACHE)
     for obj in *V.map.object_list
-        append OBJECT_LIST_CACHE, obj
+        if should_draw_object(V, obj)
+            append OBJECT_LIST_CACHE, obj
     table.sort(OBJECT_LIST_CACHE, priority_compare)
 
+    -- Draw shadows
     for obj in *OBJECT_LIST_CACHE
-        if should_draw_object(V, obj)
-            obj\draw(V)
+        if getmetatable(obj) == Player or getmetatable(obj) == NPC
+            obj.SHADOW_SPRITE\draw(obj.x,obj.y,obj.frame,1,0.5,0.5)
+
+    -- Draw objects
+    for obj in *OBJECT_LIST_CACHE
+        obj\draw(V)
     -- Draw overlay information
     for obj in *V.map.player_list
         pinfo = V.gamestate.players[obj.id_player]
-        color = {unpack(pinfo.color)}
+        color = Display.COL_WHITE-- {unpack(pinfo.color)}
         color[4] = 0.8
         Display.drawTextCenter(PLAYER_NAME_FONT, V.gamestate.player_name(obj), obj.x, obj.y-25, color, 14)
 

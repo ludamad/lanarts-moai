@@ -116,12 +116,13 @@ main_thread = (G, on_death) -> profile () ->
 
             last_needed = math.min(G.fork_step_number, G.net_handler\min_acknowledged_frame())
             G.drop_old_actions(last_needed - 1)
-        elseif G.net_handler or G.step_number <= last_best
-            -- Lock-step
-            G.doing_client_side_prediction = false
-            G.step()
-            last_needed = math.min(G.fork_step_number, G.net_handler\min_acknowledged_frame())
-            G.drop_old_actions(last_needed - 1)
+        elseif G.net_handler
+            if G.step_number <= last_best
+                -- Lock-step
+                G.doing_client_side_prediction = false
+                G.step()
+                last_needed = math.min(G.fork_step_number, G.net_handler\min_acknowledged_frame())
+                G.drop_old_actions(last_needed - 1)
         else -- Single player
             G.doing_client_side_prediction = false
             G.step()

@@ -110,7 +110,7 @@ setup_handler_base = (N) ->
 
     return N
 
-MAX_PACKET_SIZE = 1200
+MAX_PACKET_SIZE = 999999--1200
 
 -------------------------------------------------------------------------------
 -- Client & server message handlers

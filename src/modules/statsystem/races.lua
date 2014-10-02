@@ -19,7 +19,7 @@ local function base_stat_adjustment(race, S)
     S.raw_move_speed = 6
     S.raw_hp, S.raw_mp, S.raw_ep = race.hp, race.mp, race.ep
     S.raw_max_hp, S.raw_max_mp, S.raw_max_ep = race.hp, race.mp, race.ep
-    S.raw_hp_regen, S.raw_mp_regen = race.hp_regen, race.mp_regen, race.ep_regen
+    S.raw_hp_regen, S.raw_mp_regen, S.raw_ep_regen = race.hp_regen, race.mp_regen, race.ep_regen
     S.attack:copy(race.attack)
 end
 
@@ -37,7 +37,7 @@ races.Undead = {
     attack = unarmed_attack,
     avatar_sprite = "sr-undead",
     hp = 80,  hp_regen = 0, -- None!
-    ep = 25, ep_regen = 0.020,
+    ep = 25, ep_regen = 0.005,
     mp = 100, mp_regen = 0.012,
 
     -- [Apts.DARK] = {2,1,2,1}, 
@@ -83,7 +83,7 @@ races.Human = {
     attack = unarmed_attack,
     avatar_sprite = "sr-human",
     hp = 100, hp_regen = 0.020,
-    ep = 25, ep_regen = 0.020,
+    ep = 25, ep_regen = 0.005,
     mp = 100, mp_regen = 0.012,
 
     -- [Apts.SELF_MASTERY] = {2,0,0,0},
@@ -105,7 +105,7 @@ races.Orc = {
     attack = unarmed_attack,
     avatar_sprite = "sr-orc",
     hp = 100, hp_regen = 0.010,
-    ep = 25, ep_regen = 0.020,
+    ep = 25, ep_regen = 0.005,
     mp = 80,  mp_regen = 0.008,
 
     -- [Apts.MELEE] = {-2,1,0,0},

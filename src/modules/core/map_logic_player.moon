@@ -53,7 +53,8 @@ player_perform_move = (M, obj, dx, dy) ->
         as.constraint_dir_x, as.constraint_dir_y = dx, dy
         as.last_dir_x, as.last_dir_y = dx, dy
     for speed=obj.stats.move_speed,1,-1
-        dx, dy = player_adjust_direction(M, obj, dx, dy, as.constraint_dir_x, as.constraint_dir_y, speed)
+        mag = math.sqrt(dx*dx + dy*dy)
+        dx, dy = player_adjust_direction(M, obj, dx/mag*speed, dy/mag*speed, as.constraint_dir_x, as.constraint_dir_y, speed)
         if dx ~= 0 or dy ~= 0
             break
     -- Tighten the constraints
@@ -63,9 +64,9 @@ player_perform_move = (M, obj, dx, dy) ->
         return 0,0
     -- Perform the move
     -- Use Pythagorean theorem:
-    mag = math.sqrt(dx*dx + dy*dy)
-    if mag > obj.stats.move_speed
-        dx, dy = dx/mag*obj.stats.move_speed, dy/mag*obj.stats.move_speed
+    dist = math.sqrt(dx*dx + dy*dy)
+    if dist > obj.stats.move_speed
+        dx, dy = dx/dist*obj.stats.move_speed, dy/dist*obj.stats.move_speed
     obj.x, obj.y = obj.x + dx, obj.y + dy
     -- Moving precludes resting:
     obj.frame += 0.25
@@ -80,7 +81,8 @@ player_perform_action = (M, obj, action) ->
     if S.cooldowns.rest_cooldown <= 0
         needs_hp = (S.hp < S.max_hp and S.hp_regen > 0)
         needs_mp = (S.mp < S.max_mp and S.mp_regen > 0)
-        if needs_hp or needs_mp
+        needs_ep = (S.ep < S.max_ep and S.ep_regen > 0)
+        if needs_hp or needs_mp or needs_ep
             -- Rest if we can, and if its useful
             S.is_resting = true
 
@@ -88,7 +90,7 @@ player_perform_action = (M, obj, action) ->
     if action.action_type == game_actions.ACTION_USE_WEAPON
         e = M.objects\get(action.id_target)
         if e and S.cooldowns.action_cooldown <= 0 and util_geometry.object_distance(obj, e) <= A.range
-            obj\queue_weapon_attack(action.id_target)
+            obj\queue_weapon_attack(M, action.id_target)
 
     -- Finally, resolve the movement component of the action
     id_player, step_number, dx, dy, will_sprint = game_actions.unbox_move_component(action)
@@ -111,10 +113,8 @@ player_move_with_velocity = (M, obj, vx, vy) ->
 player_step = (M, obj) ->
     -- Set up directions of player
     action = M.gamestate.get_action(obj.id_player)
-    if action
-        dx, dy = player_perform_action(M, obj, action)
-    -- Ensure player does not move in RVO
-    obj\set_rvo(M, 0,0, 2, 20)
+    logS "Player #{obj.id_player} #{M.gamestate.step_number}", action
+    dx, dy = player_perform_action(M, obj, action)
 
 MAX_FUTURE_STEPS = 0
 
@@ -141,6 +141,13 @@ _set_for_map = (M) ->
         PATHING_MAP = M
         PATH_X, PATH_Y = nil,nil
 
+
+REST_COUNT = 0
+all_players_resting = (G) ->
+    for {:object} in *G.players
+        if not object.stats.is_resting
+            return false
+    return true
 -- Exported
 -- Handle keyboard and mouse input for a single frame, for this player
 -- M: The current map
@@ -148,6 +155,15 @@ player_handle_io = (M, obj) ->
     _set_for_map(M)
     G = M.gamestate
     step_number = G.step_number
+
+    if all_players_resting(M.gamestate)
+        REST_COUNT += 1
+    else
+        REST_COUNT = 0
+    if REST_COUNT >= 5
+        MOAISim.setStep(1 / (_SETTINGS.frames_per_second*2) )
+    else
+        MOAISim.setStep(1 / _SETTINGS.frames_per_second)
 
     while G.get_action(obj.id_player, step_number) 
         -- We already have an action for this frame, think forward
@@ -176,6 +192,7 @@ player_handle_io = (M, obj) ->
         -- radius = math.max(math.abs(mx-obj.x), math.abs(my - obj.y))
         FLOOD_FILL\update(PATH_X, PATH_Y, 900)
 
+
     dx,dy=0,0
 
     if (user_io.key_down "K_UP") or (user_io.key_down "K_W") 
@@ -198,6 +215,10 @@ player_handle_io = (M, obj) ->
         if dx == 0 and dy == 0
             PATHING_TO_MOUSE = false
     else
+        -- if dx == 0 and dy == 0 and user_io.mouse_left_down() and not mouse_on_sidebar
+        --     mx, my = Display.mouse_game_xy()
+        --     dx, dy = util_geometry.towards(obj.x, obj.y, mx, my, obj.stats.move_speed)
+
         PATHING_TO_MOUSE = false
 
     will_sprint = (user_io.key_down "K_U")

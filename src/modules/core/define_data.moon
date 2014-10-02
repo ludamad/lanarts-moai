@@ -45,6 +45,17 @@ with spritedef file: 'dungeon_features/stairs.png', size: {32,32}, tiled: true
 
 logI("Loading player components")
 
+-- Shadows for player et al
+
+with spritedef file: 'shadow.png', size: {32,32}, tiled: true
+    .define name: 'shadow', from: {1,1}
+
+with spritedef file: 'major-shadow.png', size: {32,32}, tiled: true
+    .define name: 'major_shadow', from: {1,1}
+
+with spritedef file: 'minor-shadow.png', size: {32,32}, tiled: true
+    .define name: 'minor_shadow', from: {1,1}
+
 with spritedef file: 'player-animated.png', size: {32,32}, tiled: true, kind: 'animation'
     .define name: 'sr-human', from: {1, 1}, to: {4, 1}
     .define name: 'sr-undead', from: {1, 2}, to: {4, 2}
@@ -212,15 +223,19 @@ with spritedef file: 'monsters.png', size: {32,32}, tiled: true
 
 -- Projectile sprites:
 with spritedef file: 'cloud-projectile.png', size: {32,32}, tiled: true, kind: 'animation'
+    .define name: 'projectile-rain', from: {1,1}
+
+with spritedef file: 'projectiles/cloud.png', size: {32,32}, tiled: true, kind: 'animation'
     .define name: 'projectile-cloud', from: {1,1}
 
 with spritedef file: 'status_icon.png', size: {32,32}, tiled: true
     .define name: 'stat-haste', from: {1, 1}
-    .define name: 'stat-wait', from: {2, 1}
-    .define name: 'stat-speed', from: {3, 1}
+    .define name: 'stat-slow', from: {2, 1}
+    .define name: 'stat-wait', from: {3, 1}
     .define name: 'stat-rest', from: {4, 1}
     .define name: 'stat-melee', from: {5, 1}
     .define name: 'stat-random', from: {6, 1}
+    .define name: 'stat-speed', from: {7, 1}
 
 with spritedef file: 'hand.png', size: {32,32}, tiled: true
     .define name: 'Unarmed', from: {1, 1}

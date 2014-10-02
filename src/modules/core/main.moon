@@ -255,8 +255,10 @@ main = () ->
         -- Set up first menu
         if os.getenv("TEST_ARCHER")
             mpregame {class: "Archer", race: "Human", class_args: {}}
+        elseif os.getenv("TEST_KNIGHT")
+            mpregame {class: "Knight", race: "Human", class_args: {weapon_skill: "slashing_weapons"}}
         else
-    	   mchargen()
+    	    mchargen()
         -- Loop through the menu state machine (SceneController)
         -- For these purposes, the game itself is considered a 'menu'
         while true

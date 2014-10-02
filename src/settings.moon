@@ -1,3 +1,4 @@
+
 local gametype
 if os.getenv "SERVER"
 	gametype = 'server'
@@ -10,7 +11,6 @@ player_name = (os.getenv "player") or "ludamad"
 
 {
 headless: false
-window_size: {800, 600}
 server_ip: (os.getenv "IP") or 'localhost'
 server_port: 6112
 frames_per_second: 60
@@ -29,6 +29,7 @@ lobby_server_url: 'http://putterson.homedns.org:8080'
 
 --Window settings
 fullscreen: false
+window_size: {800, 600}
 frame_action_repeat: 0 -- 0 is ideal
 
 --Font settings

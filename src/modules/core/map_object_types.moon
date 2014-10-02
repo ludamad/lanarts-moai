@@ -4,7 +4,7 @@ user_io = require 'user_io'
 res = require "resources"
 data = require "core.data"
 statsystem = require "statsystem"
-import util_draw, TileMap from require "core"
+import util_draw, util_geometry, TileMap from require "core"
 import Display from require "ui"
 import FieldOfView, FloodFillPaths, util_geometry from require "core"
 
@@ -30,7 +30,7 @@ FEATURE_PRIORITY = 102
 -- Add Y values * Y_PRIORITY_INCR to adjust the object priority.
 Y_PRIORITY_INCR = -(2^-16)
 
-local Animation, Player -- Forward declare, used throughout
+local Animation, Player, Projectile -- Forward declare, used before definition
 
 ObjectBase = newtype {
 	---------------------------------------------------------------------------
@@ -41,7 +41,7 @@ ObjectBase = newtype {
     priority: 0
 	init: (M, args) =>
 		@x, @y, @radius = args.x, args.y, args.radius or 15
-        @target_radius, @solid = (args.target_radius or args.radius or 16), args.solid or false
+        @target_radius, @solid = (args.target_radius or @radius), args.solid or false
         if args.priority then @priority = args.priority
         @map = M
         -- Register into world , and store the instance table ID
@@ -91,6 +91,24 @@ draw_statbar = (x,y,w,h, ratio) ->
     MOAIGfxDevice.setPenColor(0, 1, 0)
     MOAIDraw.fillRect(x,y,x+w*ratio,y+h)
 
+-- Apply an attack, doing damage (unless completely resisted by defences)
+-- dx, dy gives the direction that the damage text should travel
+attack_apply = (M, A, obj, dx, dy) ->
+    dmg = A\apply(M.rng, obj.stats)
+    hit_spr = A.attack_sprite
+    if hit_spr
+        vx, vy = 0,0
+        if A.uses_projectile
+            vx,vy = dx,dy
+        Animation.create M, {
+            sprite: data.get_sprite(hit_spr), x: obj.x, y: obj.y, :vx, :vy, priority: ATTACK_ANIMATION_PRIORITY, fade_rate: 0.06
+        }
+    -- Create floating damage text
+    text_color = (if A.source.is_player then Display.COL_LIGHT_GRAY else Display.COL_PALE_RED)
+    Animation.create M, {
+        drawn_text: tostring(dmg), x: obj.x, y: obj.y, vx: dx, vy: dy, color: text_color, priority: DAMAGE_TEXT_PRIORITY, fade_rate: 0.04
+    }
+
 CombatObjectBase = newtype {
     parent: ObjectBase
     init: (M, stats, args) =>
@@ -107,6 +125,7 @@ CombatObjectBase = newtype {
         @set_priority()
         @_reset_delayed_action()
 
+    SHADOW_SPRITE: data.get_sprite("shadow")
     _reset_delayed_action: () =>
         -- Delayed action information:
         @delayed_action = false
@@ -145,31 +164,30 @@ CombatObjectBase = newtype {
                 when 'weapon_attack'
                     obj = M.objects\get(@delayed_action_target_id)
                     if obj 
-                        dmg = @stats.attack\apply(M.rng, obj.stats)
-                        tx, ty = obj.x, obj.y
                         -- Calculate direction towards the object being attacked
-                        dx, dy = obj.x - @x, obj.y - @y
-                        mag = math.sqrt(dx*dx+dy*dy)
-                        dx, dy = dx/mag, dy/mag
-                        hit_spr = @stats.attack.on_hit_sprite
-                        if hit_spr
-                            Animation.create M, {
-                                sprite: data.get_sprite(hit_spr), x: obj.x, y: obj.y, vx: 0, vy: 0, priority: ATTACK_ANIMATION_PRIORITY, fade_rate: 0.04
+                        dx, dy = util_geometry.object_towards(@, obj)
+                        A = @stats.attack 
+                        if not A.uses_projectile
+                            attack_apply(M, A, obj, dx, dy)
+                        else
+                            speed = A.projectile_speed
+                            randx,randy = M.rng\random(-4,5), M.rng\random(-4,5)
+                            Projectile.create M, {
+                                attack: A, x: @x+randx, y: @y+randy, vx: dx*speed, vy: dy*speed
                             }
-                        -- Create floating damage text
-                        is_player = (getmetatable(@) == Player)
-                        text_color = (if is_player then Display.COL_LIGHT_GRAY else Display.COL_PALE_RED)
-                        Animation.create M, {
-                            drawn_text: tostring(dmg), x: tx, y: ty, vx: dx, vy: dy, color: text_color, priority: DAMAGE_TEXT_PRIORITY, fade_rate: 0.04
-                        }
+
                     @_reset_delayed_action()
                 else
                     error("Unexpected branch!")
+            @delayed_action = false
 
-    queue_weapon_attack: (id) =>
+    queue_weapon_attack: (M, id) =>
         assert @stats.cooldowns.action_cooldown <= 0
         @stats.cooldowns.action_cooldown = @stats.attack.cooldown
-        @stats.cooldowns.action_wait =  math.min(@stats.attack.delay, statsystem.MAX_MELEE_QUEUE)
+        if @stats.attack.uses_projectile and not @stats.is_player
+            @stats.cooldowns.action_cooldown *= M.rng\randomf(0.75,1.25)
+
+        @stats.cooldowns.action_wait = math.min(@stats.attack.delay, statsystem.MAX_ACTION_WAIT)
         @stats.cooldowns.move_cooldown = math.max(@stats.attack.delay, @stats.cooldowns.move_cooldown)
         @delayed_action = 'weapon_attack'
         @delayed_action_target_id = id
@@ -192,7 +210,7 @@ CombatObjectBase = newtype {
             v2 = v1 * 0.25 + 0.75
             return v2,v2,v1
         elseif @stats.cooldowns.move_cooldown > 0
-            return 0.5, 0.5, 0.5
+            return 0.8, 0.8, 0.8
         else
             -- Use hurt cooldown (if any) to modify r,g,b values:
             cmod = @_spike_color_mod(@stats.cooldowns.hurt_cooldown, statsystem.HURT_COOLDOWN)
@@ -201,8 +219,8 @@ CombatObjectBase = newtype {
     WAIT_SPRITE: data.get_sprite("stat-wait")
     draw: (V) =>
         ObjectBase.draw(@, V, @_get_rgb())
-        if @stats.cooldowns.move_cooldown > 0
-            @WAIT_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
+        -- if @stats.cooldowns.move_cooldown > 0
+        --     @WAIT_SPRITE\draw(@x, @y, @frame, 1, 0.5, 0.5)
         healthbar_offsety = 20
         if @target_radius > 16
             healthbar_offsety = @target_radius + 8
@@ -274,6 +292,7 @@ Player = newtype {
 
         @player_path_radius = 300
         @id_player = args.id_player
+        M.gamestate.players[@id_player].object = @
         @vision = PlayerVision.create(M, @id_player, M.line_of_sight)
         @paths_to_player = FloodFillPaths.create()
         @paths_to_player\set_map(M.tilemap)
@@ -363,9 +382,9 @@ NPC = newtype {
         @sprite = data.get_sprite(args.type)
         @ai_action = NPC_RANDOM_WALK
         @ai_target = false
-        @ai_vx = 0
-        @ai_vy = 0
+        @ai_vx, @ai_vy = 0, 0
 
+    SHADOW_SPRITE: data.get_sprite("major_shadow")
     nearest_enemy: (M) =>
         min_obj,min_dist = nil,math.huge
         for obj in *M.player_list do
@@ -380,7 +399,7 @@ NPC = newtype {
         -- Players gain experience points, as long as they are on the same map:
         n_players = #M.player_list
         for obj in *M.player_list do
-            xp_gain = statsystem.challenge_rating_to_xp_gain obj.stats.level, @npc_type.level
+            xp_gain = statsystem.challenge_rating_to_xp_gain(obj.stats.level, @npc_type.level)
             -- Divide XP up by players:
             xp_gain = math.round(xp_gain / n_players)
             statsystem.gain_xp(obj.stats, xp_gain)
@@ -441,10 +460,11 @@ Projectile = newtype {
     priority: PROJECTILE_PRIORITY
     init: (M, args) =>
         ObjectBase.init(@, M, args)
-        @sprite = args.sprite
         @vx = args.vx
         @vy = args.vy
-        @action = args.action
+        @attack = args.attack
+        @radius = assert @attack.projectile_radius
+        @sprite = data.get_sprite(@attack.attack_sprite)
         append M.projectile_list, @
 
     step: (M) =>
@@ -453,15 +473,17 @@ Projectile = newtype {
 
         for col_id in *M.object_query(@)
             obj = M.col_id_to_object[col_id]
-            if getmetatable(obj) == NPC
-                Animation.create M, {
-                    sprite: @sprite, x: @x, y: @y
-                    vx: @vx, vy: @vy, priority: @priority
-                }
+            if getmetatable(obj) == Player
+                mag = math.sqrt(@vx*@vx+@vy*@vy)
+                dx, dy = @vx/mag, @vy/mag
+                attack_apply(M, @attack, obj, dx, dy)
                 @queue_remove(M)
                 return
         if M.tile_check(@)
             @queue_remove(M)
+            Animation.create M, {
+                sprite: @sprite, x: @x, y: @y, vx: 0, vy: 0, priority: ATTACK_ANIMATION_PRIORITY, fade_rate: 0.06
+            }
 
     remove: (M) =>
         ObjectBase.remove(@, M)
@@ -469,3 +491,4 @@ Projectile = newtype {
 }
 
 return {:ObjectBase, :Feature, :CombatObjectBase, :Player, :NPC, :Projectile, :NPC_RANDOM_WALK, :NPC_CHASING}
+

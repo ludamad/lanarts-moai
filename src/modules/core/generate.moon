@@ -186,27 +186,21 @@ generate_circle_tilemap = (map, rng, scheme) ->
 
     -- Connect all the closest polygon pairs:
     edges = minimum_spanning_tree(R.polygons)
-    -- Fuzzy matching & edge adding:
-    for p1 in *R.polygons
-        if rng\random(0,3) ~= 1
-            break
-        min_dist, best = math.huge, nil
-        for p2 in *R.polygons
-            if p1 == p2 or rng\random(0,3) ~= 1
-                break
-            dist = p1\square_distance(p2)
-            if dist < min_dist
-                min_dist = dist
-                best = p2
-        if best
-            already_have_edge = false
-            for {op1, op2} in *edges
-                if op1 == p1 and op2 == best or op2 == p1 and op1 == best
-                    already_have_edge = true
-                    break
-            if not already_have_edge
-                append edges, {p1, best}
-    for {p1, p2} in *minimum_spanning_tree(R.polygons)
+    add_if_unique = (p1,p2) ->
+        for {op1, op2} in *edges
+            if op1 == p1 and op2 == p2 or op2 == p1 and op1 == p2
+                return
+        append edges, {p1, p2}
+
+    -- Append all < threshold in distance
+    for i=1,#R.polygons
+        for j=i+1,#R.polygons do if rng\random(0,3) == 1
+            p1, p2 = R.polygons[i], R.polygons[j]
+            dist = math.sqrt( (p2.x-p1.x)^2+(p2.y-p1.y)^2)
+            if dist < rng\random(5,15)
+                add_if_unique p1, p2
+
+    for {p1, p2} in *edges
         tile = scheme.floor1
         flags = {TileMap.FLAG_SEETHROUGH}
         if p2.id%5 <= 3 

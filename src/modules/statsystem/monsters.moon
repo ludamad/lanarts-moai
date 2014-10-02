@@ -19,8 +19,10 @@ M.MonsterType = newtype {
     @defeat_message = data.defeat_message
     @radius = data.radius
     @level = data.level
+    @uses_projectile = data.uses_projectile or false
     @min_chase_dist = data.chase_distances[1]
     @max_chase_dist = data.chase_distances[2]
+    @stop_chase_dist = data.chase_distances[3] or -4
 
     -- We pass 'false' to indicate the StatContext has no proper GameObject associated with it.
     @stats = NPCStatContext.create(false, @name)  
@@ -43,7 +45,7 @@ M.MonsterType = newtype {
 
     import make_weapon_attack from require "@items"
     @stats.attack\copy(make_weapon_attack(data))
-    @stats.attack.on_hit_sprite = false
+    @stats.attack.attack_sprite = (data.attack_sprite or false)
 
     -- Copy everything over from the raw_* components.
     @stats\revert()

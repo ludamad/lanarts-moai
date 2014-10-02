@@ -36,8 +36,7 @@ setup_player_state = (G) ->
                 return player
 
     G.is_local_player = (obj) ->
-        player = G.players[obj.id_player]
-        return player.is_controlled
+        return obj.id_player == G.local_player_id
 
     G.player_name = (obj) ->
         player = G.players[obj.id_player]
