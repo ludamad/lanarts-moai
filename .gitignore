@@ -1,3 +1,4 @@
 engine/
 *.swp
+*.pyc
 .lua-deps/
