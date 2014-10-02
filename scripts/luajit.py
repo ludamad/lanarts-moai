@@ -1,7 +1,6 @@
 import gdb
 import string
 import re
-
 import imp
 
 gdbutils = imp.load_source('gdbutils', 'scripts/gdbutils.py')
@@ -12,7 +11,8 @@ null = gdbutils.null
 newval = gdbutils.newval
 ptr2int = gdbutils.ptr2int
 err = gdbutils.err
-out = gdbutils.out
+#out = gdbutils.out
+def out(x): print(x)
 warn = gdbutils.warn
 
 def LJ_TNIL():
@@ -480,6 +480,12 @@ Usage: lbt [L]
         super (lbt, self).__init__("lbt", gdb.COMMAND_USER)
 
     def invoke (self, args, from_tty):
+        import traceback
+        try:
+            return self._invoke(args, from_tty)
+        except:
+            traceback.print_exc()
+    def _invoke (self, args, from_tty):
         argv = gdb.string_to_argv(args)
         if len(argv) > 2:
             raise gdb.GdbError("Usage: lbt [full] [L]")

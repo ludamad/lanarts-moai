@@ -32,10 +32,10 @@ FLAGS="$BUILD_ROOT/dist/loader.lua $BUILD_ROOT/dist"
 
 if handle_flag "--gdb" || handle_flag "-g" ; then
     echo "Wrapping in GDB:" | colorify '1;35'
+        #-ex="break SetLanartsOpenWindowFullscreenMode" \
     gdb -silent -quiet \
         -ex='set confirm off' \
         -ex='source scripts/luajit.py' \
-        #-ex="break SetLanartsOpenWindowFullscreenMode" \
         -ex=r --args \
         "$EXECUTABLE" $FLAGS main $args
 else

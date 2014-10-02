@@ -112,6 +112,7 @@ pregame_setup_and_join_screen = (controller, continue_callback) ->
                         pretty_print diff
                         error("Exiting due to sync failure...")
                 break
+            G.net_handler\send_unacknowledged_actions()
             G.net_handler\poll(1)
 
     -- At the beginning, there is a somewhat involved handshake:
