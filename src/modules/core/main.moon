@@ -95,7 +95,7 @@ pregame_setup_and_join_screen = (controller, continue_callback) ->
         G.net_handler\send_message {:type, :data}
     net_recv = (type) -> G.net_handler\check_message_all(type)
     -- Set global synchronization-test function
-    _G.logS = (label, data) ->
+    if os.getenv("NETDEBUG") then _G.logS = (label, data) ->
         payload = MOAIJsonParser.encode data
         msg_identifier = "DebugSync(#{label})"
         net_send msg_identifier, payload
