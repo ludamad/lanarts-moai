@@ -249,7 +249,7 @@ main = () ->
             start_game(G, stat_components, mchargen)
             G.clear_game_data()
             -- Have we restarted?
-            if true or G.local_death
+            if G.local_death
                 mdeath()
             else
                 mstartgame(G, stat_components)

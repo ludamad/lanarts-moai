@@ -3,10 +3,9 @@ local RESOURCE_PATH = {
     "./resources/",
     "./resources/game/",
     "./resources/lanarts/",
-    "./src/modules/core/",
-    "./src/modules/core/resources/",
-    "./src/modules/rglike/DawnLike_3/",
-    "./src/modules/core/resources/fonts/",
+    "./src/core/",
+    "./src/core/resources/",
+    "./src/core/resources/fonts/",
     "./resources/tiled-maps/",
 }
 

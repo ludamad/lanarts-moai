@@ -5,7 +5,7 @@ modules = require "core.data"
 import print_map, make_tunnel_oper, make_rectangle_criteria, make_rectangle_oper
     from require "@map_util"
 
-import map_place_object, LEVEL_PADDING
+import map_place_object, ellipse_points, LEVEL_PADDING, Region, RVORegionPlacer
     from require "@generate_util"
 
 import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap
@@ -39,11 +39,11 @@ minimum_spanning_tree = (P) ->
 
 make_rooms_with_tunnels = (map, rng, scheme) ->
     size = scheme.size
-    padded_size = {size[1]+PADDING[1]*2, size[2]+PADDING[2]*2}
+    padded_size = {size[1]+LEVEL_PADDING[1]*2, size[2]+LEVEL_PADDING[2]*2}
     oper = TileMap.random_placement_operator {
         size_range: scheme.rect_room_size_range
         rng: rng
-        area: bbox_create(PADDING, size)
+        area: bbox_create(LEVEL_PADDING, size)
         amount_of_placements_range: scheme.rect_room_num_range
         create_subgroup: true
         child_operator: (map, subgroup, bounds) ->
@@ -59,11 +59,11 @@ make_rooms_with_tunnels = (map, rng, scheme) ->
     }
  
     -- Apply the binary space partitioning (bsp)
-    oper map, TileMap.ROOT_GROUP, bbox_create(PADDING, size)
+    oper map, TileMap.ROOT_GROUP, bbox_create(LEVEL_PADDING, size)
 
     tunnel_oper = make_tunnel_oper(rng, scheme.floor1, scheme.wall1, scheme.wall1_seethrough)
 
-    tunnel_oper map, TileMap.ROOT_GROUP, bbox_create(PADDING, size)
+    tunnel_oper map, TileMap.ROOT_GROUP, bbox_create(LEVEL_PADDING, size)
     return map
 
 FLAG_ALTERNATE = TileMap.FLAG_CUSTOM1
@@ -99,14 +99,14 @@ generate_circle_tilemap = (map, rng, scheme) ->
         if rng\random(4) ~= 1
             region\apply {
                 map: map
-                area: bbox_create(PADDING, size)
+                area: bbox_create(LEVEL_PADDING, size)
                 operator: {add: TileMap.FLAG_SEETHROUGH, remove: TileMap.FLAG_SOLID, content: scheme.floor1}
                 :n_points, :angle
             }
         else
             region\apply {
                 map: map
-                area: bbox_create(PADDING, size)
+                area: bbox_create(LEVEL_PADDING, size)
                 operator: {add: {TileMap.FLAG_SEETHROUGH, FLAG_ALTERNATE}, remove: TileMap.FLAG_SOLID, content: scheme.floor2}
                 :n_points, :angle
             }
@@ -136,15 +136,15 @@ generate_circle_tilemap = (map, rng, scheme) ->
         if rng\random(4) < 2
             p1\line_connect {
                 map: map
-                area: bbox_create(PADDING, size)
+                area: bbox_create(LEVEL_PADDING, size)
                 target: p2
                 line_width: scheme.connect_line_width()
                 operator: {matches_none: FLAG_ALTERNATE, add: flags, remove: TileMap.FLAG_SOLID, content: tile}
             }
-        else            
+        else
             p1\arc_connect {
                 map: map
-                area: bbox_create(PADDING, size)
+                area: bbox_create(LEVEL_PADDING, size)
                 target: p2
                 line_width: scheme.connect_line_width()
                 operator: {matches_none: FLAG_ALTERNATE, add: flags, remove: TileMap.FLAG_SOLID, content: tile}
@@ -183,7 +183,7 @@ generate_circle_tilemap = (map, rng, scheme) ->
 create_map = (G, schemef) ->
     import map_state from require "core"
     scheme = schemef(G.rng)
-    padded_size = {scheme.size[1]+PADDING[1]*2, scheme.size[2]+PADDING[2]*2}
+    padded_size = {scheme.size[1]+LEVEL_PADDING[1]*2, scheme.size[2]+LEVEL_PADDING[2]*2}
     tilemap = TileMap.map_create { 
         size: padded_size
         content: scheme.wall1

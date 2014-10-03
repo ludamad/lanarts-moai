@@ -1,6 +1,6 @@
 import RVOWorld, TileMap from require "core"
 
-LEVEL_PADDING = {10, 10}
+LEVEL_PADDING = {1, 1}
 
 ----
 -- Polygon based regions
@@ -120,5 +120,5 @@ map_place_object = (M, spawner, selector = DEFAULT_SELECTOR) ->
     return true
 
 return {
-    :LEVEL_PADDING, :ellipse_points, :Region, :region_minimum_spanning_tree, :map_place_object
+    :LEVEL_PADDING, :ellipse_points, :Region, :RVORegionPlacer, :region_minimum_spanning_tree, :map_place_object
 }

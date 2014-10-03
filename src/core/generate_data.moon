@@ -16,7 +16,7 @@ spawn_mons = (mons) -> (M) ->
                 }
     require("@map_logic").assertSync "step_objects (frame #{M.gamestate.frame})", M
 
-default_poly_delta_func = (rng) -> (map, poly) ->
+default_region_delta_func = (rng) -> (map, region) ->
     center_x, center_y = map.size[1]/2, map.size[2]/2
     local vfunc 
     type = rng\random(0, 2) -- Only first two for now
@@ -27,7 +27,7 @@ default_poly_delta_func = (rng) -> (map, poly) ->
     else --Unused
         return () => 0,0
 
-ring_poly_delta_func = (rng) -> (map, poly) ->
+ring_region_delta_func = (rng) -> (map, region) ->
     angle = rng\randomf(0, 2*math.pi)
     {w,h} = map.size
     rx, ry = (w/2-5),(h/2-5)
@@ -45,7 +45,7 @@ return {
     OUTSIDE: (rng) -> {
         map_label: "Plain Valley"
         size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
-        number_polygons: rng\random(30,40)
+        number_regions: rng\random(30,40)
         outer_points: 20
         floor1: T('grass1')
         floor2: T('grass2')
@@ -61,7 +61,7 @@ return {
         n_stairs_down: 3
         n_stairs_up: 0
         connect_line_width: () -> rng\random(2,6)
-        polygon_delta_func: ring_poly_delta_func(rng)
+        region_delta_func: ring_region_delta_func(rng)
         room_radius: () ->
             r = 2
             bound = rng\random(1,20)
@@ -72,7 +72,7 @@ return {
     SMALL: (rng) -> {
         map_label: "A Dungeon"
         size: {45, 45}
-        number_polygons: rng\random(8,10)
+        number_regions: rng\random(8,10)
         outer_points: 20
         floor1: T('grey_floor')
         floor2: T('reddish_grey_floor')
@@ -86,7 +86,7 @@ return {
         rvo_iterations: 20
         n_stairs_down: 3
         n_stairs_up: 0
-        polygon_delta_func: default_poly_delta_func(rng)
+        region_delta_func: default_region_delta_func(rng)
         connect_line_width: () -> 2 + (if rng\random(5) == 4 then 1 else 0)
         room_radius: () ->
             r = 2
@@ -98,7 +98,7 @@ return {
     MEDIUM: (rng) -> {
         map_label: "A Dungeon"
         size: {80,80}
-        number_polygons: rng\random(10,32)
+        number_regions: rng\random(10,32)
         outer_points: 20
         floor1: T('grey_floor')
         floor2: T('reddish_grey_floor')
@@ -112,7 +112,7 @@ return {
         n_shops: 2
         n_stairs_down: 3
         n_stairs_up: 3
-        polygon_delta_func: default_poly_delta_func(rng)
+        region_delta_func: default_region_delta_func(rng)
         connect_line_width: () -> 2 + (if rng\random(5) == 4 then 1 else 0)
         room_radius: () ->
             r = 2
