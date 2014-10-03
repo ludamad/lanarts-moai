@@ -1,6 +1,6 @@
 import RVOWorld, TileMap from require "core"
 
-LEVEL_PADDING = {1, 1}
+LEVEL_PADDING = {10, 10}
 
 ----
 -- Polygon based regions

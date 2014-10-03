@@ -184,13 +184,20 @@ player_handle_io = (M, obj) ->
         dx, dy = dx/dist, dy/dist
         seen = M.player_seen_map(M.gamestate.local_player_id)
         while dist >= 32
-            was_seen = seen\get(math.ceil(PATH_X/32), math.ceil(PATH_Y/32))
+            tx, ty = math.ceil(PATH_X / 32), math.ceil(PATH_Y / 32)
+            if tx < 1 or tx > M.tilemap_width or ty < 1 or ty > M.tilemap_height
+                break
+            was_seen = seen\get(tx, ty)
             if was_seen and not M.tile_check(obj, PATH_X - obj.x, PATH_Y - obj.y, 8)
                 break
             PATH_X, PATH_Y = PATH_X - dx*32, PATH_Y - dy*32
             dist -= 32
         -- radius = math.max(math.abs(mx-obj.x), math.abs(my - obj.y))
-        FLOOD_FILL\update(PATH_X, PATH_Y, 900)
+        tx, ty = math.ceil(PATH_X / 32), math.ceil(PATH_Y / 32)
+        if tx < 1 or tx > M.tilemap_width or ty < 1 or ty > M.tilemap_height
+            PATHING_TO_MOUSE = false
+        else
+            FLOOD_FILL\update(PATH_X, PATH_Y, 900)
 
 
     dx,dy=0,0
