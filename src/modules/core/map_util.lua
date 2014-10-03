@@ -1,7 +1,4 @@
 local TileMap = require "core.TileMap"
-local modules = require "core.data"
-
-local T = modules.get_tilelist_id
 
 local function make_rectangle_criteria()
         return TileMap.rectangle_criteria { 
@@ -51,70 +48,7 @@ local function make_tunnel_oper(rng, floor, wall, wall_seethrough)
     }
 end
 
-local function place_instance(rng, map, area, type)          
-        local xy = TileMap.find_random_square { map = map, area = area, selector = {matches_none = {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID} }, rng = rng }
-        if xy ~= nil then
-                append(map.instances, type)
-                map:square_apply(xy, {add = TileMap.FLAG_HAS_OBJECT})
-        end
-end
-
-local function place_instances(rng, map, area)
-        for i=1,4 do
-                place_instance(rng, map, area, '1')
-                place_instance(rng, map, area, '2')
-                place_instance(rng, map, area, '3')
-        end
-end
-
-
-local function print_map(map, instances)
-    local parts = {}
-    instances = instances
-
-    local function add_part(strpart) 
-        table.insert(parts, strpart)
-    end
-
-    for y=0,map.size[2]-1 do
-        for x=0,map.size[1]-1 do
-            -- TODO: Broken
-                local inst = instances:at({x,y})
-            local sqr = map:get({x, y})
-
-            local n, g = sqr.content, sqr.group
-            local solid = TileMap.flags_match(sqr.flags, TileMap.FLAG_SOLID)
-            local perimeter = TileMap.flags_match(sqr.flags, TileMap.FLAG_PERIMETER)
-            local tunnel = TileMap.flags_match(sqr.flags, TileMap.FLAG_TUNNEL)
-
-            if inst then 
-                add_part(inst .. " ") 
-            elseif solid and tunnel then
-                add_part("T ")
-            elseif not solid and tunnel then
-                add_part("- ")
-            elseif perimeter and solid then
-                add_part("O ")
-            elseif n == 0 then
-                add_part(solid and "# " or "0 ")
-            elseif n == 1 then
-                add_part("  ")
-            elseif n == 2 then
-                add_part("# ")
-            elseif n == 3 then
-                add_part("  ")
-            elseif n == 4 then
-                add_part("# ")
-            end
-        end
-        add_part("\n")
-    end
-
-    print(table.concat(parts))
-end
-
 return {
-    print_map = print_map, make_rectangle_criteria = make_rectangle_criteria, 
+    make_rectangle_criteria = make_rectangle_criteria, 
     make_rectangle_oper = make_rectangle_oper, make_tunnel_oper = make_tunnel_oper,
-    place_instances = place_instances
 }

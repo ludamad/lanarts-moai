@@ -31,10 +31,10 @@ import thread_create from require 'core.util'
 _G._RNG = mtwist.create(os.time())
 
 _spawn_players = (G, M, stat_components) ->
-    import random_square_spawn_object from require '@util_generate'
+    import map_place_object from require '@generate_util'
 
     for i=1,#G.players
-        random_square_spawn_object M, (px, py) ->
+        map_place_object M, (px, py) ->
             map_object_types.Player.create M, {
                 name: G.players[i].player_name
                 x: px*32+16

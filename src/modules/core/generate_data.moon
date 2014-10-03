@@ -1,13 +1,13 @@
 modules = require "core.data"
 T =  modules.get_tilelist_id
 
-import random_square_spawn_object from require '@util_generate'
+import map_place_object from require '@generate_util'
 import map_object_types from require 'core'
 
 spawn_mons = (mons) -> (M) ->
     for mon, n in pairs mons
         for i=1,n
-            assert random_square_spawn_object M, (px, py) ->
+            assert map_place_object M, (px, py) ->
                 map_object_types.NPC.create M, {
                     x: px*32+16
                     y: py*32+16
