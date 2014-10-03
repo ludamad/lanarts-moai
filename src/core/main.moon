@@ -31,10 +31,10 @@ import thread_create from require 'core.util'
 _G._RNG = mtwist.create(os.time())
 
 _spawn_players = (G, M, stat_components) ->
-    import map_place_object from require '@generate_util'
+    import map_place_object from require '@generate_objects'
 
     for i=1,#G.players
-        map_place_object M, (px, py) ->
+        assert map_place_object M, (px, py) ->
             map_object_types.Player.create M, {
                 name: G.players[i].player_name
                 x: px*32+16
@@ -172,7 +172,10 @@ start_game = (G, stat_components, on_death) ->
     logS("rng check", G.rng\randomf())
 
     logI("main::start_game: after clear_game_data")
-    M = require("@generate").create_map(G, require("@generate_data").OUTSIDE)
+    import generate_branches from require "core"
+    tilemap = generate_branches.generate_overworld(G.rng)
+    M = generate_branches.generate_game_map(G, tilemap)
+    --M = require("@generate").create_map(G, require("@generate_data").OUTSIDE)
 
     append G.maps, M
 

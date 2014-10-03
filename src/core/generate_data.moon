@@ -15,28 +15,6 @@ spawn_mons = (mons) -> (M) ->
                     solid: true
                 }
     require("@map_logic").assertSync "step_objects (frame #{M.gamestate.frame})", M
-
-default_region_delta_func = (rng) -> (map, region) ->
-    center_x, center_y = map.size[1]/2, map.size[2]/2
-    local vfunc 
-    type = rng\random(0, 2) -- Only first two for now
-    if type == 0
-        return () => math.sign_of(@x - center_x)*2, math.sign_of(@y - center_y)*2
-    elseif type == 1
-        return () => math.sign_of(center_x - @x)*2, math.sign_of(center_y - @y)*2
-    else --Unused
-        return () => 0,0
-
-ring_region_delta_func = (rng) -> (map, region) ->
-    angle = rng\randomf(0, 2*math.pi)
-    {w,h} = map.size
-    rx, ry = (w/2-5),(h/2-5)
-    ring_n = rng\random(1,4)
-    rx /= ring_n
-    ry /= ring_n
-    to_x, to_y = math.cos(angle)*rx + w/2, math.sin(angle)*ry + h/2
-    return () => math.sign_of(to_x - @x)*10, math.sign_of(to_y - @y)*10
-
 -- Populate our world with the major locations that will be included
 world_generation = () ->
     W = {}

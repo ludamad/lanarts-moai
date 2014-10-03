@@ -1,6 +1,7 @@
-import RVOWorld, TileMap from require "core"
+import RVOWorld, TileMap, data from require "core"
 
 LEVEL_PADDING = {10, 10}
+MAX_TRIES = 1000
 
 ----
 -- Polygon based regions
@@ -14,18 +15,37 @@ ellipse_points = (x, y, w, h, n_points = 16, start_angle = 0) ->
     return points
 
 Region = newtype {
-    init: (@x, @y, @w, @h, @points_func) =>
+    init: (@x, @y, @w, @h, @n_points = 16, @angle = 0) =>
         @points = false
+        @subregions = {}
+    add: (subregion) => append @subregions, subregion
     apply: (args) =>
-        @points or= @.points_func(@x, @y, @w, @h, args.n_points or 16, args.angle)
+        @points or= ellipse_points(@x, @y, @w, @h, @n_points, @angle)
         args.points = @points
         TileMap.polygon_apply(args)
+    bbox: () => {@x, @y, @x+@w, @y+@h}
     square_distance: (o) =>
         cx,cy = @center()
         ocx, ocy = o\center()
         dx, dy = cx - ocx, cy - ocy
         return dx*dx + dy*dy
 
+    ellipse_intersect: (x,y,w,h) =>
+        cx, cy = @center()
+        cxo,cyo = x+w/2,y+h/2
+        dx,dy = cx-cxo, cy-cyo
+        -- Condense into unit coordinates:
+        dx /= (@w+w)^2/4
+        dy /= (@h+h)^2/4
+        return (math.sqrt(dx*dx+dy*dy) < 1)
+
+    rect_intersect: (x,y,w,h) =>
+        if @x > x+w or x > @x+@w
+            return false
+        if @y > y+h or y > @y+@h
+            return false
+        return true
+ 
     center: () =>
         return math.floor(@x+@w/2), math.floor(@y+@h/2)
     -- Create a line between the two regions
@@ -57,7 +77,7 @@ region_minimum_spanning_tree = (R) ->
     -- R: The list of regions
     -- C: The connected set
     C = {false for p in *R}
-    C[1] = true -- Start with the first polygon in the 'connected set'
+    C[1] = true -- Start with the first region in the 'connected set'
     edge_list = {}
     while true
         -- Find the next edge to add:
@@ -82,43 +102,100 @@ RVORegionPlacer = newtype {
     init: (boundary = nil) =>
         @rvo = RVOWorld.create(boundary)
         @regions = {}
-    add: (poly, velocity_func) =>
-        append @regions, poly
-        {:x, :y, :w, :h} = poly
-        poly.max_speed = rawget(poly, "max_speed") or 1
+
+    add: (region, velocity_func) =>
+        append @regions, region
+        {:x, :y, :w, :h} = region
+        region.max_speed = rawget(region, "max_speed") or 1
         r = math.max(w,h) -- Be conservative with the radius
-        poly.id = @rvo\add_instance(x, y, r, poly.max_speed)
-        poly.velocity_func = velocity_func
+        region.id = @rvo\add_instance(x, y, r, region.max_speed)
+        region.velocity_func = velocity_func
     step: () =>
-        for poly in *@regions
-            {:id, :x, :y, :w, :h, :max_speed} = poly
-            vx, vy = poly\velocity_func()
+        for region in *@regions
+            {:id, :x, :y, :w, :h, :max_speed} = region
+            vx, vy = region\velocity_func()
             @rvo\update_instance(id, x, y, math.max(w,h), max_speed, vx, vy)
         @rvo\step()
-        for poly in *@regions
-            vx,vy = @rvo\get_velocity(poly.id)
-            poly.x, poly.y = math.round(poly.x + vx), math.round(poly.y + vy)
+        for region in *@regions
+            vx,vy = @rvo\get_velocity(region.id)
+            region.x, region.y = math.round(region.x + vx), math.round(region.y + vy)
 }
 
+random_rect_in_rect = (rng, w,h, xo,yo,wo,ho) ->
+    return rng\random(xo,xo+wo-w), rng\random(yo,yo+ho-h), w, h
 
-----
--- Map square placement
+random_ellipse_in_ellipse = (rng, w,h, xo, yo, wo, ho) ->
+    -- Make a random position in the circular room boundary:
+    dist = rng\randomf(0, 1)
+    ang = rng\randomf(0, 2*math.pi)
+    x = (math.cos(ang)+1)/2 * dist * (wo - w) + xo
+    y = (math.sin(ang)+1)/2 * dist * (ho - h) + yo
+    return x, y, w, h
 
-DEFAULT_SELECTOR = {matches_none: {TileMap.FLAG_SOLID, TileMap.FLAG_HAS_OBJECT}}
-map_place_object = (M, spawner, selector = DEFAULT_SELECTOR) ->
-    sqr = TileMap.find_random_square {
-        map: M.tilemap
-        rng: M.rng
-        :selector
-        operator: add: TileMap.FLAG_HAS_OBJECT
-    }
-    if not sqr
-        return false
-    {px, py} = sqr
+region_intersects = (x,y,w,h, R) ->
+    for r in *R.regions
+        if r\rect_intersect(x,y,w,h)
+            return true
+    return false
 
-    spawner(px, py)
-    return true
+random_region_add = (rng, w, h, n_points, velocity_func, angle, R, bbox, ignore_intersect = false) ->
+    for tries=1,MAX_TRIES
+        {PW,PH} = LEVEL_PADDING
+        {x1, y1, x2, y2} = bbox
+        x,y = random_ellipse_in_ellipse(rng, w,h, x1, y1, x2-x1, y2-y1)
+        if ignore_intersect or not region_intersects(x,y,w,h, R)
+            r = Region.create(x,y,w,h, n_points, angle)
+            R\add(r, velocity_func)
+            return r
+    return nil
+
+Tile = newtype {
+    init: (name, @solid, @seethrough, add = {}, remove = {}) =>
+        @id = data.get_tilelist_id(name)
+        @add_flags = add
+        @remove_flags = remove
+        append (if @solid then @add_flags else @remove_flags), TileMap.FLAG_SOLID
+        append (if @seethrough then @add_flags else @remove_flags), TileMap.FLAG_SEETHROUGH
+}
+
+tile_operator = (tile, data = {}) ->
+    assert not data.content
+    data.content = tile.id
+    data.add or= {}
+    data.remove or= {}
+    if type(data.add) ~= "table" 
+        data.add = {data.add}
+    if type(data.remove) ~= "table" 
+        data.remove = {data.remove}
+    for flag in *tile.add_flags do append(data.add, flag)
+    for flag in *tile.remove_flags do append(data.remove, flag)
+    return data
+
+default_region_delta_func = (map, rng, outer) ->
+    center_x, center_y = outer\center()
+    local vfunc 
+    type = rng\random(0, 2) -- Only first two for now
+    if type == 0
+        return () => math.sign_of(@x - center_x)*2, math.sign_of(@y - center_y)*2
+    elseif type == 1
+        return () => math.sign_of(center_x - @x)*2, math.sign_of(center_y - @y)*2
+    else --Unused
+        return () => 0,0
+
+ring_region_delta_func = (map, rng, outer) ->
+    angle = rng\randomf(0, 2*math.pi)
+    rx, ry = outer\center()
+    rx, ry = rx-5, ry-5
+    ring_n = rng\random(1,4)
+    rx /= ring_n
+    ry /= ring_n
+    to_x, to_y = math.cos(angle)*rx + outer.w/2, math.sin(angle)*ry + outer.h/2
+    return () => math.sign_of(to_x - @x)*10, math.sign_of(to_y - @y)*10
 
 return {
-    :LEVEL_PADDING, :ellipse_points, :Region, :RVORegionPlacer, :region_minimum_spanning_tree, :map_place_object
+    :LEVEL_PADDING, :ellipse_points, :Region, :RVORegionPlacer, :region_minimum_spanning_tree, 
+    :random_rect_in_rect, :random_ellipse_in_ellipse, :Tile, :tile_operator
+    :region_intersects, :random_region_add 
+    :default_region_delta_func
+    :ring_region_delta_func
 }

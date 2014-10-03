@@ -5,37 +5,11 @@ modules = require "core.data"
 import print_map, make_tunnel_oper, make_rectangle_criteria, make_rectangle_oper
     from require "@map_util"
 
-import map_place_object, ellipse_points, LEVEL_PADDING, Region, RVORegionPlacer
+import map_place_object, ellipse_points, LEVEL_PADDING, Region, RVORegionPlacer, region_minimum_spanning_tree 
     from require "@generate_util"
 
 import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap
     from require "core"
-
-
--- Returns a list of edges
-minimum_spanning_tree = (P) ->
-    -- P: The list of regions
-    -- C: The connected set
-    C = {false for p in *P}
-    C[1] = true -- Start with the first region in the 'connected set'
-    edge_list = {}
-    while true
-        -- Find the next edge to add:
-        min_sqr_dist = math.huge
-        min_i, min_j = nil, nil
-        for i=1,#P do if C[i] 
-            for j=1,#P do if not C[j]
-                sqr_dist = P[i]\square_distance(P[j])
-                if sqr_dist < min_sqr_dist
-                    min_sqr_dist = sqr_dist
-                    min_i, min_j = i, j
-        -- All should be connected by this point
-        if min_i == nil
-            break
-        C[min_j] = true
-        append edge_list, {P[min_i], P[min_j]}
-
-    return edge_list
 
 make_rooms_with_tunnels = (map, rng, scheme) ->
     size = scheme.size
@@ -112,7 +86,7 @@ generate_circle_tilemap = (map, rng, scheme) ->
             }
 
     -- Connect all the closest region pairs:
-    edges = minimum_spanning_tree(R.regions)
+    edges = region_minimum_spanning_tree(R.regions)
     add_if_unique = (p1,p2) ->
         for {op1, op2} in *edges
             if op1 == p1 and op2 == p2 or op2 == p1 and op1 == p2
