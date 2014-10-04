@@ -77,6 +77,35 @@ Region = newtype {
 }
 
 -- Returns a list of edges
+subregion_minimum_spanning_tree = (R) ->
+    -- R: The list of regions
+    -- C: The connected set
+    C = {false for p in *R}
+    C[1] = true -- Start with the first region in the 'connected set'
+    edge_list = {}
+    while true
+        -- Find the next edge to add:
+        min_sqr_dist = math.huge
+        min_i, min_j = nil, nil
+        sub_i, sub_j = nil, nil
+        for i=1,#R do if C[i] 
+            for j=1,#R do if not C[j]
+                SI,SJ = R[i].subregions,R[j].subregions
+                for si in *SI do for sj in *SJ
+                    sqr_dist = si\square_distance(sj)
+                    if sqr_dist < min_sqr_dist
+                        min_sqr_dist = sqr_dist
+                        min_i, min_j = i, j
+                        sub_i = si, sub_j = sj
+        -- All should be connected by this point
+        if min_i == nil
+            break
+        C[min_j] = true
+        append edge_list, {sub_i, sub_j}
+
+    return edge_list
+
+-- Returns a list of edges
 region_minimum_spanning_tree = (R) ->
     -- R: The list of regions
     -- C: The connected set
@@ -209,7 +238,8 @@ ring_region_delta_func = (map, rng, outer) ->
     return () => math.sign_of(to_x - @x)*10, math.sign_of(to_y - @y)*10
 
 return {
-    :LEVEL_PADDING, :ellipse_points, :Region, :RVORegionPlacer, :region_minimum_spanning_tree, 
+    :LEVEL_PADDING, :ellipse_points, :Region, :RVORegionPlacer,
+    :subregion_minimum_spanning_tree, :region_minimum_spanning_tree, 
     :random_rect_in_rect, :random_ellipse_in_ellipse, :Tile, :tile_operator
     :region_intersects, :random_region_add 
     :default_region_delta_func

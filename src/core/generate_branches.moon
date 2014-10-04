@@ -80,6 +80,20 @@ make_rooms_with_tunnels = (map, rng, conf, outer) ->
     tunnel_oper map, TileMap.ROOT_GROUP, outer\bbox()
     return map
 
+connect_edges = (map, conf, area, edges) ->
+    for {p1, p2} in *edges
+        tile = conf.floor1
+        flags = {}
+        if p2.id%5 <= 3 
+            tile = conf.floor2
+            append flags, FLAG_ALTERNATE
+        f = (if rng\random(4) < 2 then p1.line_connect else p1.arc_connect)
+        f p1, {
+            :map, :area, target: p2
+            line_width: conf.connect_line_width()
+            operator: (tile_operator tile, {matches_none: FLAG_ALTERNATE, add: flags})
+        }
+
 generate_area = (map, rng, conf, outer) ->
     size = conf.size
     R = RVORegionPlacer.create {outer.points}
@@ -87,7 +101,8 @@ generate_area = (map, rng, conf, outer) ->
     for i=1,conf.number_regions
         -- Make radius of the circle:
         r, n_points, angle = conf.room_radius(),rng\random(3,10) ,rng\randomf(0, math.pi)
-        random_region_add rng, r*2,r*2, n_points, conf.region_delta_func(map, rng, outer), angle, R, outer\bbox(), true
+        r = random_region_add rng, r*2,r*2, n_points, conf.region_delta_func(map, rng, outer), angle, R, outer\bbox(), true
+        if r then outer\add(r, false)
 
     R\steps(conf.rvo_iterations)
 
@@ -112,45 +127,35 @@ generate_area = (map, rng, conf, outer) ->
             dist = math.sqrt( (p2.x-p1.x)^2+(p2.y-p1.y)^2)
             if dist < rng\random(5,15)
                 add_edge_if_unique p1, p2
+    connect_edges(edges)
 
-    for {p1, p2} in *edges
-        tile = conf.floor1
-        flags = {}
-        if p2.id%5 <= 3 
-            tile = conf.floor2
-            append flags, FLAG_ALTERNATE
-        f = (if rng\random(4) < 2 then p1.line_connect else p1.arc_connect)
-        f p1, {
-            map: map, area: outer\bbox(), target: p2
-            line_width: conf.connect_line_width()
-            operator: (tile_operator tile, {matches_none: FLAG_ALTERNATE, add: flags})
-        }
+generate_subareas = (map, rng, regions) ->
+    conf = OVERWORLD_CONF(rng)
+    -- Generate the polygonal rooms, connected with lines & arcs
+    for region in *regions
+        generate_area map, rng, region.conf, region
+
+    connect_edges map, conf, nil, subregion_minimum_spanning_tree(regions)
 
     -- Diagonal pairs are a bit ugly. We can see through them but not pass them. Just open them up.
-    TileMap.erode_diagonal_pairs {:map, :rng, area: outer\bbox(), selector: {matches_all: TileMap.FLAG_SOLID}}
+    TileMap.erode_diagonal_pairs {:map, :rng, selector: {matches_all: TileMap.FLAG_SOLID}}
     -- Detect the perimeter, important for the winding-tunnel algorithm.
-    TileMap.perimeter_apply {
-        map: map
-        area: outer\bbox()
-        candidate_selector: {matches_all: TileMap.FLAG_SOLID}
-        inner_selector: {matches_none: TileMap.FLAG_SOLID}
+    TileMap.perimeter_apply {:map,
+        candidate_selector: {matches_all: TileMap.FLAG_SOLID}, inner_selector: {matches_none: TileMap.FLAG_SOLID}
         operator: {add: TileMap.FLAG_PERIMETER}
     }
 
-    TileMap.perimeter_apply {
-        map: map
-        area: outer\bbox()
-        candidate_selector: {matches_all: TileMap.FLAG_SOLID}
-        inner_selector: {matches_all: FLAG_ALTERNATE, matches_none: TileMap.FLAG_SOLID}
+    TileMap.perimeter_apply {:map,
+        candidate_selector: {matches_all: TileMap.FLAG_SOLID}, inner_selector: {matches_all: FLAG_ALTERNATE, matches_none: TileMap.FLAG_SOLID}
         operator: tile_operator conf.wall2 
     }
 
-    make_rooms_with_tunnels map, rng, conf, outer
+    -- Generate the rectangular rooms, connected with winding tunnels
+    for region in *regions
+        make_rooms_with_tunnels map, rng, region.conf, region
 
-    TileMap.perimeter_apply {
-        map: map
-        area: outer\bbox()
-        candidate_selector: {matches_none: {TileMap.FLAG_SOLID}}
+    TileMap.perimeter_apply {:map,
+        candidate_selector: {matches_none: {TileMap.FLAG_SOLID}}, 
         inner_selector: {matches_all: {TileMap.FLAG_PERIMETER, TileMap.FLAG_SOLID}}
         operator: {add: FLAG_INNER_PERIMETER}
     }
@@ -168,20 +173,16 @@ generate_overworld = (rng) ->
         regions: major_regions, map_label: conf.map_label, line_of_sight: conf.line_of_sight
     }
 
-    for i=1,2
+    for i=1,3
         {w,h} = {rng\random(50,85),rng\random(50, 85)}
         -- Takes region parameters, region placer, and region outer ellipse bounds:
-        random_region_add rng, w, h, conf.outer_points(), conf.region_delta_func(map, rng, outer), 0,
+        r = random_region_add rng, w, h, conf.outer_points(), conf.region_delta_func(map, rng, outer), 0,
             major_regions, outer\bbox()
+        if r then r.conf = OVERWORLD_CONF(rng)
 
     -- major_regions\steps(conf.rvo_iterations)
 
-    conf = OVERWORLD_CONF(rng)
-    for region in *major_regions.regions
-        -- region\apply{:map, operator: tile_operator conf.wall2}
-        generate_area(map, rng, conf, region)
-        -- conf.floor1 = Tile.create('dungeon_wall', false, true)
-        -- conf.floor2 = Tile.create('dungeon_wall', false, true)
+    generate_subareas(map, rng, major_regions.regions)
 
     return map
 
