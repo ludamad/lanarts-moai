@@ -9,8 +9,9 @@ MAX_TRIES = 1000
 ellipse_points = (x, y, w, h, n_points = 16, start_angle = 0) ->
     points = {}
     angle,step = start_angle,(1/n_points* 2 * math.pi)
+    cx, cy = x+w/2, y+h/2
     for i=1,n_points
-        append points, {math.sin(angle) * w + x, math.cos(angle) * h + y}
+        append points, {(math.sin(angle) + 1)/2 * w + x, (math.cos(angle)+1)/2 * h + y}
         angle += step
     return points
 
@@ -33,11 +34,13 @@ Region = newtype {
     ellipse_intersect: (x,y,w,h) =>
         cx, cy = @center()
         cxo,cyo = x+w/2,y+h/2
-        dx,dy = cx-cxo, cy-cyo
+        dx,dy = cxo-cx, cyo-cy
+        -- Local radius depends on angle:
+        ang = math.atan2(dy, dx)
+        r1 = math.sqrt(  (@w/2*math.cos(ang))^2 + (@h/2*math.sin(ang))^2  )
+        r2 = math.sqrt(  (w/2*math.cos(-ang))^2 + (h/2*math.sin(-ang))^2  )
         -- Condense into unit coordinates:
-        dx /= (@w+w)^2/4
-        dy /= (@h+h)^2/4
-        return (math.sqrt(dx*dx+dy*dy) < 1)
+        return (math.sqrt(dx*dx+dy*dy) < (r1+r2))
 
     rect_intersect: (x,y,w,h) =>
         if @x > x+w or x > @x+@w
@@ -56,14 +59,11 @@ Region = newtype {
     arc_connect: (args) =>
         cx, cy = @center()
         ocx, ocy = args.target\center()
-        min_w = math.min(@w,args.target.w) 
-        min_h = math.min(@h,args.target.h) 
         w, h = math.abs(cx - ocx) - 1, math.abs(cy - ocy) - 1
         if w < 2 or h < 2 or w > 15 or h > 15
             return @line_connect(args)
         -- Set up the ellipse section for our connection:
-        args.width = w * 2
-        args.height = h * 2
+        args.width, args.height = w*2, h*2
         args.x, args.y = math.floor((cx+ocx)/2), math.floor((cy+ocy)/2)
         a1 = math.atan2((args.y - cy) / h , (args.x - cx)/w)
         a2 = math.atan2((args.y - ocy) / h, (args.x - ocx)/w)
@@ -108,17 +108,24 @@ RVORegionPlacer = newtype {
         {:x, :y, :w, :h} = region
         region.max_speed = rawget(region, "max_speed") or 1
         r = math.max(w,h) -- Be conservative with the radius
-        region.id = @rvo\add_instance(x, y, r, region.max_speed)
+        region.id = @rvo\add_instance(x+w/2, y+h/2, math.ceil(r), region.max_speed)
         region.velocity_func = velocity_func
     step: () =>
         for region in *@regions
-            {:id, :x, :y, :w, :h, :max_speed} = region
+            cx, cy = region\center()
             vx, vy = region\velocity_func()
-            @rvo\update_instance(id, x, y, math.max(w,h), max_speed, vx, vy)
+            r = math.max(region.w,region.h) -- Be conservative with the radius
+            @rvo\update_instance(region.id, cx, cy, math.ceil(r), region.max_speed, vx, vy)
         @rvo\step()
         for region in *@regions
             vx,vy = @rvo\get_velocity(region.id)
-            region.x, region.y = math.round(region.x + vx), math.round(region.y + vy)
+            region.x, region.y = region.x + vx, region.y + vy
+    steps: (n) => 
+        for i=1,n do @step()
+        @finish()
+    finish: () =>
+        for region in *@regions
+            region.x, region.y = math.round(region.x), math.round(region.y)
 }
 
 random_rect_in_rect = (rng, w,h, xo,yo,wo,ho) ->
@@ -128,13 +135,18 @@ random_ellipse_in_ellipse = (rng, w,h, xo, yo, wo, ho) ->
     -- Make a random position in the circular room boundary:
     dist = rng\randomf(0, 1)
     ang = rng\randomf(0, 2*math.pi)
-    x = (math.cos(ang)+1)/2 * dist * (wo - w) + xo
-    y = (math.sin(ang)+1)/2 * dist * (ho - h) + yo
+    cxo, cyo = xo+wo/2, yo+ho/2
+    x = math.cos(ang) * dist * (wo/2 - w/2) + cxo - w/2
+    y = math.sin(ang) * dist * (ho/2 - h/2) + cyo - h/2
+    assert x >= xo - 0.1
+    assert y >= yo - 0.1
+    assert x + w <= (xo + wo)+0.1
+    assert y + h <= (yo + ho)+0.1
     return x, y, w, h
 
 region_intersects = (x,y,w,h, R) ->
     for r in *R.regions
-        if r\rect_intersect(x,y,w,h)
+        if r\ellipse_intersect(x,y,w,h)
             return true
     return false
 
