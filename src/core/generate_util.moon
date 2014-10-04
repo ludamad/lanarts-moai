@@ -17,11 +17,15 @@ ellipse_points = (x, y, w, h, n_points = 16, start_angle = 0) ->
 
 Region = newtype {
     init: (@x, @y, @w, @h, @n_points = 16, @angle = 0) =>
-        @points = false
+        @_points = false
         @subregions = {}
     add: (subregion) => append @subregions, subregion
+    get: {
+        points: () => 
+            @_points or= ellipse_points(@x, @y, @w, @h, @n_points, @angle)
+            return @_points
+    }
     apply: (args) =>
-        @points or= ellipse_points(@x, @y, @w, @h, @n_points, @angle)
         args.points = @points
         TileMap.polygon_apply(args)
     bbox: () => {@x, @y, @x+@w, @y+@h}
