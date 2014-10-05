@@ -91,12 +91,13 @@ subregion_minimum_spanning_tree = (R) ->
         for i=1,#R do if C[i] 
             for j=1,#R do if not C[j]
                 SI,SJ = R[i].subregions,R[j].subregions
-                for si in *SI do for sj in *SJ
-                    sqr_dist = si\square_distance(sj)
-                    if sqr_dist < min_sqr_dist
-                        min_sqr_dist = sqr_dist
-                        min_i, min_j = i, j
-                        sub_i = si, sub_j = sj
+                for si in *SI 
+                    for sj in *SJ
+                        sqr_dist = si\square_distance(sj)
+                        if sqr_dist < min_sqr_dist
+                            min_sqr_dist = sqr_dist
+                            min_i, min_j = i, j
+                            sub_i, sub_j = sj, si
         -- All should be connected by this point
         if min_i == nil
             break

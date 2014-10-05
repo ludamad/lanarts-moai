@@ -25,8 +25,11 @@ end
 
 local function make_tunnel_oper(rng, floor, wall, wall_seethrough) 
     wall_flags = {TileMap.FLAG_SOLID, TileMap.FLAG_TUNNEL, TileMap.FLAG_PERIMETER}
+    remove_flags = {}
     if wall_seethrough then
         append(wall_flags, TileMap.FLAG_SEETHROUGH)
+    else
+        append(remove_flags, TileMap.FLAG_SEETHROUGH)
     end
     return TileMap.tunnel_operator {
         validity_selector = { 
@@ -39,7 +42,7 @@ local function make_tunnel_oper(rng, floor, wall, wall_seethrough)
             perimeter_selector = { matches_none = TileMap.FLAG_SOLID } 
         },
         fill_operator = { add = {TileMap.FLAG_SEETHROUGH, TileMap.FLAG_TUNNEL}, remove = TileMap.FLAG_SOLID, content = floor},
-        perimeter_operator = { matches_all = TileMap.FLAG_SOLID, add = wall_flags, content = wall},
+        perimeter_operator = { matches_all = TileMap.FLAG_SOLID, add = wall_flags, remove = remove_flags, content = wall},
 
         rng = rng,
         perimeter_width = 1,

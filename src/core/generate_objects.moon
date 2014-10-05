@@ -20,7 +20,7 @@ map_place_object = (M, spawner, area = nil, selector = DEFAULT_SELECTOR) ->
     return true
 
 map_place_monsters = (M, monsters, area = nil, selector = DEFAULT_SELECTOR) ->
-    for mon, n in pairs mons
+    for mon, n in pairs monsters
         for i=1,n
             assert map_place_object M, (px, py) ->
                 map_object_types.NPC.create M, {
