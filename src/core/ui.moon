@@ -7,7 +7,7 @@ user_io = require "user_io"
 ErrorReporting = require "system.ErrorReporting"
 
 -- Draw various debugging components?
-SHOW_DEBUG = true
+SHOW_DEBUG = os.getenv("SHOW_DEBUG")
 
 -------------------------------------------------------------------------------
 -- Helpers
