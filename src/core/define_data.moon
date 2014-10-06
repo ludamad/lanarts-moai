@@ -8,25 +8,30 @@ logI("Loading tiles")
 
 -- Wall tiles
 with tiledef file: 'wall-dark.png', solid: true
-    .define name: 'dungeon_wall', from: {1,1}, to: {32, 1}, minicolor: {0.9, 0.9, 0.9} 
-    .define name: 'seethrough_wall', from: {8, 30}, minicolor: Display.COL_DARK_BROWN
+    .define name: 'dungeon_wall', from: {1,1}, to: {32, 1}, minicolor: {0.9, 0.9, 0.9}
+    .define name: 'seethrough_wall', from: {8, 30}, minicolor: {0.5, 0.5, 0.9}
     .define name: 'crypt_wall', from: {25, 26}, to: {32, 26}, minicolor: {0.9, 0.9, 0.9} --to: {7, 27}
+    .define name: 'crystal_wall', from: {24, 17}, to: {32,17}, minicolor: {0.5, 0.5, 0.9} --{5, 18}, minicolor: {0.9, 0.9, 0.9} --to: {7, 27}
+    .define name: 'crystal_wall2', from: {25,4}, to: {32,4}, minicolor: {0.5,0.5, 0.9}
 with tiledef file: 'wall_overworld_trees.png', solid: true
-    .define name: 'tree', from: {1,1}, to: {8,2}, minicolor:  {0.05, 0.2, 0.05}
+    .define name: 'tree', from: {1,1}, to: {8,2}, minicolor:  {0.05, 0.2, 0.05}, line_of_sight: 8
 
 -- Floor tiles
 with tiledef file: 'floor_overworld_grass1.png', solid: false
-    .define name: 'grass1', from: {1,1}, to: {8,2}, minicolor: {0.2, 0.75, 0.2}
+    .define name: 'grass1', from: {1,1}, to: {8,2}, minicolor: {0.2, 0.75, 0.2}, line_of_sight: 8
 
 with tiledef file: 'floor_overworld_grass2.png', solid: false
-    .define name: 'grass2', from: {1,1}, to: {8,2}, minicolor: {0.15, 0.5, 0.15}
+    .define name: 'grass2', from: {1,1}, to: {8,2}, minicolor: {0.15, 0.5, 0.15}, line_of_sight: 8
 
 with tiledef file: 'floor-dark.png', solid: false
-    .define name: 'undefined', from: {1,1}, to: {2,1}, minicolor: Display.COL_BLACK
-    .define name: 'grey_floor', from: {3,1}, to: {10,1}, minicolor: {0.15,0.15, 0.15}
-    .define name: 'lair_floor', from: {15,6}, to: {30,6}, minicolor: {0.25,0.05,0.05}
-    .define name: 'reddish_grey_floor', from: {11,1}, to: {18,1}, minicolor: {0.2,0.15, 0.15}
-    .define name: 'light_brown_floor', from: {1,2}, to: {4,2}, minicolor: Display.COL_BROWN
+    .define name: 'undefined', from: {1,1}, to: {2,1}, minicolor: Display.COL_BLACK, line_of_sight: 6
+    .define name: 'grey_floor', from: {3,1}, to: {10,1}, minicolor: {0.15,0.15, 0.15}, line_of_sight: 6
+    .define name: 'lair_floor', from: {15,6}, to: {30,6}, minicolor: {0.25,0.05,0.05}, line_of_sight: 6
+    .define name: 'crystal_floor1', from: {1,23}, to: {9,23}, minicolor: {0.15,0.15, 0.2}, line_of_sight: 5
+    .define name: 'crystal_floor2', from: {13,4}, to: {21,4}, minicolor: {0.15,0.15, 0.2}, line_of_sight: 5
+    .define name: 'crystal_floor3', from: {17,21}, to: {25,21}, minicolor: {0.15,0.15, 0.2}, line_of_sight: 5
+    .define name: 'reddish_grey_floor', from: {11,1}, to: {18,1}, minicolor: {0.2,0.15, 0.15}, line_of_sight: 6
+    .define name: 'light_brown_floor', from: {1,2}, to: {4,2}, minicolor: Display.COL_BROWN, line_of_sight: 6
 
 with spritedef file: 'feat.png', size: {32,32}, tiled: true
     .define name: 'door_closed', from: {3, 2}

@@ -1,16 +1,11 @@
 ----
--- Generates a world-plan for the game world.
--- This creates the high-level details for the game world, ie everything 
--- other than actual tile details and enemy placements for worlds.
+-- Generates the game world, starting with high-level details (places that will be in the game)
+-- and then generating actual tiles.
 ----
-
--- First decision:
--- What sort of places will be in the game world.
-
 import map_place_object, ellipse_points, 
     LEVEL_PADDING, Region, RVORegionPlacer, 
     random_rect_in_rect, random_ellipse_in_ellipse, 
-    ring_region_delta_func, default_region_delta_func,
+    ring_region_delta_func, default_region_delta_func, spread_region_delta_func
     random_region_add, subregion_minimum_spanning_tree, region_minimum_spanning_tree
     Tile, tile_operator
         from require "@generate_util"
@@ -23,18 +18,19 @@ import TileMap from require "core"
 -- Generation constants and data
 FLAG_ALTERNATE = TileMap.FLAG_CUSTOM1
 FLAG_INNER_PERIMETER = TileMap.FLAG_CUSTOM2
+FLAG_DOOR_CANDIDATE = TileMap.FLAG_CUSTOM3
+FLAG_OVERWORLD = TileMap.FLAG_CUSTOM4
 
-OVERWORLD_MAX_W, OVERWORLD_MAX_H = 200, 200
+OVERWORLD_MAX_W, OVERWORLD_MAX_H = 250, 250
 OVERWORLD_CONF = (rng) -> {
     map_label: "Plain Valley"
     size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
-    number_regions: rng\random(15,30)
+    number_regions: rng\random(5,20)
     outer_points: () -> 20
     floor1: Tile.create('grass1', false, true)
     floor2: Tile.create('grass2', false, true) 
-    wall1: Tile.create('tree', true, true)
+    wall1: Tile.create('tree', true, true, {FLAG_OVERWORLD})
     wall2: Tile.create('dungeon_wall', true, false)
-    line_of_sight: 8
     rect_room_num_range: {4,10}
     rect_room_size_range: {10,15}
     rvo_iterations: 150
@@ -49,20 +45,19 @@ OVERWORLD_CONF = (rng) -> {
         for j=1,rng\random(0,bound) do r += rng\randomf(0, 1)
         return r
     -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 15, ["Cloud Elemental"]: 5}
-    n_statues: 10
+    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3}
+    n_statues: 4
 }
 
 DUNGEON_CONF = (rng) -> {
     map_label: "A Dungeon"
     size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
-    number_regions: rng\random(15,30)
+    number_regions: rng\random(5,20)
     outer_points: () -> 20
     floor1: Tile.create('grey_floor', false, true)
     floor2: Tile.create('reddish_grey_floor', false, true) 
-    wall1: Tile.create('dungeon_wall', true, false)
-    wall2: Tile.create('crypt_wall', true, false)
-    line_of_sight: 6
+    wall1: Tile.create('dungeon_wall', true, false, {}, {FLAG_OVERWORLD})
+    wall2: Tile.create('crypt_wall', true, false, {}, {FLAG_OVERWORLD})
     rect_room_num_range: {4,10}
     rect_room_size_range: {10,15}
     rvo_iterations: 20
@@ -73,11 +68,36 @@ DUNGEON_CONF = (rng) -> {
     region_delta_func: default_region_delta_func
     room_radius: () ->
         r = 2
-        for j=1,rng\random(0,4) do r += rng\randomf(0, 1)
+        for j=1,rng\random(0,10) do r += rng\randomf(0, 1)
         return r
     -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 15, ["Cloud Elemental"]: 5}
-    n_statues: 6
+    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3}
+    n_statues: 4
+}
+DUNGEON2_CONF = (rng) -> {
+    map_label: "A Dungeon"
+    size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
+    number_regions: rng\random(5,20)
+    outer_points: () -> 20
+    floor1: Tile.create('crystal_floor1', false, true)
+    floor2: Tile.create('crystal_floor2', false, true) 
+    wall1: Tile.create('crystal_wall', true, false, {}, {FLAG_OVERWORLD})
+    wall2: Tile.create('crystal_wall2', true, false, {}, {FLAG_OVERWORLD})
+    rect_room_num_range: {4,10}
+    rect_room_size_range: {10,15}
+    rvo_iterations: 20
+    n_shops: rng\random(2,4)
+    n_stairs_down: 3
+    n_stairs_up: 0
+    connect_line_width: () -> 2 + (if rng\random(5) == 4 then 1 else 0)
+    region_delta_func: default_region_delta_func
+    room_radius: () ->
+        r = 2
+        for j=1,rng\random(0,10) do r += rng\randomf(0, 1)
+        return r
+    -- Dungeon objects/features
+    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3}
+    n_statues: 4
 }
 
 make_rooms_with_tunnels = (map, rng, conf, area) ->
@@ -93,6 +113,7 @@ make_rooms_with_tunnels = (map, rng, conf, area) ->
                 return query(map, subgroup, bounds)
             oper = make_rectangle_oper(conf.floor2.id, conf.wall2.id, conf.wall2.seethrough, queryfn)
             if oper(map, subgroup, bounds)
+                append map.rectangle_rooms, bounds
                 --place_instances(rng, map, bounds)
                 return true
             return false
@@ -101,26 +122,36 @@ make_rooms_with_tunnels = (map, rng, conf, area) ->
     oper map, TileMap.ROOT_GROUP, area 
     tunnel_oper = make_tunnel_oper(rng, conf.floor1.id, conf.wall1.id, conf.wall1.seethrough)
 
-    tunnel_oper map, TileMap.ROOT_GROUP, {1,1, map.size[1]-1,map.size[2]-1}
+    tunnel_oper map, TileMap.ROOT_GROUP, area--{1,1, map.size[1]-1,map.size[2]-1}
     return map
 
 connect_edges = (map, rng, conf, area, edges) ->
     for {p1, p2} in *edges
         tile = conf.floor1
         flags = {}
+        rad1,rad2 = math.max(p1.w, p1.h)/2, math.max(p2.w, p2.h)/2
+        if p1\ortho_dist(p2) > (rng\random(3,6)+rad1+rad2)
+            append flags, TileMap.FLAG_TUNNEL
         if p2.id%5 <= 3 
             tile = conf.floor2
             append flags, FLAG_ALTERNATE
-        f = (if rng\random(4) < 2 then p1.line_connect else p1.arc_connect)
-        f p1, {
+        fapply = nil 
+        if rng\random(4) < 2 
+            fapply = p1.line_connect 
+        else 
+            fapply = p1.arc_connect
+        fapply p1, {
             :map, :area, target: p2
             line_width: conf.connect_line_width()
             operator: (tile_operator tile, {matches_none: FLAG_ALTERNATE, add: flags})
         }
 
+make_rect_points = (x1,y1,x2,y2) ->
+    return {{x1, y2}, {x2, y2}, {x2, y1}, {x1, y1}}
+
 generate_area = (map, rng, conf, outer) ->
     size = conf.size
-    R = RVORegionPlacer.create {outer.points}
+    R = RVORegionPlacer.create {outer.points}-- {make_rect_points outer.x, outer.y, outer.x+outer.w,outer.x}
 
     for i=1,conf.number_regions
         -- Make radius of the circle:
@@ -164,6 +195,7 @@ generate_subareas = (map, rng, regions) ->
 
     -- Diagonal pairs are a bit ugly. We can see through them but not pass them. Just open them up.
     TileMap.erode_diagonal_pairs {:map, :rng, selector: {matches_all: TileMap.FLAG_SOLID}}
+
     -- Detect the perimeter, important for the winding-tunnel algorithm.
     TileMap.perimeter_apply {:map,
         candidate_selector: {matches_all: TileMap.FLAG_SOLID}, inner_selector: {matches_none: TileMap.FLAG_SOLID}
@@ -181,35 +213,82 @@ generate_subareas = (map, rng, regions) ->
     for region in *regions
         make_rooms_with_tunnels map, rng, region.conf, region\bbox() 
 
-    TileMap.perimeter_apply {:map,
+    TileMap.perimeter_apply {:map
         candidate_selector: {matches_none: {TileMap.FLAG_SOLID}}, 
         inner_selector: {matches_all: {TileMap.FLAG_PERIMETER, TileMap.FLAG_SOLID}}
         operator: {add: FLAG_INNER_PERIMETER}
     }
+    for region in *regions
+        for subregion in *region.subregions
+            subregion\apply {:map
+                operator: {remove: TileMap.FLAG_TUNNEL}
+            }
+    -- Make sure doors dont get created in the overworld components:
+    TileMap.rectangle_apply {:map, fill_operator: {matches_all: FLAG_OVERWORLD, remove: TileMap.FLAG_TUNNEL}}
+    TileMap.perimeter_apply {:map,
+        candidate_selector: {matches_all: {TileMap.FLAG_TUNNEL}, matches_none: {TileMap.FLAG_SOLID}}, 
+        inner_selector: {matches_none: {FLAG_DOOR_CANDIDATE, TileMap.FLAG_TUNNEL, TileMap.FLAG_SOLID}}
+        operator: {add: FLAG_DOOR_CANDIDATE}
+    }
+
+    filter_door_candidates = (x1,y1,x2,y2) ->
+        TileMap.rectangle_apply {:map
+            fill_operator: {remove: FLAG_DOOR_CANDIDATE}, area: {x1, y1, x2, y2}           
+        }
+    filter_random_third = (x1,y1,x2,y2) ->
+        w,h = (x2 - x1), (y2 - y1)
+        if rng\random(0,2) == 0 
+            filter_door_candidates(x2 + w/3, y1-1, x2+1, y2+1)
+        if rng\random(0,2) == 0 
+            filter_door_candidates(x1-1, y1-1, x1 + w/3, y2+1)
+        if rng\random(0,2) == 0 
+            filter_door_candidates(x1-1, y1+h/3, x2+1, y2+1)
+        if rng\random(0,2) == 0 
+            filter_door_candidates(x1-1, y1-1, x2+1, y2 - h/3)
+    for region in *regions
+        -- Unbox the region:
+        for {:x,:y,:w,:h} in *region.subregions
+            filter_random_third(x,y,x+w,y+h)
+    for {x1,y1,x2,y2} in *map.rectangle_rooms
+        filter_random_third(x1,y1,x2,y2)
 
 generate_overworld = (rng) ->
     conf = OVERWORLD_CONF(rng)
     {PW,PH} = LEVEL_PADDING
     outer = Region.create(1+PW,1+PH,OVERWORLD_MAX_W-PW,OVERWORLD_MAX_H-PH)
     -- Generate regions in a large area, crop them later
-    major_regions = RVORegionPlacer.create {outer.points}
+    rect = {{1+PW, 1+PH}, {OVERWORLD_MAX_W-PW, 1+PH}, {OVERWORLD_MAX_W-PW, OVERWORLD_MAX_H-PH}, {1+PW, OVERWORLD_MAX_H-PH}}
+    rect2 = {{1+PW, OVERWORLD_MAX_H-PH}, {OVERWORLD_MAX_W-PW, OVERWORLD_MAX_H-PH}, {OVERWORLD_MAX_W-PW, 1+PH}, {1+PW, 1+PH}}
+    major_regions = RVORegionPlacer.create {rect2}
     map = TileMap.map_create { 
         size: {OVERWORLD_MAX_W, OVERWORLD_MAX_H}
         content: conf.wall1.id
         flags: conf.wall1.add_flags
-        map_label: conf.map_label, line_of_sight: conf.line_of_sight
+        map_label: conf.map_label,
+        door_locations: {}
+        rectangle_rooms: {}
     }
 
-    for subconf in *{DUNGEON_CONF(rng), OVERWORLD_CONF(rng), DUNGEON_CONF(rng)}
+    do_dungeon = true
+    for i=1,100
+        subconf = (if do_dungeon then DUNGEON2_CONF(rng) else OVERWORLD_CONF(rng))
+        -- Randomly pick the other dungeon configuration:
+        if do_dungeon and rng\random(0,2) == 1
+            subconf = DUNGEON_CONF(rng)
+        -- r = rng\random(40,65)
         {w,h} = {rng\random(50,85),rng\random(50, 85)}
         -- Takes region parameters, region placer, and region outer ellipse bounds:
-        r = random_region_add rng, w, h, subconf.outer_points(), subconf.region_delta_func(map, rng, outer), 0,
+        r = random_region_add rng, w, h, subconf.outer_points(), spread_region_delta_func(map, rng, outer), 0,
             major_regions, outer\bbox()
         if r ~= nil
-            r\apply {:map, operator: (tile_operator subconf.wall1)}
+            do_dungeon = not do_dungeon
+            r.max_speed = 10
             r.conf = subconf
+    -- No rvo for now
 
-    -- major_regions\steps(conf.rvo_iterations)
+    for r in *major_regions.regions
+        r._points = false
+        r\apply {:map, operator: (tile_operator r.conf.wall1)}
 
     generate_subareas(map, rng, major_regions.regions)
     map.regions = major_regions.regions
@@ -221,16 +300,18 @@ generate_game_map = (G, map) ->
     import map_place_object, map_place_monsters from require "@generate_objects"
     import Feature from require '@map_object_types'
     
-    M = map_state.create_map_state(G, 1, G.rng, map.map_label, map, map.line_of_sight)
-    gen_feature = (sprite, solid) -> (px, py) -> 
-        Feature.create M, {x: px*32+16, y: py*32+16, :sprite, :solid}
+    M = map_state.create_map_state(G, 1, G.rng, map.map_label, map)
+    gen_feature = (sprite, solid, seethrough = true) -> (px, py) -> 
+        Feature.create M, {x: px*32+16, y: py*32+16, :sprite, :solid, :seethrough}
 
     for region in *map.regions
         area = region\bbox()
         conf = region.conf
-        for i=1,conf.n_statues do map_place_object M, gen_feature('statues', true), area, {
+        for i=1,conf.n_statues do map_place_object M, gen_feature('statues', true, false), area, {
             matches_none: {FLAG_INNER_PERIMETER, TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
         }
+        for {x,y} in *TileMap.rectangle_match {:map, selector: {matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}, matches_all: {FLAG_DOOR_CANDIDATE}}}
+            gen_feature('door_closed', true, false)(x, y)
         for i=1,conf.n_shops do map_place_object M, gen_feature('shops', false), area, {
             matches_none: {TileMap.FLAG_HAS_OBJECT, TileMap.FLAG_SOLID}
         }

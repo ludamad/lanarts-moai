@@ -81,8 +81,9 @@ _minicolor_to_id = (col) ->
 -- Represents a list of variant tiles (from same tile-set)
 TileList = newtype {
     __constant: true -- For serialization
-    init: (id, name, tiles, texfile, minicolor) => 
-        @id, @name, @tiles, @texfile, @minicolor = id, name, tiles, texfile, _minicolor_to_id(minicolor)
+    init: (id, name, tiles, texfile, minicolor, line_of_sight) => 
+        @id, @name, @tiles, @texfile = id, name, tiles, texfile
+        @minicolor, @line_of_sight = _minicolor_to_id(minicolor), line_of_sight
 }
 
 Sprite = newtype {
@@ -158,7 +159,7 @@ TILE_WIDTH, TILE_HEIGHT = 32, 32
 setup_define_functions = (fenv, module_name) ->
     -- Tile definition
     fenv.tiledef = define_wrapper (values) ->
-        {:file, :solid, :name, :to, :minicolor} = values
+        {:file, :solid, :name, :to, :minicolor, :line_of_sight} = values
         file = res.get_resource_path(file)
         _from = values["from"] -- skirt around Moonscript keyword
 
@@ -180,7 +181,7 @@ setup_define_functions = (fenv, module_name) ->
                 (y-1) * tex_w + x,
                 solid
 
-        tilelist = TileList.create(list_id, name, tiles, file, minicolor)
+        tilelist = TileList.create(list_id, name, tiles, file, minicolor, line_of_sight or 1)
 
         -- Assign to the tile name
         data.tiles[name] = tilelist

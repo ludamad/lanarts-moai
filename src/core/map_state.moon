@@ -174,8 +174,8 @@ setup_map_state = (M) ->
 -- Set up helper methods (closures, to be exact)
 -------------------------------------------------------------------------------
 
-create_map_state = (G, id, rng, map_label, tilemap, line_of_sight) ->
-    M = {gamestate: G, :id, :rng, :map_label, :tilemap, :line_of_sight}
+create_map_state = (G, id, rng, map_label, tilemap) ->
+    M = {gamestate: G, :id, :rng, :map_label, :tilemap}
 
     -- Set up map dimensions
     -- Hardcoded for now:

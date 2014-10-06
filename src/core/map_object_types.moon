@@ -69,18 +69,40 @@ ObjectBase = newtype {
     sync: (M) => nil
 }
 
+DOOR_CLOSED = data.get_sprite("door_closed")
+DOOR_OPEN = data.get_sprite("door_open")
 Feature = newtype {
     parent: ObjectBase
     priority: FEATURE_PRIORITY
+    is_door_open: () => (@true_sprite == DOOR_OPEN)
+    is_door_closed: () => (@true_sprite == DOOR_CLOSED)
+    is_door: () => @is_door_open() or @is_door_closed()
+    close_door: (M) => 
+        if @is_door_closed() then return
+        @true_sprite = DOOR_CLOSED
+        @solid, @seethrough = true, false
+        @sync(M)
+    open_door: (M) => 
+        if @is_door_open() then return
+        @true_sprite = DOOR_OPEN
+        @solid, @seethrough = false, true
+        @sync(M)
+    sync: (M) =>
+        add,remove = {},{}
+        append (if @solid then add else remove), TileMap.FLAG_SOLID
+        append (if @seethrough then add else remove), TileMap.FLAG_SEETHROUGH
+        M.tilemap\square_apply({math.floor(@x/32), math.floor(@y/32)}, {:add, :remove})
     init: (M, args) =>
-        if args.solid
-            tx, ty = math.floor(args.x/32), math.floor(args.y/32)
-            M.tilemap\square_apply({tx, ty}, {add: TileMap.FLAG_SOLID})
-            args.solid = false -- Avoid setting solidity on the object itself
+        solid, seethrough = args.solid, args.seethrough
+        args.solid = false
         ObjectBase.init(@, M, args)
         @true_sprite = data.get_sprite(args.sprite)
         @sprite = false -- Last seen sprite
         @frame = M.rng\random(1, @true_sprite\n_frames()+1)
+        @solid, @seethrough = solid, seethrough
+        @sync(M)
+        append M.feature_list, @
+
     was_seen: () => (@sprite ~= false)
     mark_seen: () => @sprite = @true_sprite
 }
@@ -235,10 +257,9 @@ CombatObjectBase = newtype {
 SHARED_LINE_OF_SIGHT = 3
 
 PlayerVision = newtype {
-    init: (M, id_player, line_of_sight) =>
-        @line_of_sight = line_of_sight
+    init: (M, id_player) =>
         @id_player = id_player
-        @fieldofview = FieldOfView.create(@line_of_sight)
+        @fieldofview = FieldOfView.create(8)
         @shared_fieldofview = FieldOfView.create(SHARED_LINE_OF_SIGHT)
         @prev_seen_bounds = {0,0,0,0}
         @current_seen_bounds = {0,0,0,0}
@@ -249,6 +270,9 @@ PlayerVision = newtype {
             return @fieldofview, @current_seen_bounds
         return @shared_fieldofview, @shared_current_seen_bounds
     update: (M, x, y) =>
+        tilesqr = M.tilemap\get({math.ceil(x),math.ceil(y)})
+        tile = data.get_tilelist(tilesqr.content)
+        @fieldofview = FieldOfView.create(tile.line_of_sight)
         @fieldofview\calculate(M.tilemap, x, y)
         @shared_fieldofview\calculate(M.tilemap, x, y)
         @fieldofview\update_seen_map(M.player_seen_map(@id_player))

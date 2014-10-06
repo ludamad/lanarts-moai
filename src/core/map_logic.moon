@@ -43,6 +43,14 @@ step_objects = (M) ->
     for obj in *M.projectile_list
         obj\step(M)
 
+    for obj in *M.feature_list
+        -- Handle doors
+        if obj\is_door()
+            door_open = false
+            for p in *M.combat_object_list
+                dist = math.max math.abs(p.x-obj.x), math.abs(p.y-obj.y)
+                if dist < 36 then door_open = true
+            if door_open then obj\open_door(M) else obj\close_door(M)
     -- Set up directions of all players
     -- Handle IO for all players
     -- Handle actions for all players
@@ -63,7 +71,7 @@ step_objects = (M) ->
         obj\remove(M)
     table.clear(M.removal_list)
     -- Sync up any data that requires copying after position changes
-    for obj in *M.object_list
+    for obj in *M.combat_object_list
         obj\sync(M)
 
 step = (M) ->

@@ -1,6 +1,6 @@
 import RVOWorld, TileMap, data from require "core"
 
-LEVEL_PADDING = {10, 10}
+LEVEL_PADDING = {5, 5}
 MAX_TRIES = 1000
 
 ----
@@ -29,6 +29,12 @@ Region = newtype {
         args.points = @points
         TileMap.polygon_apply(args)
     bbox: () => {@x, @y, @x+@w, @y+@h}
+    ortho_dist: (o) =>
+        cx,cy = @center()
+        ocx, ocy = o\center()
+        dx, dy = cx - ocx, cy - ocy
+        return math.max math.abs(dx),math.abs(dy)
+
     square_distance: (o) =>
         cx,cy = @center()
         ocx, ocy = o\center()
@@ -60,20 +66,30 @@ Region = newtype {
         args.from_xy = {@center()}
         args.to_xy = {args.target\center()}
         TileMap.line_apply(args)
-    arc_connect: (args) =>
+    line_match: (args) =>
+        args.from_xy = {@center()}
+        args.to_xy = {args.target\center()}
+        TileMap.line_match(args)
+    _arc_adjust_params: (args) =>
         cx, cy = @center()
         ocx, ocy = args.target\center()
         w, h = math.abs(cx - ocx) - 1, math.abs(cy - ocy) - 1
         if w < 2 or h < 2 or w > 15 or h > 15
-            return @line_connect(args)
+            return false
         -- Set up the ellipse section for our connection:
         args.width, args.height = w*2, h*2
         args.x, args.y = math.floor((cx+ocx)/2), math.floor((cy+ocy)/2)
         a1 = math.atan2((args.y - cy) / h , (args.x - cx)/w)
         a2 = math.atan2((args.y - ocy) / h, (args.x - ocx)/w)
         args.angle1, args.angle2 = a1 + math.pi/2, (a2 - a1)
-        -- args.angle2 = math.atan2(-(args.y - ocy) / h, -(args.x - ocx)/w)
+    arc_connect: (args) =>
+        if not @_arc_adjust_params(args)
+            return @line_connect(args)
         TileMap.arc_apply(args)
+    arc_match: (args) =>
+        if not @_arc_adjust_params(args)
+            return @line_match(args)
+        TileMap.arc_match(args)
 }
 
 -- Returns a list of edges
@@ -217,6 +233,11 @@ tile_operator = (tile, data = {}) ->
     for flag in *tile.remove_flags do append(data.remove, flag)
     return data
 
+spread_region_delta_func = (map, rng, outer) ->
+    center_x, center_y = outer\center()
+    return () => rng\randomf(-2,2), rng\randomf(-2,2)
+        -- math.sign_of(@x - center_x)*2, math.sign_of(@y - center_y)*2
+
 default_region_delta_func = (map, rng, outer) ->
     center_x, center_y = outer\center()
     local vfunc 
@@ -241,6 +262,7 @@ ring_region_delta_func = (map, rng, outer) ->
 return {
     :LEVEL_PADDING, :ellipse_points, :Region, :RVORegionPlacer,
     :subregion_minimum_spanning_tree, :region_minimum_spanning_tree, 
+    :spread_region_delta_func
     :random_rect_in_rect, :random_ellipse_in_ellipse, :Tile, :tile_operator
     :region_intersects, :random_region_add 
     :default_region_delta_func

@@ -52,11 +52,15 @@ player_perform_move = (M, obj, dx, dy) ->
     if as.last_dir_x ~= dx or as.last_dir_y ~= dy
         as.constraint_dir_x, as.constraint_dir_y = dx, dy
         as.last_dir_x, as.last_dir_y = dx, dy
+    found = false
     for speed=obj.stats.move_speed,1,-1
         mag = math.sqrt(dx*dx + dy*dy)
-        dx, dy = player_adjust_direction(M, obj, dx/mag*speed, dy/mag*speed, as.constraint_dir_x, as.constraint_dir_y, speed)
-        if dx ~= 0 or dy ~= 0
+        ndx, ndy = player_adjust_direction(M, obj, dx/mag*speed, dy/mag*speed, as.constraint_dir_x, as.constraint_dir_y, speed)
+        if ndx ~= 0 or ndy ~= 0
+            dx,dy = ndx, ndy
+            found = true
             break
+    if not found then return
     -- Tighten the constraints
     if as.constraint_dir_x == 0 then as.constraint_dir_x = dx
     if as.constraint_dir_y == 0 then as.constraint_dir_y = dy
