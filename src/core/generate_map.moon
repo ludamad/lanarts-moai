@@ -26,7 +26,7 @@ OVERWORLD_MAX_W, OVERWORLD_MAX_H = 250, 250
 OVERWORLD_CONF = (rng) -> {
     map_label: "Plain Valley"
     size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
-    number_regions: rng\random(5,20)
+    number_regions: rng\random(30,80)
     floor1: Tile.create('grass1', false, true)
     floor2: Tile.create('grass2', false, true) 
     wall1: Tile.create('tree', true, true, {FLAG_OVERWORLD})
@@ -52,16 +52,22 @@ OVERWORLD_CONF = (rng) -> {
 DUNGEON_CONF = (rng) -> 
     -- Brown layout or blue layout?
     C = {}
-    if rng\random(2) == 0
-        C.floor1 = Tile.create('grey_floor', false, true)
-        C.floor2 = Tile.create('reddish_grey_floor', false, true) 
-        C.wall1 = Tile.create('dungeon_wall', true, false, {}, {FLAG_OVERWORLD})
-        C.wall2 = Tile.create('crypt_wall', true, false, {}, {FLAG_OVERWORLD})
-    else
-        C.floor1 = Tile.create('crystal_floor1', false, true)
-        C.floor2 = Tile.create('crystal_floor2', false, true) 
-        C.wall1 = Tile.create('crystal_wall', true, false, {}, {FLAG_OVERWORLD})
-        C.wall2 = Tile.create('crystal_wall2', true, false, {}, {FLAG_OVERWORLD})
+    switch rng\random(3)
+        when 0
+            C.floor1 = Tile.create('grey_floor', false, true)
+            C.floor2 = Tile.create('reddish_grey_floor', false, true) 
+            C.wall1 = Tile.create('dungeon_wall', true, false, {}, {FLAG_OVERWORLD})
+            C.wall2 = Tile.create('crypt_wall', true, false, {}, {FLAG_OVERWORLD})
+        when 1
+            C.floor1 = Tile.create('crystal_floor1', false, true)
+            C.floor2 = Tile.create('crystal_floor2', false, true) 
+            C.wall1 = Tile.create('crystal_wall', true, false, {}, {FLAG_OVERWORLD})
+            C.wall2 = Tile.create('crystal_wall2', true, false, {}, {FLAG_OVERWORLD})
+        when 2
+            C.floor1 = Tile.create('pebble_floor1', false, true)
+            C.floor2 = Tile.create('pebble_floor2', false, true) 
+            C.wall1 = Tile.create('pebble_wall1', true, false, {}, {FLAG_OVERWORLD})
+            C.wall2 = Tile.create('pebble_wall3', true, false, {}, {FLAG_OVERWORLD})
     -- Rectangle-heavy or polygon-heavy?
     switch rng\random(3)
         when 0
@@ -197,7 +203,7 @@ generate_subareas = (map, rng, regions) ->
     for region in *regions
         generate_area map, rng, region.conf, region
 
-    edges = subregion_minimum_spanning_tree(regions, 25)
+    edges = subregion_minimum_spanning_tree(regions, () -> rng\random(12) + rng\random(12))
     connect_edges map, rng, conf, nil, edges
 
     -- Diagonal pairs are a bit ugly. We can see through them but not pass them. Just open them up.
@@ -277,18 +283,18 @@ generate_overworld = (rng) ->
         rectangle_rooms: {}
     }
 
-    do_dungeon = true
+
+    subconf = OVERWORLD_CONF(rng)
+    {w,h} = {rng\random(85,100),rng\random(85, 100)}
     for i=1,100
-        subconf = DUNGEON_CONF(rng)
-        -- r = rng\random(40,65)
-        {w,h} = {rng\random(50,85),rng\random(50, 85)}
         -- Takes region parameters, region placer, and region outer ellipse bounds:
         r = random_region_add rng, w, h, 20, spread_region_delta_func(map, rng, outer), 0,
             major_regions, outer\bbox()
         if r ~= nil
-            do_dungeon = not do_dungeon
             r.max_speed = 10
             r.conf = subconf
+        subconf = DUNGEON_CONF(rng)
+        {w,h} = {rng\random(45,65),rng\random(45, 65)}
     -- No rvo for now
 
     for r in *major_regions.regions
