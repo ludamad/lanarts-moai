@@ -73,7 +73,7 @@ on_spend_skill_points = (stats, skill, points, logger = nil) ->
 
 -- Allocate skill points, according to chosen weights.
 -- Safe even for a skill point increase of one (will be spread thin, but will accumulate over time).
-allocate_skill_points = (stats, skill_points, logger = nil) ->
+M.allocate_skill_points = (stats, skill_points, logger = nil) ->
     total_weight = 0
     for skill in *attributes.SKILL_ATTRIBUTES
         total_weight += stats.skill_weights[skill]
@@ -117,7 +117,7 @@ M.gain_xp = (stats, xp, log = nil) ->
             -- Levelup!
             M.level_up(stats)
 
-    allocate_skill_points(stats, skill_points_gained, log)
+    M.allocate_skill_points(stats, skill_points_gained, log)
 
     levels_gained = stats.level - old_level
     if skill_points_gained > 0 and log

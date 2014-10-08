@@ -79,11 +79,17 @@ Feature = newtype {
     is_door: () => @is_door_open() or @is_door_closed()
     close_door: (M) => 
         if @is_door_closed() then return
-        @true_sprite = DOOR_CLOSED
-        @solid, @seethrough = true, false
-        @sync(M)
+        if @close_count
+            @close_count -= 1
+        else
+            @close_count = 100
+        if @close_count <= 0
+            @true_sprite = DOOR_CLOSED
+            @solid, @seethrough = true, false
+            @sync(M)
     open_door: (M) => 
         if @is_door_open() then return
+        @close_count = false
         @true_sprite = DOOR_OPEN
         @solid, @seethrough = false, true
         @sync(M)
@@ -96,6 +102,7 @@ Feature = newtype {
         solid, seethrough = args.solid, args.seethrough
         args.solid = false
         ObjectBase.init(@, M, args)
+        @close_count = false
         @true_sprite = data.get_sprite(args.sprite)
         @sprite = false -- Last seen sprite
         @frame = M.rng\random(1, @true_sprite\n_frames()+1)
@@ -209,7 +216,7 @@ CombatObjectBase = newtype {
         if @stats.attack.uses_projectile and not @stats.is_player
             @stats.cooldowns.action_cooldown *= M.rng\randomf(0.75,1.25)
 
-        @stats.cooldowns.action_wait = math.min(@stats.attack.delay, statsystem.MAX_ACTION_WAIT)
+        @stats.cooldowns.action_wait = math.min(@stats.attack.delay, statsystem.MAX_ATTACK_WAIT)
         @stats.cooldowns.move_cooldown = math.max(@stats.attack.delay, @stats.cooldowns.move_cooldown)
         @delayed_action = 'weapon_attack'
         @delayed_action_target_id = id

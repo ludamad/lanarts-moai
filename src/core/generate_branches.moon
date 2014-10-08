@@ -190,7 +190,7 @@ generate_subareas = (map, rng, regions) ->
     for region in *regions
         generate_area map, rng, region.conf, region
 
-    edges = subregion_minimum_spanning_tree(regions)
+    edges = subregion_minimum_spanning_tree(regions, 25)
     connect_edges map, rng, conf, nil, edges
 
     -- Diagonal pairs are a bit ugly. We can see through them but not pass them. Just open them up.
@@ -250,7 +250,8 @@ generate_subareas = (map, rng, regions) ->
         for {:x,:y,:w,:h} in *region.subregions
             filter_random_third(x,y,x+w,y+h)
     for {x1,y1,x2,y2} in *map.rectangle_rooms
-        filter_random_third(x1,y1,x2,y2)
+        -- Account for there already being a perimeter -- don't want to remove tunnels too far, get weird artifacts.
+        filter_random_third(x1+1,y1+1,x2-1,y2-1)
 
 generate_overworld = (rng) ->
     conf = OVERWORLD_CONF(rng)

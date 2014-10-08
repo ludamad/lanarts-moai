@@ -47,15 +47,12 @@ M.COOLDOWN_ATTRIBUTES = {
 M.SKILL_ATTRIBUTES = {
   "melee"
   "magic"
-  "armour"
-  "defending"
-  "curses"
-  "enchantments"
-  "force_spells"
   "piercing_weapons"
   "slashing_weapons"
   "blunt_weapons"
   "ranged_weapons"
+
+  "force_spells"
   "fire_mastery"
   "water_mastery"
   "earth_mastery"
@@ -63,6 +60,11 @@ M.SKILL_ATTRIBUTES = {
   "death_mastery"
   "life_mastery"
   "poison_mastery"
+
+  "armour"
+  "defending"
+  "curses"
+  "enchantments"
 }
 
 -- Basic stats for an attack

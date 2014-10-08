@@ -22,7 +22,7 @@ update_stat_object = () ->
     if _CLASS_CHOICE ~= nil
         race = statsystem.races[_RACE_CHOICE]
         -- Note: We pass 'false' to indicate the PlayerStatContext has no proper GameObject associated with it.
-        stats = statsystem.PlayerStatContext.create(false, _SETTINGS.player_name, _RACE_CHOICE)
+        stats = statsystem.PlayerStatContext.create(false, _SETTINGS.player_name, statsystem.races[_RACE_CHOICE])
         race.stat_race_adjustments(stats)
         statsystem.classes[_CLASS_CHOICE].stat_class_adjustments(_CLASS_ARGS, stats)
         stats\calculate()

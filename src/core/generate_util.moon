@@ -92,13 +92,21 @@ Region = newtype {
         TileMap.arc_match(args)
 }
 
+_edge_list_append_if_unique = (edges, p1, p2) ->
+    for {op1, op2} in *edges
+        if op1 == p1 and op2 == p2 or op2 == p1 and op1 == p2
+            return
+    append edges, {p1, p2}
+
 -- Returns a list of edges
-subregion_minimum_spanning_tree = (R) ->
+subregion_minimum_spanning_tree = (R, acceptable_dist = 0) ->
     -- R: The list of regions
     -- C: The connected set
     C = {false for p in *R}
     C[1] = true -- Start with the first region in the 'connected set'
     edge_list = {}
+    -- Translate to a squared distance:
+    acceptable_dist *= acceptable_dist
     while true
         -- Find the next edge to add:
         min_sqr_dist = math.huge
@@ -110,7 +118,9 @@ subregion_minimum_spanning_tree = (R) ->
                 for si in *SI 
                     for sj in *SJ
                         sqr_dist = si\square_distance(sj)
-                        if sqr_dist < min_sqr_dist
+                        if sqr_dist < acceptable_dist
+                            _edge_list_append_if_unique(edge_list, si, sj)
+                        elseif sqr_dist < min_sqr_dist
                             min_sqr_dist = sqr_dist
                             min_i, min_j = i, j
                             sub_i, sub_j = sj, si

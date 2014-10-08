@@ -29,7 +29,7 @@ assertSync = (msg, M) ->
     logS(msg, payload)
 
 step_objects = (M) ->
-    assertSync "step_objects (frame #{M.gamestate.step_number})", M
+    -- assertSync "step_objects (frame #{M.gamestate.step_number})", M
     --Step all stat contexts
     for obj in *M.combat_object_list
         obj.stats\calculate()

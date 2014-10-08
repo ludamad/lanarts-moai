@@ -4,12 +4,16 @@
 --
 
 res = require 'resources'
+data = require 'core.data'
 statsystem = require "statsystem"
 import setup_script_prop from require '@util_draw'
 import Display from require "ui"
 import put_text, put_text_center, put_prop from Display
-import ui_minimap, ui_inventory from require "core"
+import ui_minimap, ui_inventory, ui_skills from require "core"
 import level_experience_needed from require "statsystem"
+
+import point_in_bbox from require "@util_geometry"
+import key_down, mouse_xy, mouse_left_pressed from require "user_io"
 
 SIDEBAR_WIDTH = 150
 STATBAR_OFFSET_X = 25
@@ -34,7 +38,8 @@ Sidebar = newtype {
         disp_w, disp_h = Display.display_size()
         @x, @y = disp_w - SIDEBAR_WIDTH,  0
         @minimap = ui_minimap.MiniMap.create(@map, @x + SIDEBAR_WIDTH / 2, @y + 240)
-        @inventory_ui = ui_inventory.InventoryUI.create(@gamestate, @x + SIDEBAR_WIDTH / 2, @y + 300)
+        @_set_contents "items"
+        @current_contents = "items"
         Display.display_add_draw_func (() -> @draw())
     predraw: () =>
 
@@ -110,13 +115,59 @@ Sidebar = newtype {
         @_draw_statbar x+5,y, w,h, ENERGY_BACK_COL, ENERGY_FRONT_COL,
             stats.attributes.ep, stats.attributes.max_ep
 
+    -- Side bar switching logic: ---
+    _set_contents: (content_string) =>
+        x, y = @x + SIDEBAR_WIDTH / 2, @y + 300
+        @content_string = content_string
+        @switchable_content = switch @content_string
+            when "items"
+                ui_inventory.InventoryUI.create(@gamestate, x, y)
+            when "skills"
+                ui_skills.SkillsUI.create(@gamestate.local_player().stats, x, y)
+
+    ICON_MAGIC1: data.get_sprite 'icon-magic1'
+    ICON_MAGIC2: data.get_sprite 'icon-magic2'
+    ICON_ITEMS: data.get_sprite 'icon-items'
+    ICON_ITEMS: data.get_sprite 'icon-items'
+    ICON_SKILLS: data.get_sprite 'icon-skills'
+    ICON_ENEMIES: data.get_sprite 'icon-enemies'
+    ICON_CONFIG: data.get_sprite 'icon-config'
+
+    _draw_sidebar_switcher: (spr, x, y, content_string) =>
+        mx, my = mouse_xy()
+        color = Display.COL_WHITE
+        if @content_string == content_string
+            color = Display.COL_YELLOW
+        elseif point_in_bbox(mx, my, x-16, y-16, x+16,y+16)
+            color = Display.COL_PALE_YELLOW
+            if mouse_left_pressed()
+                @_set_contents content_string
+        spr\draw(x, y, 1, 1, 0.5, 0.5, unpack(color))
+
+    _draw_sidebar_switchers: () =>
+        -- Draw sidebar-switching icons:
+        disp_w,disp_h = Display.display_size()
+        -- Three on top row
+        xx, yy = @x + SIDEBAR_WIDTH/2 - 34, disp_h - 52
+        @_draw_sidebar_switcher(@ICON_MAGIC1, xx, yy, "spells")
+        xx += 34
+        @_draw_sidebar_switcher(@ICON_ITEMS, xx, yy, "items")
+        xx += 34
+        @_draw_sidebar_switcher(@ICON_SKILLS, xx, yy, "skills")
+        -- Two on bottom row
+        xx, yy = @x + SIDEBAR_WIDTH/2 - 34/2, yy + 34
+        @_draw_sidebar_switcher(@ICON_CONFIG, xx, yy, "config")
+        xx += 34
+        @_draw_sidebar_switcher(@ICON_ENEMIES, xx, yy, "enemies")
+
+    -- Main draw function ---
     draw: () =>
         focus = @gamestate.local_player()
         if not focus then return
         @_draw_stats(focus.stats, @x + STATBAR_OFFSET_X, @y + STATBAR_OFFSET_Y)
         @minimap\draw()
-        @inventory_ui\draw()
-
+        @switchable_content\draw()
+        @_draw_sidebar_switchers()
     remove: () =>
         Display.ui_layer\removeProp @prop
 }

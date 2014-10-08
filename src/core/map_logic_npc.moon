@@ -61,20 +61,21 @@ npc_step_all = (M) ->
         elseif dist <= obj.npc_type.min_chase_dist
             obj.ai_target = p
             obj.ai_action = NPC_CHASING
-        -- Are we bumbling about randomly?
-        if obj.ai_action == NPC_RANDOM_WALK or (dist < obj.npc_type.stop_chase_dist)
-            if can_move 
+        if can_act and (dist <= A.range)
+            -- Don't consider below logic
+            obj\queue_weapon_attack(M, p.id)
+        elseif can_move
+            if obj.ai_action == NPC_CHASING and (dist >= obj.npc_type.stop_chase_dist)
+                x1,y1,x2,y2 = util_geometry.object_bbox(obj)
+                dx, dy = p.paths_to_player\interpolated_direction(math.ceil(x1),math.ceil(y1),math.floor(x2),math.floor(y2), speed)
+            -- If we are stuck, or do not have a target, bumble about randomly.
+            if (dx == 0 and dy == 0) or obj.ai_action == NPC_RANDOM_WALK or (dist < obj.npc_type.stop_chase_dist)
                 -- Random heading
                 -- Take last angle, apply random turn
                 dir = math.atan2(obj.ai_vy, obj.ai_vx) + M.rng\randomf(-math.pi/10, math.pi/10)
                 dx, dy = math.cos(dir) * speed/2, math.sin(dir) * speed/2
-            -- Don't consider below logic
+
         -- Resolve actions, for near-enough enemies
-        elseif can_act and (dist <= A.range)
-            obj\queue_weapon_attack(M, p.id)
-        elseif can_move and (dist >= obj.npc_type.stop_chase_dist)
-            x1,y1,x2,y2 = util_geometry.object_bbox(obj)
-            dx, dy = p.paths_to_player\interpolated_direction(math.ceil(x1),math.ceil(y1),math.floor(x2),math.floor(y2), speed)
         obj\set_rvo(M, dx, dy)
         -- Temporary storage, just for this function:
         obj.ai_vx, obj.ai_vy = dx, dy

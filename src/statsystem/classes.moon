@@ -1,5 +1,6 @@
 attributes = require "@attributes"
 items = require "@items"
+experience = require "@experience"
 
 M = nilprotect {} -- Submodule
 classes = nilprotect {}
@@ -49,6 +50,7 @@ classes.Mage = {
         W.melee = MINOR
         W.armour = MINOR
         W.defending = MINOR
+        experience.allocate_skill_points(stats, 1000)
 
     spells: {"Minor Missile"}
 }
@@ -75,6 +77,7 @@ classes.Knight = {
 
         W.armour = MODERATE
         W.defending = MINOR
+        experience.allocate_skill_points(stats, 1000)
 }
 
 classes.Archer = {
@@ -95,6 +98,7 @@ classes.Archer = {
         W.ranged_weapons = MAJOR
         W.armour = MINOR
         W.defending = MODERATE
+        experience.allocate_skill_points(stats, 1000)
 }
 
 table.merge(M, classes)

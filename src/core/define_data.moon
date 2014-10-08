@@ -307,11 +307,13 @@ skill_icons = with spritedef file: 'menu/skill-icons.png', size: {32,32}
     .define name: 'skicon-force_spells', from: {9, 4}
     .define name: 'skicon-summoning', from: {29, 4}
     .define name: 'skicon-armour', from: {10, 4}
+    .define name: 'skicon-defending', from: {10, 4}
     .define name: 'skicon-willpower', from: {30, 4}
     .define name: 'skicon-fortitude', from: {19, 4}
     .define name: 'skicon-self_mastery', from: {16, 4}
     .define name: 'skicon-magic_items', from: {20, 4}
     .define name: 'skicon-death_mastery', from: {21, 4}
+    .define name: 'skicon-poison_mastery', from: {21, 4}
     .define name: 'skicon-life_mastery', from: {31, 4}
     .define name: 'skicon-fire_mastery', from: {25, 4}
     .define name: 'skicon-water_mastery', from: {26, 4}
@@ -319,6 +321,14 @@ skill_icons = with spritedef file: 'menu/skill-icons.png', size: {32,32}
     .define name: 'skicon-earth_mastery', from: {28, 4}
 
 logI("Loading gui elements")
+
+with spritedef file: 'menu/interface_icons.png', size: {32,32}, tiled: true
+    .define name: 'icon-magic1', from: {1,1}
+    .define name: 'icon-items',  from: {2,1}    
+    .define name: 'icon-magic2', from: {3,1}
+    .define name: 'icon-skills', from: {4,1}
+    .define name: 'icon-enemies',from: {5,1}
+    .define name: 'icon-config', from: {6,1}
 
 with spritedef file: 'cursor.png', size: {32,32}
     .define name: 'cursor', from: {1, 1}

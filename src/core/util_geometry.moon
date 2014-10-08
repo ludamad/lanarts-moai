@@ -22,4 +22,9 @@ object_towards = (obj1, obj2, mag = 1) ->
 object_bbox = () =>
 	return @x - @radius, @y - @radius, @x + @radius, @y + @radius
 
-return {:object_distance, :object_towards, :object_bbox, :towards}
+point_in_bbox = (px, py, x1,y1,x2,y2) ->
+	if x1 > px or x2 <= px then return false
+	if y1 > py or y2 <= py then return false
+	return true
+
+return {:object_distance, :object_towards, :object_bbox, :towards, :point_in_bbox}
