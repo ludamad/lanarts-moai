@@ -55,8 +55,8 @@ monster_define {
 
   level: 1
   move_speed: 7
-  hp: 5, hp_regen: 0.1
-  power: 0, damage: 8
+  hp: 8, hp_regen: 0.001
+  power: 0, damage: 9
   multiplier: 1 -- Don't compensate for cooldown
   cooldown: 2.0
   delay: 1.5

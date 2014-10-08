@@ -29,7 +29,7 @@ M.npc_stat_calculate = (S, do_step = true) ->
 -- Calculate derived stats from bonuses and their raw_* counterparts
 M.player_stat_calculate = (S, do_step = true) ->
     S\revert()
-    M.attack_calculate(S.attack)
+    M.player_attack_calculate(S.attack)
     if do_step 
         S.is_sprinting = false
         if S.will_sprint_if_can and S.raw_ep >= constants.SPRINT_ENERGY_COST
@@ -42,6 +42,8 @@ M.player_stat_calculate = (S, do_step = true) ->
          S.mp_regen += S.raw_mp_regen * 7
          S.ep_regen += S.raw_ep_regen * 7
     common_stat_calculate(S, do_step)
+    S.defence += S.skill_levels.armour
+    S.physical_resist += S.skill_levels.defending
 
 -- Attack calculations
 M.attack_calculate = (A) ->
@@ -54,6 +56,13 @@ M.attack_calculate = (A) ->
         A\copy(A.source.race.attack)
     else
         A\revert()
+
+M.player_attack_calculate = (A) ->
+    M.attack_calculate(A)
+    switch A.category
+        when "piercing"
+            A.physical_dmg += A.source.skill_levels.piercing_weapons
+            A.physical_power += A.source.skill_levels.piercing_weapons
 
 M.attack_apply = (A, rng, dS) ->
     pow = A.physical_power - dS.physical_resist

@@ -5,7 +5,7 @@ weapon_define {
     name: "Dagger"
     avatar_sprite: 'sw-dagger'
     description: "A small but sharp blade; great for stabbing ."
-    weapon_type: "piercing"
+    category: "piercing"
 
     gold_worth: 15
     difficulty: 0
@@ -20,7 +20,7 @@ weapon_define {
     name: "Short Sword"
     avatar_sprite: 'sw-dagger'
     description: "A small, light sword."
-    weapon_type: "piercing"
+    category: "piercing"
 
     gold_worth: 35
     difficulty: 1
@@ -33,7 +33,7 @@ weapon_define {
     name: "Long Sword"
     avatar_sprite: 'sw-sword1'
     description: "A large trusty sword."
-    weapon_type: "piercing"
+    category: "piercing"
 
     gold_worth: 80
     difficulty: 3
@@ -46,7 +46,7 @@ weapon_define {
     name: "Great Sword"
     avatar_sprite: 'sw-sword2'
     description: "An oversized brutish sword."
-    weapon_type: "piercing"
+    category: "piercing"
 
     gold_worth: 120
     difficulty: 5
@@ -60,7 +60,7 @@ weapon_define {
     name: "Hand Axe"
     avatar_sprite: 'sw-hand-axe'
     description: "A light, small and sturdy axe."
-    weapon_type: "slashing"
+    category: "slashing"
 
     gold_worth: 20
     difficulty: 0
@@ -74,7 +74,7 @@ weapon_define {
     name: "Short Bow"
     avatar_sprite: 'sw-blue-bow'
     description: "A small bow."
-    weapon_type: "bow"
+    category: "bow"
 
     gold_worth: 20
     difficulty: 0

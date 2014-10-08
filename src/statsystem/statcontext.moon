@@ -30,6 +30,7 @@ M.AttackContext = newtype {
 
     init: (source) =>
         @source = source
+        @category = false
         @attributes = attributes.AttackAttributes.create()
         @attack_sprite = false
         @uses_projectile = false
@@ -40,6 +41,7 @@ M.AttackContext = newtype {
     copy: (o) => -- Generally, we do not copy the source, as this can be a back-pointer
         @attributes\copy(o.attributes)
         @attack_sprite = o.attack_sprite
+        @category = o.category
         @uses_projectile = o.uses_projectile
         @projectile_radius = o.projectile_radius
         @projectile_speed = o.projectile_speed

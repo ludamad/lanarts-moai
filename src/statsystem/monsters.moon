@@ -44,6 +44,7 @@ M.MonsterType = newtype {
     attr.raw_move_speed = data.move_speed or 6
 
     import make_weapon_attack from require "@items"
+    data.category = data.weapon_category or 'unarmed' -- For weapon attack
     @stats.attack\copy(make_weapon_attack(data))
     @stats.attack.attack_sprite = (data.attack_sprite or false)
 

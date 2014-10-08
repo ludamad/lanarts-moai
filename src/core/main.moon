@@ -172,10 +172,9 @@ start_game = (G, stat_components, on_death) ->
     logS("rng check", G.rng\randomf())
 
     logI("main::start_game: after clear_game_data")
-    import generate_branches from require "core"
-    tilemap = generate_branches.generate_overworld(G.rng)
-    M = generate_branches.generate_game_map(G, tilemap)
-    --M = require("@generate").create_map(G, require("@generate_data").OUTSIDE)
+    import generate_map from require "core"
+    tilemap = generate_map.generate_overworld(G.rng)
+    M = generate_map.generate_game_map(G, tilemap)
 
     append G.maps, M
 

@@ -82,7 +82,7 @@ Feature = newtype {
         if @close_count
             @close_count -= 1
         else
-            @close_count = 100
+            @close_count = 60
         if @close_count <= 0
             @true_sprite = DOOR_CLOSED
             @solid, @seethrough = true, false

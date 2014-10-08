@@ -264,6 +264,7 @@ M.make_weapon_attack = (t) ->
 
     A = AttackContext.create(false)
     A.attack_sprite = t.name
+    A.category = assert t.category
     -- Default unarmed attack
     A.raw_physical_dmg = t.damage
     A.raw_physical_power = t.power or 0

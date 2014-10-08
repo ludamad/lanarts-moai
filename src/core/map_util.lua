@@ -18,7 +18,7 @@ local function make_rectangle_oper(floor, wall, wall_seethrough, --[[Optional]] 
     return TileMap.rectangle_operator { 
         area_query = area_query,
         perimeter_width = 1,
-       fill_operator = { add = {TileMap.FLAG_SEETHROUGH}, remove = {TileMap.FLAG_SOLID}, content = floor},
+       fill_operator = { add = {TileMap.FLAG_CUSTOM5, TileMap.FLAG_SEETHROUGH}, remove = {TileMap.FLAG_SOLID}, content = floor},
         perimeter_operator = { add = {TileMap.FLAG_PERIMETER}, remove = remove_wall_flags, content = wall },
     }
 end

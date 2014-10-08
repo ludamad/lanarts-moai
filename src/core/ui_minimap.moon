@@ -3,7 +3,7 @@ res = require 'resources'
 import setup_script_prop from require '@util_draw'
 import put_text, put_text_center, put_prop, camera_tile_region_covered, ui_layer, packColor32 from require "ui.Display"
 import COL_GREEN, COL_RED, COL_BLUE, COL_YELLOW, PRIORITY_INTERFACE from require "ui.Display"
-import TileMap, generate, data from require "core"
+import TileMap, data from require "core"
 import get_tilelist from require "core.data"
 
 import key_down, mouse_xy from require "user_io"
@@ -89,7 +89,7 @@ MiniMap = newtype {
 		FLAG_PERIMETER = TileMap.FLAG_PERIMETER
 		FLAG_SEETHROUGH = TileMap.FLAG_SEETHROUGH
 		FLAG_RESERVED1 = TileMap.FLAG_RESERVED1
-		FLAG_ALTERNATE = generate.FLAG_ALTERNATE
+		FLAG_ALTERNATE = TileMap.FLAG_CUSTOM1
 		-- flag_buff is also used to set the grid values
 		flag_buff, content_buff, seen_buff = @flag_buffer, @content_buffer, @seen_buffer
 

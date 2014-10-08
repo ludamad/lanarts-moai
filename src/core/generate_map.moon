@@ -1,5 +1,5 @@
 ----
--- Generates the game world, starting with high-level details (places that will be in the game)
+-- Generates the game maps, starting with high-level details (places that will be in the game)
 -- and then generating actual tiles.
 ----
 import map_place_object, ellipse_points, 
@@ -20,13 +20,13 @@ FLAG_ALTERNATE = TileMap.FLAG_CUSTOM1
 FLAG_INNER_PERIMETER = TileMap.FLAG_CUSTOM2
 FLAG_DOOR_CANDIDATE = TileMap.FLAG_CUSTOM3
 FLAG_OVERWORLD = TileMap.FLAG_CUSTOM4
+FLAG_ROOM = TileMap.FLAG_CUSTOM5
 
 OVERWORLD_MAX_W, OVERWORLD_MAX_H = 250, 250
 OVERWORLD_CONF = (rng) -> {
     map_label: "Plain Valley"
     size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
     number_regions: rng\random(5,20)
-    outer_points: () -> 20
     floor1: Tile.create('grass1', false, true)
     floor2: Tile.create('grass2', false, true) 
     wall1: Tile.create('tree', true, true, {FLAG_OVERWORLD})
@@ -45,60 +45,67 @@ OVERWORLD_CONF = (rng) -> {
         for j=1,rng\random(0,bound) do r += rng\randomf(0, 1)
         return r
     -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 10, ["Chicken"]: 5, ["Cloud Elemental"]: 1}
+    monster_weights: () -> {["Giant Rat"]: 6, ["Chicken"]: 2, ["Cloud Elemental"]: 2}
     n_statues: 4
 }
 
-DUNGEON_CONF = (rng) -> {
-    map_label: "A Dungeon"
-    size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
-    number_regions: rng\random(5,20)
-    outer_points: () -> 20
-    floor1: Tile.create('grey_floor', false, true)
-    floor2: Tile.create('reddish_grey_floor', false, true) 
-    wall1: Tile.create('dungeon_wall', true, false, {}, {FLAG_OVERWORLD})
-    wall2: Tile.create('crypt_wall', true, false, {}, {FLAG_OVERWORLD})
-    rect_room_num_range: {4,10}
-    rect_room_size_range: {10,15}
-    rvo_iterations: 20
-    n_shops: rng\random(2,4)
-    n_stairs_down: 3
-    n_stairs_up: 0
-    connect_line_width: () -> 2 + (if rng\random(5) == 4 then 1 else 0)
-    region_delta_func: default_region_delta_func
-    room_radius: () ->
-        r = 2
-        for j=1,rng\random(0,10) do r += rng\randomf(0, 1)
-        return r
-    -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3, ["Chicken"]: 1}
-    n_statues: 4
-}
-DUNGEON2_CONF = (rng) -> {
-    map_label: "A Dungeon"
-    size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
-    number_regions: rng\random(5,20)
-    outer_points: () -> 20
-    floor1: Tile.create('crystal_floor1', false, true)
-    floor2: Tile.create('crystal_floor2', false, true) 
-    wall1: Tile.create('crystal_wall', true, false, {}, {FLAG_OVERWORLD})
-    wall2: Tile.create('crystal_wall2', true, false, {}, {FLAG_OVERWORLD})
-    rect_room_num_range: {4,10}
-    rect_room_size_range: {10,15}
-    rvo_iterations: 20
-    n_shops: rng\random(2,4)
-    n_stairs_down: 3
-    n_stairs_up: 0
-    connect_line_width: () -> 2 + (if rng\random(5) == 4 then 1 else 0)
-    region_delta_func: default_region_delta_func
-    room_radius: () ->
-        r = 2
-        for j=1,rng\random(0,10) do r += rng\randomf(0, 1)
-        return r
-    -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3, ["Chicken"]: 1}
-    n_statues: 4
-}
+DUNGEON_CONF = (rng) -> 
+    -- Brown layout or blue layout?
+    C = {}
+    if rng\random(2) == 0
+        C.floor1 = Tile.create('grey_floor', false, true)
+        C.floor2 = Tile.create('reddish_grey_floor', false, true) 
+        C.wall1 = Tile.create('dungeon_wall', true, false, {}, {FLAG_OVERWORLD})
+        C.wall2 = Tile.create('crypt_wall', true, false, {}, {FLAG_OVERWORLD})
+    else
+        C.floor1 = Tile.create('crystal_floor1', false, true)
+        C.floor2 = Tile.create('crystal_floor2', false, true) 
+        C.wall1 = Tile.create('crystal_wall', true, false, {}, {FLAG_OVERWORLD})
+        C.wall2 = Tile.create('crystal_wall2', true, false, {}, {FLAG_OVERWORLD})
+    -- Rectangle-heavy or polygon-heavy?
+    switch rng\random(3)
+        when 0
+            -- Few, big, rooms?
+            C.number_regions = rng\random(5,10)
+            C.room_radius = () ->
+                r = 4
+                for j=1,rng\random(0,10) do r += rng\randomf(0, 1)
+                return r
+            C.rect_room_num_range = {2,3}
+            C.rect_room_size_range = {10,15}
+        when 1
+            -- Mix?
+            C.number_regions = rng\random(5,20)
+            C.room_radius = () ->
+                r = 2
+                for j=1,rng\random(0,10) do r += rng\randomf(0, 1)
+                return r
+            C.rect_room_num_range = {2,10}
+            C.rect_room_size_range = {7,15}
+        when 2
+            -- Mostly rectangular rooms?
+            C.number_regions = rng\random(2,7)
+            C.room_radius = () ->
+                r = 2
+                for j=1,rng\random(0,10) do r += rng\randomf(0, 1)
+                return r
+            C.rect_room_num_range = {10,15}
+            C.rect_room_size_range = {7,15}
+
+    return table.merge C, {
+        map_label: "A Dungeon"
+        size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
+        rvo_iterations: 20
+        n_shops: rng\random(2,4)
+        n_stairs_down: 3
+        n_stairs_up: 0
+        connect_line_width: () -> 2 + (if rng\random(5) == 4 then 1 else 0)
+        region_delta_func: default_region_delta_func
+        -- Dungeon objects/features
+        monster_weights: () -> {["Giant Rat"]: 8, ["Cloud Elemental"]: 1, ["Chicken"]: 1}
+        n_statues: 4
+    }
+
 
 make_rooms_with_tunnels = (map, rng, conf, area) ->
     oper = TileMap.random_placement_operator {
@@ -130,7 +137,8 @@ connect_edges = (map, rng, conf, area, edges) ->
         tile = conf.floor1
         flags = {}
         rad1,rad2 = math.max(p1.w, p1.h)/2, math.max(p2.w, p2.h)/2
-        if p1\ortho_dist(p2) > (rng\random(3,6)+rad1+rad2)
+        line_width = conf.connect_line_width()
+        if line_width <= 2 and p1\ortho_dist(p2) > (rng\random(3,6)+rad1+rad2)
             append flags, TileMap.FLAG_TUNNEL
         if p2.id%5 <= 3 
             tile = conf.floor2
@@ -141,8 +149,7 @@ connect_edges = (map, rng, conf, area, edges) ->
         else 
             fapply = p1.arc_connect
         fapply p1, {
-            :map, :area, target: p2
-            line_width: conf.connect_line_width()
+            :map, :area, target: p2, :line_width
             operator: (tile_operator tile, {matches_none: FLAG_ALTERNATE, add: flags})
         }
 
@@ -164,7 +171,7 @@ generate_area = (map, rng, conf, outer) ->
     for region in *R.regions
         tile = (if rng\random(4) ~= 1 then conf.floor1 else conf.floor2)
         region\apply {
-            map: map, area: outer\bbox(), operator: (tile_operator tile)
+            map: map, area: outer\bbox(), operator: (tile_operator tile, {add: FLAG_ROOM})
         }
 
     -- Connect all the closest region pairs:
@@ -226,8 +233,8 @@ generate_subareas = (map, rng, regions) ->
     -- Make sure doors dont get created in the overworld components:
     TileMap.rectangle_apply {:map, fill_operator: {matches_all: FLAG_OVERWORLD, remove: TileMap.FLAG_TUNNEL}}
     TileMap.perimeter_apply {:map,
-        candidate_selector: {matches_all: {TileMap.FLAG_TUNNEL}, matches_none: {TileMap.FLAG_SOLID}}, 
-        inner_selector: {matches_none: {FLAG_DOOR_CANDIDATE, TileMap.FLAG_TUNNEL, TileMap.FLAG_SOLID}}
+        candidate_selector: {matches_all: {TileMap.FLAG_TUNNEL}, matches_none: {FLAG_ROOM, TileMap.FLAG_SOLID}}, 
+        inner_selector: {matches_all: {FLAG_ROOM}, matches_none: {FLAG_DOOR_CANDIDATE, TileMap.FLAG_SOLID}}
         operator: {add: FLAG_DOOR_CANDIDATE}
     }
 
@@ -272,14 +279,11 @@ generate_overworld = (rng) ->
 
     do_dungeon = true
     for i=1,100
-        subconf = (if do_dungeon then DUNGEON2_CONF(rng) else OVERWORLD_CONF(rng))
-        -- Randomly pick the other dungeon configuration:
-        if do_dungeon and rng\random(0,2) == 1
-            subconf = DUNGEON_CONF(rng)
+        subconf = DUNGEON_CONF(rng)
         -- r = rng\random(40,65)
         {w,h} = {rng\random(50,85),rng\random(50, 85)}
         -- Takes region parameters, region placer, and region outer ellipse bounds:
-        r = random_region_add rng, w, h, subconf.outer_points(), spread_region_delta_func(map, rng, outer), 0,
+        r = random_region_add rng, w, h, 20, spread_region_delta_func(map, rng, outer), 0,
             major_regions, outer\bbox()
         if r ~= nil
             do_dungeon = not do_dungeon

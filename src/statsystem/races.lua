@@ -6,6 +6,7 @@ local items = require "@items"
 
 local UNARMED = {
     name = "Unarmed",
+    category = "unarmed",
     damage = 7,
     power =  0,
     delay = 1.0,
@@ -37,7 +38,7 @@ races.Undead = {
     attack = unarmed_attack,
     avatar_sprite = "sr-undead",
     hp = 80,  hp_regen = 0, -- None!
-    ep = 25, ep_regen = 0.005,
+    ep = 25, ep_regen = 0.008,
     mp = 100, mp_regen = 0.012,
 
     -- [Apts.DARK] = {2,1,2,1}, 
@@ -83,7 +84,7 @@ races.Human = {
     attack = unarmed_attack,
     avatar_sprite = "sr-human",
     hp = 100, hp_regen = 0.020,
-    ep = 25, ep_regen = 0.005,
+    ep = 25, ep_regen = 0.008,
     mp = 100, mp_regen = 0.012,
 
     -- [Apts.SELF_MASTERY] = {2,0,0,0},
@@ -105,7 +106,7 @@ races.Orc = {
     attack = unarmed_attack,
     avatar_sprite = "sr-orc",
     hp = 100, hp_regen = 0.010,
-    ep = 25, ep_regen = 0.005,
+    ep = 25,  ep_regen = 0.008,
     mp = 80,  mp_regen = 0.008,
 
     -- [Apts.MELEE] = {-2,1,0,0},

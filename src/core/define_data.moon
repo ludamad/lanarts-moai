@@ -1,6 +1,5 @@
 -- By default, tiles are 32x32
 
-gen = require '@generate'
 import Display from require "ui"
 import TileMap from require "core"
 
@@ -34,8 +33,8 @@ with tiledef file: 'floor-dark.png', solid: false
     .define name: 'light_brown_floor', from: {1,2}, to: {4,2}, minicolor: Display.COL_BROWN, line_of_sight: 6
 
 with spritedef file: 'feat.png', size: {32,32}, tiled: true
-    .define name: 'door_closed', from: {3, 2}
-    .define name: 'door_open',   from: {10, 2}    
+    .define name: 'door_closed', from: {31,2}--{3, 2}
+    .define name: 'door_open',   from: {6,3}--{10, 2}    
     .define name: 'shop',        from: {11,6}, to: {21,6}
 
 with spritedef file: 'dungeon_features/statues.png', size: {32,32}, tiled: true
@@ -336,14 +335,14 @@ with spritedef file: 'cursor.png', size: {32,32}
 with spritedef file: 'selection.png', size: {32,32}
     .define name: 'selection', from: {1, 1}
 
-logI("Defining maps")
+-- logI("Defining maps")
 
-mapdef.define {
-	name: "start" 
-	generator: (G, rng, scheme) ->
-		model = gen.generate_circle_scheme(rng, scheme(rng))
-		return model
-}
+-- mapdef.define {
+-- 	name: "start" 
+-- 	generator: (G, rng, scheme) ->
+-- 		model = gen.generate_circle_scheme(rng, scheme(rng))
+-- 		return model
+-- }
 
 for vpath in *{
     -- Skills are used in many other definitions
