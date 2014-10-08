@@ -43,3 +43,22 @@ monster_define {
   range: 50
   chase_distances: {200,300, 32}
 }
+
+monster_define {
+  name: "Chicken"
+  monster_kind: "animal"
+  description: ""
+  appear_message: ""
+  defeat_message: ""
+
+  radius: 10
+
+  level: 1
+  move_speed: 7
+  hp: 5, hp_regen: 0.1
+  power: 0, damage: 8
+  multiplier: 1 -- Don't compensate for cooldown
+  cooldown: 2.0
+  delay: 1.5
+  chase_distances: {100, 150}
+}

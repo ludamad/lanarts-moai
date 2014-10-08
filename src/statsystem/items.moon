@@ -270,7 +270,7 @@ M.make_weapon_attack = (t) ->
     A.raw_delay = constants.BASE_ACTION_DELAY * (t.delay or 1)
     A.raw_multiplier = t.multiplier or t.cooldown or 1
     A.raw_cooldown = constants.BASE_ACTION_COOLDOWN * (t.cooldown or 1)
-    A.raw_range = (t.range or 4)
+    A.raw_range = (t.range or 0)
     A.uses_projectile = (t.uses_projectile or false)
     if A.uses_projectile
         A.projectile_radius = (t.projectile_radius or 13)

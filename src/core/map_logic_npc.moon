@@ -61,10 +61,13 @@ npc_step_all = (M) ->
         elseif dist <= obj.npc_type.min_chase_dist
             obj.ai_target = p
             obj.ai_action = NPC_CHASING
-        if can_act and (dist <= A.range)
-            -- Don't consider below logic
+        if can_act and (dist <= A.range + p.stats.move_speed + obj.stats.move_speed)
+            -- If we don't consider movespeed here, we can get into weird pathological cases
+            -- Where enemies are always close, but then the player moves away and they must spend time moving.
             obj\queue_weapon_attack(M, p.id)
-        elseif can_move
+            -- We generate an attack, but still try to move if we have no move cooldown:
+            can_move = (S.cooldowns.move_cooldown <= 0)
+        if can_move
             if obj.ai_action == NPC_CHASING and (dist >= obj.npc_type.stop_chase_dist)
                 x1,y1,x2,y2 = util_geometry.object_bbox(obj)
                 dx, dy = p.paths_to_player\interpolated_direction(math.ceil(x1),math.ceil(y1),math.floor(x2),math.floor(y2), speed)
@@ -107,9 +110,19 @@ npc_step_all = (M) ->
         is_free = npc_free_check(M, obj, vx, vy)
         -- If we are on direct course with a wall, adjust heading:
         if not is_free
+            lower_mag_works = false
+            -- TODO: Do we need this? Xpensive
+            mag = math.sqrt(vx*vx+vy*vy)
+            lower_mag = mag
+            while lower_mag >= 1.5
+                lower_mag -= 1
+                if npc_free_check(M, obj, vx/mag*lower_mag, vy/mag*lower_mag) 
+                    lower_mag_works = true
+                    break
             -- Try random rotations (rationale: guarantee to preserve momentum, and not move directly backwards):
             case = M.rng\random(0,4)
-            if case==0 and npc_free_check(M, obj, -vy, vx) then vx, vy, is_free = -vy, vx, true
+            if lower_mag_works then vx, vy,is_free = (vx/mag*lower_mag), (vy/mag*lower_mag), true
+            elseif case==0 and npc_free_check(M, obj, -vy, vx) then vx, vy, is_free = -vy, vx, true
             elseif case==1 and npc_free_check(M, obj, vy, vx) then vx, vy, is_free = vy, vx, true
             elseif case==2 and npc_free_check(M, obj, vy, -vx) then vx, vy, is_free = vy, -vx, true
             elseif case==3 and npc_free_check(M, obj, -vy, -vx) then vx, vy, is_free = -vy, -vx, true

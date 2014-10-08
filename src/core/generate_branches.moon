@@ -45,7 +45,7 @@ OVERWORLD_CONF = (rng) -> {
         for j=1,rng\random(0,bound) do r += rng\randomf(0, 1)
         return r
     -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3}
+    monster_weights: () -> {["Giant Rat"]: 10, ["Chicken"]: 5, ["Cloud Elemental"]: 1}
     n_statues: 4
 }
 
@@ -71,7 +71,7 @@ DUNGEON_CONF = (rng) -> {
         for j=1,rng\random(0,10) do r += rng\randomf(0, 1)
         return r
     -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3}
+    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3, ["Chicken"]: 1}
     n_statues: 4
 }
 DUNGEON2_CONF = (rng) -> {
@@ -96,7 +96,7 @@ DUNGEON2_CONF = (rng) -> {
         for j=1,rng\random(0,10) do r += rng\randomf(0, 1)
         return r
     -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3}
+    monster_weights: () -> {["Giant Rat"]: 10, ["Cloud Elemental"]: 3, ["Chicken"]: 1}
     n_statues: 4
 }
 

@@ -88,8 +88,8 @@ Feature = newtype {
             @solid, @seethrough = true, false
             @sync(M)
     open_door: (M) => 
-        if @is_door_open() then return
         @close_count = false
+        if @is_door_open() then return
         @true_sprite = DOOR_OPEN
         @solid, @seethrough = false, true
         @sync(M)

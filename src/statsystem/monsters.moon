@@ -22,7 +22,7 @@ M.MonsterType = newtype {
     @uses_projectile = data.uses_projectile or false
     @min_chase_dist = data.chase_distances[1]
     @max_chase_dist = data.chase_distances[2]
-    @stop_chase_dist = data.chase_distances[3] or -4
+    @stop_chase_dist = data.chase_distances[3] or -16
 
     -- We pass 'false' to indicate the StatContext has no proper GameObject associated with it.
     @stats = NPCStatContext.create(false, @name)  
@@ -49,7 +49,7 @@ M.MonsterType = newtype {
 
     -- Copy everything over from the raw_* components.
     @stats\revert()
-    assert(@stats.attack.range >= 4, "Monster range should not be less than 4 pixels!")
+    assert(@stats.attack.range >= 0, "Monster range should not be less than 0 pixels!")
     assert(@stats.attributes.hp >= 0, "Monster hp shouldn't be 0!")
 }
 
