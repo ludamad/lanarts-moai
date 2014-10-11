@@ -62,3 +62,22 @@ monster_define {
   delay: 1.5
   chase_distances: {100, 150}
 }
+
+monster_define {
+    name: "Turtle"
+    monster_kind: "animal"
+    description: ""
+    appear_message: ""
+    defeat_message: ""
+    
+    radius: 8
+    
+    level: 1 
+    move_speed: 2
+    hp: 50, hp_regen: 0.001
+    power: 0, damage: 10
+    multiplier: 1
+    cooldown: 2.0
+    delay: 3
+    chase_distances: {200, 300}
+}

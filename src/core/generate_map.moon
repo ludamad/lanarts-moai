@@ -45,7 +45,7 @@ OVERWORLD_CONF = (rng) -> {
         for j=1,rng\random(0,bound) do r += rng\randomf(0, 1)
         return r
     -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 6, ["Chicken"]: 2, ["Cloud Elemental"]: 2}
+    monster_weights: () -> {["Giant Rat"]: 0, ["Chicken"]: 0, ["Cloud Elemental"]: 1, ["Turtle"]: 8}
     n_statues: 4
 }
 
@@ -285,8 +285,8 @@ generate_overworld = (rng) ->
 
 
     subconf = OVERWORLD_CONF(rng)
-    {w,h} = {rng\random(85,100),rng\random(85, 100)}
-    for i=1,100
+    {w,h} = {60,60}--{rng\random(85,100),rng\random(85, 100)}
+    for i=1,1
         -- Takes region parameters, region placer, and region outer ellipse bounds:
         r = random_region_add rng, w, h, 20, spread_region_delta_func(map, rng, outer), 0,
             major_regions, outer\bbox()
