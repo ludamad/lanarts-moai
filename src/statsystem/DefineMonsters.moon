@@ -81,3 +81,22 @@ monster_define {
     delay: 3
     chase_distances: {200, 300}
 }
+
+monster_define {
+    name: "Spriggan"
+    monster_kind: "fairy"
+    description: ""
+    appear_message: ""
+    defeat_message: ""
+    
+    radius: 10
+    
+    level: 1
+    move_speed: 7
+    hp: 20, hp_regen: 0.001
+    power: 0, damage: 14
+    multiplier: 1 
+    cooldown: 1.5
+    delay: 1.5
+    chase_distances: {100,300}
+}

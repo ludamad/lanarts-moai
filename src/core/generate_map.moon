@@ -45,7 +45,7 @@ OVERWORLD_CONF = (rng) -> {
         for j=1,rng\random(0,bound) do r += rng\randomf(0, 1)
         return r
     -- Dungeon objects/features
-    monster_weights: () -> {["Giant Rat"]: 0, ["Chicken"]: 0, ["Cloud Elemental"]: 1, ["Turtle"]: 8}
+    monster_weights: () -> {["Giant Rat"]: 0, ["Chicken"]: 0, ["Cloud Elemental"]: 1, ["Turtle"]: 8, ["Spriggan"]: 2}
     n_statues: 4
 }
 
