@@ -27,7 +27,7 @@ last_time = MOAISim\getDeviceTime()
 _net_step = (G) ->
     previous_step = G.step_number
     -- Manage time passage
-    new_time = MOAISim\getDeviceTime()
+    new_time = MOAISim\getDeviceTime() 
     time_passed = (new_time - last_time)
 
     -- Incorporate new information (if any) and replay actions

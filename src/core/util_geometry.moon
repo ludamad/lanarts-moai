@@ -2,7 +2,7 @@
 -- Geometry utility functions
 -------------------------------------------------------------------------------
 
-import sqrt from math
+import sqrt, atan2 from math
 
 object_distance = (obj1, obj2) ->
 	dx, dy = obj1.x-obj2.x,obj1.y-obj2.y
@@ -18,6 +18,8 @@ object_towards = (obj1, obj2, mag = 1) ->
 	dist = sqrt(dx*dx + dy*dy)
 	return dx/dist*mag, dy/dist*mag
 
+object_angle_towards = (obj1, obj2) -> atan2 (obj2.y - obj1.y), (obj2.x - obj1.x)
+
 -- Pseudo-method:
 object_bbox = () =>
 	return @x - @radius, @y - @radius, @x + @radius, @y + @radius
@@ -27,4 +29,4 @@ point_in_bbox = (px, py, x1,y1,x2,y2) ->
 	if y1 > py or y2 <= py then return false
 	return true
 
-return {:object_distance, :object_towards, :object_bbox, :towards, :point_in_bbox}
+return {:object_distance, :object_towards, :object_bbox, :towards, :point_in_bbox, :object_angle_towards}

@@ -17,6 +17,7 @@ M.MonsterType = newtype {
     @description = data.description
     @appear_message = data.appear_message
     @defeat_message = data.defeat_message
+    @attack_ai_type = data.attack_ai_type or "normal"
     @radius = data.radius
     @level = data.level
     @uses_projectile = data.uses_projectile or false

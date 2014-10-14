@@ -159,8 +159,8 @@ CombatObjectBase = newtype {
         -- Delayed action information:
         @delayed_action = false
         @delayed_action_target_id = false
-        @delayed_action_target_x = false
-        @delayed_action_target_y = false
+        @delayed_action_target_dx = false
+        @delayed_action_target_dy = false
         @delayed_action_initial_delay = false
 
     remove: (M) =>
@@ -191,10 +191,15 @@ CombatObjectBase = newtype {
         if @stats.cooldowns.action_wait <= 0 and @delayed_action
             switch @delayed_action
                 when 'weapon_attack'
-                    obj = M.objects\get(@delayed_action_target_id)
+                    -- Set to false, false if an explicit direction was not given
+                    dx, dy = @delayed_action_target_dx, @delayed_action_target_dy
+                    -- If we have an object target, look it up. (Only given if we do NOT have an explicit direction)
+                    obj = @delayed_action_target_id and M.objects\get(@delayed_action_target_id)
                     if obj 
                         -- Calculate direction towards the object being attacked
                         dx, dy = util_geometry.object_towards(@, obj)
+                    -- Do we have a direction to hit?
+                    if dx and dy
                         A = @stats.attack 
                         if not A.uses_projectile
                             attack_apply(M, A, obj, dx, dy)
@@ -204,13 +209,12 @@ CombatObjectBase = newtype {
                             Projectile.create M, {
                                 attack: A, x: @x+randx, y: @y+randy, vx: dx*speed, vy: dy*speed
                             }
-
                     @_reset_delayed_action()
                 else
                     error("Unexpected branch!")
             @delayed_action = false
 
-    queue_weapon_attack: (M, id) =>
+    queue_weapon_attack: (M, id = false, dx = false, dy = false) =>
         assert @stats.cooldowns.action_cooldown <= 0
         @stats.cooldowns.action_cooldown = @stats.attack.cooldown
         if @stats.attack.uses_projectile and not @stats.is_player
@@ -220,6 +224,8 @@ CombatObjectBase = newtype {
         @stats.cooldowns.move_cooldown = math.max(@stats.attack.delay, @stats.cooldowns.move_cooldown)
         @delayed_action = 'weapon_attack'
         @delayed_action_target_id = id
+        @delayed_action_target_dx = dx
+        @delayed_action_target_dy = dy
         @delayed_action_initial_delay = @stats.attack.delay
 
     -- Stat system hook:

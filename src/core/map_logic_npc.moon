@@ -62,9 +62,17 @@ npc_step_all = (M) ->
             obj.ai_target = p
             obj.ai_action = NPC_CHASING
         if can_act and (dist <= A.range + p.stats.move_speed + obj.stats.move_speed)
+            target_id = p.id
+            projectile_dx, projectile_dy = false, false 
+            if obj.npc_type.attack_ai_type == "randomized_direction"
+                target_id = false
+                ang = util_geometry.object_angle_towards(obj, p)
+                ang += M.rng\randomf(-math.pi/2, math.pi/2)
+                projectile_dx, projectile_dy = math.cos(ang), math.sin(ang)
+
             -- If we don't consider movespeed here, we can get into weird pathological cases
             -- Where enemies are always close, but then the player moves away and they must spend time moving.
-            obj\queue_weapon_attack(M, p.id)
+            obj\queue_weapon_attack(M, target_id, projectile_dx, projectile_dy)
             -- We generate an attack, but still try to move if we have no move cooldown:
             can_move = (S.cooldowns.move_cooldown <= 0)
         if can_move
