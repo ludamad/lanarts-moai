@@ -286,7 +286,7 @@ generate_overworld = (rng) ->
 
     subconf = OVERWORLD_CONF(rng)
     {w,h} = {rng\random(85,100),rng\random(85, 100)}
-    for i=1,100
+    for i=1,1
         -- Takes region parameters, region placer, and region outer ellipse bounds:
         r = random_region_add rng, w, h, 20, spread_region_delta_func(map, rng, outer), 0,
             major_regions, outer\bbox()

@@ -1,12 +1,7 @@
 local RESOURCE_PATH = {
     "",
-    "./resources/",
-    "./resources/game/",
-    "./resources/lanarts/",
-    "./src/core/",
-    "./src/core/resources/",
-    "./src/core/resources/fonts/",
-    "./resources/tiled-maps/",
+    "./src/resources/",
+    "./src/resources/fonts/",
 }
 
 -- ppath => partial path
