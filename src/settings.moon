@@ -28,7 +28,7 @@ username: 'User'
 lobby_server_url: 'http://putterson.homedns.org:8080'
 
 --Window settings
-fullscreen: true
+fullscreen: false
 window_size: {800, 600}
 frame_action_repeat: 0 -- 0 is ideal
 

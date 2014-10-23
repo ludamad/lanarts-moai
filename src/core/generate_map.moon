@@ -22,7 +22,7 @@ FLAG_DOOR_CANDIDATE = TileMap.FLAG_CUSTOM3
 FLAG_OVERWORLD = TileMap.FLAG_CUSTOM4
 FLAG_ROOM = TileMap.FLAG_CUSTOM5
 
-OVERWORLD_MAX_W, OVERWORLD_MAX_H = 250, 250
+OVERWORLD_DIM_LESS, OVERWORLD_DIM_MORE = 120, 300
 OVERWORLD_CONF = (rng) -> {
     map_label: "Plain Valley"
     size: {85, 85}--if rng\random(0,2) == 0 then {135, 85} else {85, 135} 
@@ -269,13 +269,18 @@ generate_subareas = (map, rng, regions) ->
 generate_overworld = (rng) ->
     conf = OVERWORLD_CONF(rng)
     {PW,PH} = LEVEL_PADDING
-    outer = Region.create(1+PW,1+PH,OVERWORLD_MAX_W-PW,OVERWORLD_MAX_H-PH)
+    mw,mh = nil,nil
+    if rng\random(0,2) == 1
+        mw, mh = OVERWORLD_DIM_LESS, OVERWORLD_DIM_MORE
+    else 
+        mw, mh = OVERWORLD_DIM_MORE, OVERWORLD_DIM_LESS
+    outer = Region.create(1+PW,1+PH,mw-PW,mh-PH)
     -- Generate regions in a large area, crop them later
-    rect = {{1+PW, 1+PH}, {OVERWORLD_MAX_W-PW, 1+PH}, {OVERWORLD_MAX_W-PW, OVERWORLD_MAX_H-PH}, {1+PW, OVERWORLD_MAX_H-PH}}
-    rect2 = {{1+PW, OVERWORLD_MAX_H-PH}, {OVERWORLD_MAX_W-PW, OVERWORLD_MAX_H-PH}, {OVERWORLD_MAX_W-PW, 1+PH}, {1+PW, 1+PH}}
+    rect = {{1+PW, 1+PH}, {mw-PW, 1+PH}, {mw-PW, mh-PH}, {1+PW, mh-PH}}
+    rect2 = {{1+PW, mh-PH}, {mw-PW, mh-PH}, {mw-PW, 1+PH}, {1+PW, 1+PH}}
     major_regions = RVORegionPlacer.create {rect2}
     map = TileMap.map_create { 
-        size: {OVERWORLD_MAX_W, OVERWORLD_MAX_H}
+        size: {mw, mh}
         content: conf.wall1.id
         flags: conf.wall1.add_flags
         map_label: conf.map_label,
@@ -283,18 +288,14 @@ generate_overworld = (rng) ->
         rectangle_rooms: {}
     }
 
-
-    subconf = OVERWORLD_CONF(rng)
-    {w,h} = {rng\random(85,100),rng\random(85, 100)}
-    for i=1,1
+    for subconf in *{OVERWORLD_CONF(rng), DUNGEON_CONF(rng)}
+        {w,h} = subconf.size
         -- Takes region parameters, region placer, and region outer ellipse bounds:
         r = random_region_add rng, w, h, 20, spread_region_delta_func(map, rng, outer), 0,
             major_regions, outer\bbox()
         if r ~= nil
             r.max_speed = 10
             r.conf = subconf
-        subconf = DUNGEON_CONF(rng)
-        {w,h} = {rng\random(45,65),rng\random(45, 65)}
     -- No rvo for now
 
     for r in *major_regions.regions
