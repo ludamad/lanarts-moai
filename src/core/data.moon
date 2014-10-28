@@ -40,11 +40,13 @@ TileGrid = newtype {
 TexPart = newtype {
     init: (texture, x, y, w, h) =>
         @texture, @x, @y, @w, @h = texture, x, y, w, h
-    draw: (x, y, alpha=1, originx=0, originy=0, r=1, g=1, b=1) =>
+    draw: (x, y, alpha=1, originx=0, originy=0, r=1, g=1, b=1, pixel_aligned=true) =>
         texw, texh = @texture\getSize()
-        nx, ny = 1 - originx, 1 - originy
+        sx,sy = (x - @w*originx), (y - @h*originy)
+        if pixel_aligned
+            sx, sy = math.floor(sx), math.floor(sy)
         -- TODO: Make drawTexture not such a long function?
-        MOAIDraw.drawTexture @texture, x-@w*originx, y-@h*originy, x+@w*nx, y + @h*ny, @x/texw, @y/texh, (@x+@w)/texw, (@y+@h)/texh, r,g,b, alpha
+        MOAIDraw.drawTexture @texture, sx, sy, sx+@w, sy + @h, @x/texw, @y/texh, (@x+@w)/texw, (@y+@h)/texh, r,g,b, alpha
     update_quad: (quad) =>
         texw, texh = @texture\getSize()
         with quad 
