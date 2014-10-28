@@ -75,7 +75,7 @@ monster_define {
     level: 1 
     move_speed: 2
     hp: 50, hp_regen: 0.001
-    power: 0, damage: 10
+    power: 0, damage: 3
     multiplier: 1
     cooldown: 2.0
     delay: 3
@@ -92,9 +92,9 @@ monster_define {
     radius: 10
     
     level: 1
-    move_speed: 7
+    move_speed: 5
     hp: 20, hp_regen: 0.001
-    power: 0, damage: 14
+    power: 0, damage: 10
     multiplier: 1 
     cooldown: 1.5
     delay: 1.5
