@@ -12,9 +12,142 @@ _G.perf_time = (name, f) ->
     after = MOAISim\getDeviceTime()
     print "'#{name}' took #{after - before} seconds!"
 
--------------------------------------------------------------------------------
--- The main stepping 'thread' (coroutine)
--------------------------------------------------------------------------------
+PLAYER_COLORS = {
+    Display.COL_PALE_RED
+    Display.COL_PALE_GREEN
+    Display.COL_MAGENTA
+    Display.COL_CYAN
+    Display.COL_MEDIUM_PURPLE
+}
+
+GameState = newtype {
+    init: () =>
+        @maps = {}
+        @step_number = 1
+        @gametype = _SETTINGS.gametype
+        @local_death = false
+        @game_id = 0
+        @map = false
+
+        @_init_player_state()
+        @_init_network_state()
+
+    -- Network functions -- 
+    _init_network_state: () =>
+        @doing_client_side_prediction = false
+        if @gametype == 'client'
+            @net_handler = ClientMessageHandler.create G, {ip: _SETTINGS.server_ip, port: _SETTINGS.server_port}
+        elseif @gametype == 'server'
+            @net_handler = ServerMessageHandler.create G, {port: _SETTINGS.server_port}
+        else
+            @net_handler = false
+
+        -- Based on game type above, and _SETTINGS object for IP (for client) & port (for both client & server)
+        if @net_handler
+            @net_handler\connect()
+
+
+    -- Player functions -- 
+    _init_player_state: () =>
+        @next_player_id = 1
+        @players = {}
+        @local_player_id = false
+
+    add_new_player: (name, is_controlled, peer=nil) =>
+        assert(@gametype ~= 'client', "Should not be called by a client!")
+        for p in *@players do assert(p.peer ~= peer, "Attempting to assign two player IDs to the same peer (or server)!")
+        -- Peer is remembered for servers
+        append @players, {id_player: @next_player_id, player_name: name, :is_controlled, :peer, color: PLAYER_COLORS[@next_player_id % #PLAYER_COLORS + 1]}
+        if is_controlled
+            assert(not @local_player_id)
+            @local_player_id = @next_player_id
+        @next_player_id += 1
+
+    -- Generally only used by the server:
+    peer_player_id: (peer) =>
+        for player in *@players
+            if player.peer == peer
+                return player.id_player
+        return nil
+
+    local_player: () => 
+        for L in *@maps do for player in *L.player_list
+            if @is_local_player(player)
+                return player
+
+    is_local_player: (obj) =>
+        return obj.id_player == @local_player_id
+
+    player_name: (obj) =>
+        player = @players[obj.id_player]
+        return player.player_name
+
+    initialize_rng: (seed) =>
+        logI("initialize_rng: Seed is", seed)
+        @rng = mtwist.create(seed)
+
+    clear_game_data: () =>
+        @step_number = 1
+        @local_death = false
+        if @net_handler 
+            @net_handler\reset_frame_count()
+        @game_id = (@game_id + 1) % 256
+        for map in *@maps
+            -- Free resources allocated on the C/C++ side of the engine, as soon as possible.
+            map\free_resources()
+        table.clear @maps
+        @reset_action_state()
+
+    change_view: (V) =>
+        if @map_view
+            @map_view\make_inactive()
+        @map_view = V
+        @map = V.map
+        @serialize_fork()
+        @map_view\make_active()
+
+    -- Setup function
+    start: (on_death) => 
+        return main_thread(G, on_death)
+
+    -- Tear-down function
+    stop: () => 
+        @map_view\make_inactive()
+        for thread in *@threads
+            thread.stop()
+
+    -- Game step function
+    step: () => 
+        ret = @map.step()
+        @step_number += 1 
+        return ret
+
+    serialize_fork: () =>
+        serialization.exclude(G)
+        serialization.push_state(@map)
+        @fork_step_number = @step_number
+    serialize_revert: () =>
+        serialization.exclude(G)
+        serialization.pop_state(@map)
+        @step_number = @fork_step_number
+
+    handle_io: () =>
+        if user_io.key_down "K_Q"
+            serialization.push_state(@map)
+            @fork_step_number = @step_number
+
+        if user_io.key_down "K_E"
+            serialization.pop_state(@map)
+
+        if @map then @map.handle_io() 
+
+    pre_draw: () => 
+        @map_view\pre_draw()
+}
+
+-- Step event and game thread logic, declared outside of the class for organization purposes:
+
+-- Constants used in the simulation. TODO Organize
 
 DISABLE = 1000 -- Arbitrarily large
 
@@ -25,244 +158,117 @@ CHECK_TIME = 0 / 1000 -- seconds
 
 last_time = MOAISim\getDeviceTime()
 
-_net_step = (G) ->
-    previous_step = G.step_number
-    -- Manage time passage
-    new_time = MOAISim\getDeviceTime() 
-    time_passed = (new_time - last_time)
-
-    -- Incorporate new information (if any) and replay actions
-    last_best = G.player_actions\find_latest_complete_frame()
-    -- Ensure we don't step past the current step
-    last_best = math.min(last_best, G.step_number)
-    -- Could we move our fork further along?
-    if time_passed > CHECK_TIME and last_best >= G.fork_step_number
-        last_time = new_time
-        next_fork_target = math.min(previous_step, G.fork_step_number + FORK_ADVANCE)
-
-        G.serialize_revert()
-        -- Move our state until the point where complete information is exhausted
-        -- We should move one past from the point where we had information for forking
-        while last_best >= G.step_number and G.step_number < next_fork_target
-            -- Step with complete frame information
-            G.doing_client_side_prediction = false
-            G.step()
-        -- Create a new fork
-        G.serialize_fork()
-        -- Move our state to our previous (potentially incomplete) position
-        while previous_step > G.step_number
-            -- Step with only client-side information
-            G.doing_client_side_prediction = true
-            G.step()
-
-    -- Check that we are as advanced as we before (and not further)
-    assert(previous_step == G.step_number, "Incorporated new information incorrectly!")
-    if G.step_number > G.fork_step_number + SLOWDOWN_STEPS
-        MOAISim.setStep(1 / _SETTINGS.frames_per_second_csp / 2)
-    else
-        MOAISim.setStep(1 / _SETTINGS.frames_per_second)
-    if G.step_number <= G.fork_step_number + PREDICT_STEPS
-        G.doing_client_side_prediction = true
-        G.step()
-
-check_quit_conditions = (G) ->
-    if G.local_death
-        return true
-    -- Are we initiating a restart?
-    if user_io.key_pressed "K_R"
-        if G.net_handler 
-            new_seed = G.rng\random(0, 2^31)
-            G.net_handler\send_message {type: "Restart", :new_seed}
-            G.net_handler\handshake "RestartAck"
-            G.initialize_rng(new_seed)
-        return true
-    if not G.net_handler
-        return false -- Rest are network triggered
-    -- Did the other user(s) disconnect?
-    if #G.net_handler\get_disconnects() > 0 or G.net_handler\check_message "ByeBye"
-        os.exit() -- TODO: Fix
-
-    -- Did we get a restart message?
-    msg = G.net_handler\check_message "Restart"
-    if msg 
-        G.net_handler\handshake "RestartAck"
-        G.initialize_rng(msg.new_seed)
-        return true
-    return false
-
-main_thread = (G, on_death) -> profile () ->
+-- The main stepping 'thread' (coroutine)
+GameState.main_thread = (on_death) => profile () ->
     last_full_send_time = MOAISim\getDeviceTime()
     last_part_send_time = MOAISim\getDeviceTime()
     while true
         coroutine.yield()
 
-        last_best = G.player_actions\find_latest_complete_frame()
-        if G.net_handler then G.net_handler\poll(1)
+        last_best = @player_actions\find_latest_complete_frame()
+        if @net_handler then @net_handler\poll(1)
         -- Should we make a local player action from user input, for the current frame?
-        if not _SETTINGS.network_lockstep or not G.get_action(G.local_player_id, G.step_number)
-            G.handle_io()
-        if G.net_handler and not _SETTINGS.network_lockstep
+        if not _SETTINGS.network_lockstep or not @get_action(@local_player_id, @step_number)
+            @handle_io()
+        if @net_handler and not _SETTINGS.network_lockstep
             -- Client side prediction
             if MOAISim\getDeviceTime() > last_full_send_time + (100/1000)
-                G.net_handler\send_unacknowledged_actions()
+                @net_handler\send_unacknowledged_actions()
                 last_full_send_time = MOAISim\getDeviceTime()
 
             -- if MOAISim\getDeviceTime() > last_part_send_time + (25/1000)
-            --     G.net_handler\send_unacknowledged_actions(2) -- Only 2 frames back in time
+            --     @net_handler\send_unacknowledged_actions(2) -- Only 2 frames back in time
             --     last_part_send_time = MOAISim\getDeviceTime()
             before = MOAISim\getDeviceTime()
             _net_step(G)
             after = MOAISim\getDeviceTime()
             logV "'_net_step' took #{(after - before)*1000} milliseconds!"
 
-            last_needed = math.min(G.fork_step_number, G.net_handler\min_acknowledged_frame())
-            G.drop_old_actions(last_needed - 1)
-        elseif G.net_handler
-            if G.step_number <= last_best
+            last_needed = math.min(@fork_step_number, @net_handler\min_acknowledged_frame())
+            @drop_old_actions(last_needed - 1)
+        elseif @net_handler
+            if @step_number <= last_best
                 -- Lock-step
-                G.doing_client_side_prediction = false
-                G.step()
-                last_needed = math.min(G.fork_step_number, G.net_handler\min_acknowledged_frame())
-                G.drop_old_actions(last_needed - 1)
+                @doing_client_side_prediction = false
+                @step()
+                last_needed = math.min(@fork_step_number, @net_handler\min_acknowledged_frame())
+                @drop_old_actions(last_needed - 1)
         else -- Single player
-            G.doing_client_side_prediction = false
-            G.step()
-            G.drop_old_actions(G.step_number - 1)
-        G.pre_draw()
+            @doing_client_side_prediction = false
+            @step()
+            @drop_old_actions(@step_number - 1)
+        @pre_draw()
 
-        if check_quit_conditions(G)
+        if @_check_quit_conditions()
             return
 
-setup_network_state = (G) ->
-    if G.gametype == 'client'
-        G.net_handler = ClientMessageHandler.create G, {ip: _SETTINGS.server_ip, port: _SETTINGS.server_port}
-    elseif G.gametype == 'server'
-        G.net_handler = ServerMessageHandler.create G, {port: _SETTINGS.server_port}
+-- Used in main_thread to decide how to advance time, given potentially incomplete information.
+-- This is the heart of the client-side-prediction algorithm.
+-- TODO Once it works well, comment it a bunch
+GameState._net_step = () =>
+    previous_step = @step_number
+    -- Manage time passage
+    new_time = MOAISim\getDeviceTime() 
+    time_passed = (new_time - last_time)
 
-PLAYER_COLORS = {
-    Display.COL_PALE_RED
-    Display.COL_PALE_GREEN
-    Display.COL_MAGENTA
-    Display.COL_CYAN
-    Display.COL_MEDIUM_PURPLE
-}
+    -- Incorporate new information (if any) and replay actions
+    last_best = @player_actions\find_latest_complete_frame()
+    -- Ensure we don't step past the current step
+    last_best = math.min(last_best, @step_number)
+    -- Could we move our fork further along?
+    if time_passed > CHECK_TIME and last_best >= @fork_step_number
+        last_time = new_time
+        next_fork_target = math.min(previous_step, @fork_step_number + FORK_ADVANCE)
 
-setup_player_state = (G) ->
-    G.next_player_id = 1
-    G.players = {}
-    G.local_player_id = nil
+        @serialize_revert()
+        -- Move our state until the point where complete information is exhausted
+        -- We should move one past from the point where we had information for forking
+        while last_best >= @step_number and @step_number < next_fork_target
+            -- Step with complete frame information
+            @doing_client_side_prediction = false
+            @step()
+        -- Create a new fork
+        @serialize_fork()
+        -- Move our state to our previous (potentially incomplete) position
+        while previous_step > @step_number
+            -- Step with only client-side information
+            @doing_client_side_prediction = true
+            @step()
 
-    -- Generally only used by the server:
-    G.add_new_player = (name, is_controlled, peer=nil) ->
-        assert(G.gametype ~= 'client', "Should not be called by a client!")
-        for p in *G.players do assert(p.peer ~= peer, "Attempting to assign two player IDs to the same peer (or server)!")
-        -- Peer is remembered for servers
-        append G.players, {id_player: G.next_player_id, player_name: name, :is_controlled, :peer, color: PLAYER_COLORS[G.next_player_id % #PLAYER_COLORS + 1]}
-        if is_controlled
-            assert(G.local_player_id == nil)
-            G.local_player_id = G.next_player_id
-        G.next_player_id += 1
+    -- Check that we are as advanced as we before (and not further)
+    assert(previous_step == @step_number, "Incorporated new information incorrectly!")
+    if @step_number > @fork_step_number + SLOWDOWN_STEPS
+        MOAISim.setStep(1 / _SETTINGS.frames_per_second_csp / 2)
+    else
+        MOAISim.setStep(1 / _SETTINGS.frames_per_second)
+    if @step_number <= @fork_step_number + PREDICT_STEPS
+        @doing_client_side_prediction = true
+        @step()
 
-    G.peer_player_id = (peer) ->
-        for player in *G.players
-            if player.peer == peer
-                return player.id_player
-        return nil
+-- Used in main_thread
+GameState._check_quit_conditions = () =>
+    if @local_death
+        return true
+    -- Are we initiating a restart?
+    if user_io.key_pressed "K_R"
+        if @net_handler 
+            new_seed = @rng\random(0, 2^31)
+            @net_handler\send_message {type: "Restart", :new_seed}
+            @net_handler\handshake "RestartAck"
+            @initialize_rng(new_seed)
+        return true
+    if not @net_handler
+        return false -- Rest are network triggered
+    -- Did the other user(s) disconnect?
+    if #@net_handler\get_disconnects() > 0 or @net_handler\check_message "ByeBye"
+        os.exit() -- TODO: Fix
 
-    G.local_player = () -> 
-        for L in *G.maps do for player in *L.player_list
-            if G.is_local_player(player)
-                return player
+    -- Did we get a restart message?
+    msg = @net_handler\check_message "Restart"
+    if msg 
+        @net_handler\handshake "RestartAck"
+        @initialize_rng(msg.new_seed)
+        return true
+    return false
 
-    G.is_local_player = (obj) ->
-        return obj.id_player == G.local_player_id
-
-    G.player_name = (obj) ->
-        player = G.players[obj.id_player]
-        return player.player_name
-
-create_game_state = () ->
-    G = {}
-
-    G.maps = {}
-    G.step_number = 1
-    G.gametype = _SETTINGS.gametype
-    G.local_death = false
-    G.doing_client_side_prediction = false
-    G.game_id = 0
-
-    setup_player_state(G)
-    setup_network_state(G)
-
-    -- Based on game type above, and _SETTINGS object for IP (for client) & port (for both client & server)
-    if G.net_handler
-        G.net_handler\connect()
-
-    G.initialize_rng = (seed) ->
-        logI("initialize_rng: Seed is", seed)
-        G.rng = mtwist.create(seed)
-
-    G.clear_game_data = () ->
-        G.step_number = 1
-        G.local_death = false
-        if G.net_handler 
-            G.net_handler\reset_frame_count()
-        G.game_id = (G.game_id + 1) % 256
-        for map in *G.maps
-            -- Free resources allocated on the C/C++ side of the engine, as soon as possible.
-            map\free_resources()
-        table.clear G.maps
-        G.reset_action_state()
-
-    G.change_view = (V) ->
-        if G.map_view and G.map_view.stop then
-            G.map_view\stop()
-        G.map_view = V
-        G.map = V.map
-        G.serialize_fork()
-        G.map_view.start()
-
-    -- Setup function
-    G.start = (on_death) -> 
-        G.map_view.start() unless G.map_view == nil
-
-        return main_thread(G, on_death)
-
-    -- Tear-down function
-    G.stop = () -> 
-        G.map_view.stop() unless G.map_view == nil
-        for thread in *G.threads
-            thread.stop()
-
-    -- Game step function
-    G.step = () -> 
-        ret = G.map.step()
-        G.step_number += 1 unless G.map.is_menu
-        return ret
-
-    G.serialize_fork = () ->
-        serialization.exclude(G)
-        serialization.push_state(G.map)
-        G.fork_step_number = G.step_number
-    G.serialize_revert = () ->
-        serialization.exclude(G)
-        serialization.pop_state(G.map)
-        G.step_number = G.fork_step_number
-
-    G.handle_io = () ->
-        if user_io.key_down "K_Q"
-            serialization.push_state(G.map)
-            G.fork_step_number = G.step_number
-
-        if user_io.key_down "K_E"
-            serialization.pop_state(G.map)
-
-        G.map.handle_io() unless G.map == nil
-
-    G.pre_draw = () -> G.map_view.pre_draw() unless G.map_view == nil
-
-        -- print "Pre-draw took ", (MOAISim.getDeviceTime() - before) * 1000, 'ms'
-
-    return G
-
-return {:create_game_state}
+return {:GameState}

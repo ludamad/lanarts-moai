@@ -168,6 +168,8 @@ Sidebar = newtype {
         @minimap\draw()
         @switchable_content\draw()
         @_draw_sidebar_switchers()
+    clear: () =>
+        @remove()
     remove: () =>
         Display.ui_layer\removeProp @prop
 }

@@ -14,8 +14,7 @@ import FloodFillPaths, GameInstSet, GameTiles, GameView, util, TileMap, RVOWorld
 -------------------------------------------------------------------------------
 
 import ui_ingame_scroll from require "core.ui"
-import ui_sidebar from require "core"
-
+import ui_sidebar, map_logic from require "core"
 import util_draw from require "core"
 
 json = require 'json'
@@ -25,25 +24,9 @@ res = require 'resources'
 serialization = require 'core.serialization'
 
 -------------------------------------------------------------------------------
--- Set up the camera & viewport
+-- Set up the major props for the map
 -------------------------------------------------------------------------------
-setup_camera = (V) ->
-    w,h = V.map.tilemap_width, V.map.tilemap_height
-    tw, th = V.map.tile_width, V.map.tile_height
-
-    cx, cy = w * tw / 2, h * th / 2
-    V.camera = Display.game_camera
-    V.viewport = with Display.game_viewport
-        \setSize(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, V.camerah)
-        \setScale(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, -V.camerah)
-    with Display.ui_viewport
-        \setSize(V.cameraw, V.camerah)
-        \setScale(V.cameraw, -V.camerah)
-
--------------------------------------------------------------------------------
--- Set up the layers for the map
--------------------------------------------------------------------------------
-setup_tile_layers = (V) ->
+create_tile_props = (V) ->
     -- Map and tile dimensions
     w,h = V.map.tilemap_width, V.map.tilemap_height
     tw, th = V.map.tile_width, V.map.tile_height
@@ -89,77 +72,82 @@ setup_tile_layers = (V) ->
     for y=1,h do for x=1,w
         _set_xy(x, y, V.map.tilemap\get({x,y}).content)
 
-    -- Add all the different textures to the background layer
-    for p in *props do Display.game_bg_layer\insertProp(p)
+    return props
 
-setup_fov_layer = (V) ->
+create_fov_prop = (V) ->
     w,h = V.map.tilemap_width, V.map.tilemap_height
     tw, th = V.map.tile_width, V.map.tile_height
     tex = res.get_texture "fogofwar-dark.png"
     tex_w, tex_h = tex\getSize()
-
-    fov_layer = Display.game_fg_layer1
-    V.fov_grid = with MOAIGrid.new()
+    fov_grid = with MOAIGrid.new()
         \setSize(w, h, tw, th)
-
-    fov_layer\insertProp with MOAIProp2D.new()
+    for y=1,h do for x=1,w 
+        -- Set to unexplored (black)
+        fov_grid\setTile(x,y, 2)
+    prop = with MOAIProp2D.new()
         \setDeck with MOAITileDeck2D.new()
             \setTexture(tex)
             \setSize(tex_w / tw, tex_h / th)
-        \setGrid(V.fov_grid)
+        \setGrid(fov_grid)
+    return prop, fov_grid
 
-    for y=1,h do for x=1,w 
-        -- Set to unexplored (black)
-        V.fov_grid\setTile(x,y, 2)
+-------------------------------------------------------------------------------
+-- Set up the camera & viewport
+-------------------------------------------------------------------------------
+setup_camera = (V) ->
+    w,h = V.map.tilemap_width, V.map.tilemap_height
+    tw, th = V.map.tile_width, V.map.tile_height
 
-setup_overlay_layers = (V) ->
-    setup_fov_layer(V)
-
-    -- Add the UI layer.
+    cx, cy = w * tw / 2, h * th / 2
+    V.camera = Display.game_camera
+    V.viewport = with Display.game_viewport
+        \setSize(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, V.camerah)
+        \setScale(V.cameraw - ui_sidebar.SIDEBAR_WIDTH, -V.camerah)
+    -- TODO remove below?
     with Display.ui_viewport
-        \setOffset(-1, 1)
         \setSize(V.cameraw, V.camerah)
         \setScale(V.cameraw, -V.camerah)
 
-    -- Helpers for layer management
-    V.add_ui_prop = (prop) -> Display.ui_layer\insertProp(prop)
-    V.remove_ui_prop = (prop) -> Display.ui_layer\removeProp(prop)
-    V.add_object_prop = (prop) -> Display.game_obj_layer\insertProp(prop)
-    V.remove_object_prop = (prop) -> Display.game_obj_layer\removeProp(prop)
-
 -------------------------------------------------------------------------------
--- Create a map view
+-- The MapView class
 -------------------------------------------------------------------------------
 
-create_map_view = (map, cameraw, camerah) ->
-    V = {gamestate: map.gamestate, :map, :cameraw, :camerah}
+MapView = newtype {
+    init: (map, cameraw, camerah) =>
+        @gamestate = map.gamestate
+        @map = map
+        @cameraw, @camerah = cameraw, camerah
+        @fov_prop, @fov_grid = create_fov_prop(@)
+        @tile_props = create_tile_props(@)
+        @sidebar = false
+        @ui_components = false
+        @script_prop = false
+    make_active: () =>
+        setup_camera(@)
+        -- Add the field of view prop drawing object
+        Display.game_fg_layer1\insertProp(@fov_prop)
+        -- Add all the different textures to the background layer
+        for p in *@tile_props do Display.game_bg_layer\insertProp(p)
+        @sidebar = ui_sidebar.Sidebar.create(@)
+        @ui_components = {(ui_ingame_scroll @) (-> @sidebar\predraw())}
+        @script_prop = (require 'core.util_draw').setup_script_prop(Display.game_obj_layer, (() -> @draw()), @map.pix_width, @map.pix_height, 999999)
+        map_logic.start(@)
+    make_inactive: () =>
+        if @sidebar then @sidebar\clear()
+        @sidebar = false
+        @ui_components = false
+        @script_prop = false
 
-    -- The UI objects that run each step
-    V.ui_components = {}
+    pre_draw: () =>
+        map_logic.pre_draw(@)
 
-    map_logic = (require 'core.map_logic')
+    draw: () =>
+        map_logic.draw(@)
 
-    setup_camera(V)
-    setup_tile_layers(V)
-    setup_overlay_layers(V)
+}
+cacheidx = MapView.__index
+MapView.__index = (k) => 
+    print "Map got ", k
+    return cacheidx(@, k)
 
-    V.draw = () ->
-        map_logic.draw(V)
-
-    script_prop = (require 'core.util_draw').setup_script_prop(Display.game_obj_layer, V.draw, V.map.pix_width, V.map.pix_height, 999999)
-
-    -- Note: uses script_prop above
-    V.pre_draw = () ->
-        map_logic.pre_draw(V)
-
-    -- Setup function
-    V.start = () -> 
-        map_logic.start(V)
-
-    V.sidebar = ui_sidebar.Sidebar.create(V)
-    append V.ui_components, ui_ingame_scroll V
-    append V.ui_components, () -> V.sidebar\predraw()
-
-    return V
-
-return {:create_map_view}
+return {:MapView}

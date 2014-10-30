@@ -62,11 +62,11 @@ pregame_setup_and_join_screen = (controller, continue_callback) ->
     res = require "resources"
     game_actions = require "@game_actions"
 
-    G = game_state.create_game_state()
+    G = game_state.GameState.create()
     SetLanartsShutdownHook shutdown_hook(G)
 
     if G.gametype == 'server' or G.gametype == 'single_player'
-        G.add_new_player(_SETTINGS.player_name, true)
+        G\add_new_player(_SETTINGS.player_name, true)
 
     -- Are we in single player? Don't bother the player with this screen
     if G.gametype == 'single_player'
@@ -75,7 +75,7 @@ pregame_setup_and_join_screen = (controller, continue_callback) ->
         game_actions.setup_action_state(G)
         -- We use the local seed as the server, or during single-player.
         -- If we are a client, we use the seed provided by the server during the handshake.
-        G.initialize_rng(make_local_seed())
+        G\initialize_rng(make_local_seed())
         continue_callback(G)
         return
 
@@ -137,7 +137,7 @@ pregame_setup_and_join_screen = (controller, continue_callback) ->
             msgs = net_recv("ServerConfirmStartGame")
             if msgs
                 assert #msgs == 1
-                G.initialize_rng(msgs[1].data)
+                G\initialize_rng(msgs[1].data)
                 logI("pregame_setup_and_join_screen: Client gets seed", msgs[1].data)
                 continue_callback(G)
         elseif server_starting
@@ -146,7 +146,7 @@ pregame_setup_and_join_screen = (controller, continue_callback) ->
                 local_seed = make_local_seed()
                 net_send("ServerConfirmStartGame", local_seed)
                 logI("pregame_setup_and_join_screen: Server sends seed", local_seed)
-                G.initialize_rng(local_seed)
+                G\initialize_rng(local_seed)
                 continue_callback(G)
         elseif G.gametype == 'server' and (user_io.key_pressed("K_ENTER") or user_io.key_pressed("K_SPACE"))
             server_starting = true
@@ -182,14 +182,14 @@ start_game = (G, stat_components, on_death) ->
     map_state.map_set(M)
     _spawn_players(G, M, stat_components)
     logI("main::start_game: players & monsters spawned")
-    V = map_view.create_map_view(M, w, h)
+    V = map_view.MapView.create(M, w, h)
 
     logI("main::start_game: changing to game view")
-    G.change_view(V)
+    G\change_view(V)
 
     logI("main::start_game: starting game")
     -- Start the game
-    G.start(on_death)
+    G\start(on_death)
 
 -- Navigates between levels and menus
 SceneController = newtype {
@@ -249,12 +249,13 @@ main = () ->
                 mstartgame(G, stat_components)
         mstartgame = nextf (G, stat_components) -> 
             start_game(G, stat_components, mchargen)
-            G.clear_game_data()
+            G\clear_game_data()
             -- Have we restarted?
             if G.local_death
                 mdeath()
             else
                 mstartgame(G, stat_components)
+        print "WHWW"
         -- Set up first menu
         if os.getenv("TEST_ARCHER")
             mpregame {class: "Archer", race: "Human", class_args: {}}
