@@ -146,7 +146,7 @@ describe "net_connection test", () ->
     -- Test the fundamentals
 
     import GameAction from require "core.game_actions"
-    N_PLAYERS = (os.getenv "N_TEST_PLAYERS") or 2
+    N_PLAYERS = tonumber(os.getenv "N_TEST_PLAYERS") or 3
 
     -- The player states:
     states = util_test.mock_player_network(TEST_PORT, N_PLAYERS)
@@ -162,10 +162,11 @@ describe "net_connection test", () ->
     util_test.mock_player_network_post_connect(states)
 
     make_step = (s) ->
-        s.step_number += 1
+        s.fork_step_number = s.step_number
         s.actions\queue_action(util_test.mock_action(s, s.local_player_id, s.step_number))
         pretty "make_step () :: LastAck", s.net_handler.last_acknowledged_frame
         s.net_handler\send_unacknowledged_actions()
+        s.step_number += 1
 
     -- Sanity check: 
     print "sanity check, sending one action to everyone"
@@ -174,7 +175,7 @@ describe "net_connection test", () ->
     for s in *states 
         print "Complete for player #{s.local_player_id}"
         -- Complete the action for everyone
-        while not s.actions\have_all_actions_for_step(s.step_number)
+        while not s.actions\have_all_actions_for_step(s.step_number - 1)
             s.net_handler\poll(1)
             for G in *states do G.net_handler\poll()
     print "action received by everyone"

@@ -161,6 +161,7 @@ GameActionFrame = with newtype()
         @actions = [false for i=1,num_players]
     .get = (id_player) =>
         assert(id_player >= 1 and id_player <= #@actions)
+        pretty @actions, id_player, @actions[id_player]
         return @actions[id_player]
     .set = (id_player, action) =>
         assert(id_player >= 1 and id_player <= #@actions)

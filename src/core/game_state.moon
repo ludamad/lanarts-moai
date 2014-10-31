@@ -24,6 +24,7 @@ GameState = newtype {
     init: () =>
         @maps = {}
         @step_number = 1
+        @fork_step_number = 1
         @gametype = _SETTINGS.gametype
         @local_death = false
         @game_id = 0

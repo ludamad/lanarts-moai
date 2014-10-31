@@ -145,7 +145,7 @@ ClientMessageHandler = create: (G, args) ->
                 for action in *actions
                     if G.actions\queue_action(action)
                         new_actions += 1
-                print(">> CLIENT RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
+                --print(">> CLIENT RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }
     }
 
@@ -191,7 +191,7 @@ ClientMessageHandler = create: (G, args) ->
 
 ServerMessageHandler = create: (G, args) ->
     {:port} = args
-    local N
+    local N, _send_actions 
     N = {
         -- One for each peer
         last_acknowledged_frame: {}
@@ -212,13 +212,17 @@ ServerMessageHandler = create: (G, args) ->
             handle_unsequenced_message: (msg) =>
                 last_ack, actions = buffer_decode_actions(N.buffer, msg)
                 N.last_acknowledged_frame[msg.peer] = math.max(last_ack, N.last_acknowledged_frame[msg.peer] or 0)
-                new_actions = 0
+                new_actions = {}
                 for action in *actions
                     if G\peer_player_id(msg.peer) ~= action.id_player
                         error("Player #{G.peer_player_id(msg.peer)} trying to send actions for player #{action.id_player}!")
                     if G.actions\queue_action(action)
-                        new_actions += 1
-                print(">> SERVER RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
+                        append new_actions, action
+                for peer in *@peers() 
+                    if peer ~= msg.peer 
+                        _send_actions(N, peer, new_actions)
+
+                --print(">> SERVER RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }
     }
 
@@ -232,20 +236,40 @@ ServerMessageHandler = create: (G, args) ->
         N.last_acknowledged_frame = {}
 
     -- Basic idea: Continuously send something every frame if it was not acknowledge
-    N.send_unacknowledged_actions = () =>
-        for peer in *@peers()
-            if peer ~= msg.peer
-                N.connection\send_unsequenced msg.data, peer
+   -- N.send_unacknowledged_actions = () =>
+   --     for peer in *@peers()
+   --         if peer ~= msg.peer
+   --             N.connection\send_unsequenced msg.data, peer
 
+    _send_actions = (peer, actions) =>
+        -- The current player
+        pid = G\peer_player_id(peer)
+        -- last_ack = G.player_actions\first()
+        last_action = G.actions\seek_action(pid)
+        ack_to_send = (if last_action then last_action.step_number else G.fork_step_number - 1)
+        filter_step = N.last_acknowledged_frame[peer] or 0
+        channel = 1
+
+        -- Clear the buffer for writing
+        @_prep_action_buffer(ack_to_send)
+
+        for action in *actions
+            if action.step_number <= filter_step and action.id_player ~= pid
+                action\write(N.buffer)
+                if @buffer\size() >= MAX_PACKET_SIZE
+                    @_flush_action_buffer(channel, peer)
+                    -- Clear the buffer for writing
+                    @_prep_action_buffer(ack_to_send)
+
+        if @buffer\size() > 4 -- Does it have an action?
+            @_flush_action_buffer(channel, peer)
+       
     _send_unacknowledged_actions = (peer, lookback = nil) =>
         -- The current player
         pid = G\peer_player_id(peer)
         first_to_send = if lookback then G.step_number - lookback else (N.last_acknowledged_frame[peer] or 0) + 1
         -- last_ack = G.player_actions\first()
         last_action = G.actions\seek_action(pid)
-        if not last_action 
-            print "NOT LAST"
-            return 
         ack_to_send = (if last_action then last_action.step_number else G.fork_step_number - 1)
         -- Channel to send over
         channel = if lookback then 1 else 2
@@ -256,7 +280,6 @@ ServerMessageHandler = create: (G, args) ->
         -- From the last acknowledge frame, to our most recent, send
         -- all the actions
         -- TODO: cleanup
-        print first_to_send, G.actions.player_actions\last()
         for i=first_to_send, G.actions.player_actions\last()
             frame = G.actions.player_actions\get_frame(i)
             pretty frame
