@@ -142,7 +142,7 @@ describe "net_connection test", () ->
     -- Ensure next test uses a different port:
     TEST_PORT += 1
 
-  it "Performance Test: game action latency over localhost", () ->
+  it "Action sync test for N_TEST_PLAYERS players", () ->
     -- Test the fundamentals
 
     import GameAction from require "core.game_actions"
@@ -177,7 +177,8 @@ describe "net_connection test", () ->
         -- Complete the action for everyone
         while not s.actions\have_all_actions_for_step(s.step_number - 1)
             s.net_handler\poll(1)
-            for G in *states do G.net_handler\poll()
+            for G in *states 
+                G.net_handler\poll()
     print "action received by everyone"
     print "frame completion lag"
 

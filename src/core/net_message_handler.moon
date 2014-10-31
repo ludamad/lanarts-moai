@@ -145,7 +145,7 @@ ClientMessageHandler = create: (G, args) ->
                 for action in *actions
                     if G.actions\queue_action(action)
                         new_actions += 1
-                --print(">> CLIENT RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
+                print(">> CLIENT #{G.local_player_id} RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }
     }
 
@@ -254,7 +254,7 @@ ServerMessageHandler = create: (G, args) ->
         @_prep_action_buffer(ack_to_send)
 
         for action in *actions
-            if action.step_number <= filter_step and action.id_player ~= pid
+            if action.step_number > filter_step and action.id_player ~= pid
                 action\write(N.buffer)
                 if @buffer\size() >= MAX_PACKET_SIZE
                     @_flush_action_buffer(channel, peer)
@@ -282,7 +282,6 @@ ServerMessageHandler = create: (G, args) ->
         -- TODO: cleanup
         for i=first_to_send, G.actions.player_actions\last()
             frame = G.actions.player_actions\get_frame(i)
-            pretty frame
             if frame
                 for action in *frame.actions
                     if action and action.id_player ~= pid
