@@ -143,7 +143,7 @@ ClientMessageHandler = create: (G, args) ->
                 new_actions = 0
                 N.last_acknowledged_frame = math.max(last_ack, N.last_acknowledged_frame)
                 for action in *actions
-                    if G.queue_action(action)
+                    if G.actions\queue_action(action)
                         new_actions += 1
                 -- print(">> CLIENT RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }
@@ -216,7 +216,7 @@ ServerMessageHandler = create: (G, args) ->
                 for action in *actions
                     if G.peer_player_id(msg.peer) ~= action.id_player
                         error("Player #{G.peer_player_id(msg.peer)} trying to send actions for player #{action.id_player}!")
-                    if G.queue_action(action)
+                    if G.actions\queue_action(action)
                         new_actions += 1
                 -- print(">> SERVER RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }

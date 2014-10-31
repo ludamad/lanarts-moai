@@ -93,7 +93,7 @@ MiniMap = newtype {
 		-- flag_buff is also used to set the grid values
 		flag_buff, content_buff, seen_buff = @flag_buffer, @content_buffer, @seen_buffer
 
-		player = @map.gamestate.local_player()
+		player = @map.gamestate\local_player()
 
 		z_is_down = key_down("K_Z")
 

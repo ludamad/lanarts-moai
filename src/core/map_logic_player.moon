@@ -116,7 +116,8 @@ player_move_with_velocity = (M, obj, vx, vy) ->
 -- M: The current map
 player_step = (M, obj) ->
     -- Set up directions of player
-    action = M.gamestate.get_action(obj.id_player)
+    G = M.gamestate
+    action = G.actions\get_action(obj.id_player, G.step_number)
     logS "Player #{obj.id_player} #{M.gamestate.step_number}", action
     dx, dy = player_perform_action(M, obj, action)
 
@@ -169,7 +170,7 @@ player_handle_io = (M, obj) ->
     else
         MOAISim.setStep(1 / _SETTINGS.frames_per_second)
 
-    while G.get_action(obj.id_player, step_number) 
+    while G.actions\get_action(obj.id_player, step_number) 
         -- We already have an action for this frame, think forward
         step_number += 1
         if step_number > G.step_number + MAX_FUTURE_STEPS
@@ -245,7 +246,7 @@ player_handle_io = (M, obj) ->
     -- No special action done?
     if not action 
         action = game_actions.make_move_action G.game_id, obj, step_number, dx, dy, will_sprint
-    G.queue_action(action)
+    G.actions\queue_action(action)
     if G.net_handler
         -- Send last two unacknowledged actions (included the one just queued)
         G.net_handler\send_unacknowledged_actions(1)

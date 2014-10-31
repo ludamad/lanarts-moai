@@ -89,7 +89,7 @@ handle_io = (M) ->
     if (user_io.key_pressed "K_ESCAPE")
         os.exit()
     for player in *M.player_list
-        if M.gamestate.is_local_player(player)
+        if M.gamestate\is_local_player(player)
             player_handle_io(M, player)
 
 start = (V) -> nil
@@ -113,7 +113,7 @@ pre_draw = (V) ->
             obj\pre_draw(V)
 
     -- Update in-focus object
-    pobj = V.map.local_player()
+    pobj = V.map\local_player()
     if pobj ~= nil and not user_io.mouse_right_down() -- Do we have a local player?
         if Display.camera_is_off_center(pobj.x, pobj.y)
             Display.camera_sharp_center_on(pobj.x, pobj.y)
@@ -188,6 +188,6 @@ draw = (V) ->
         pinfo = V.gamestate.players[obj.id_player]
         color = Display.COL_WHITE-- {unpack(pinfo.color)}
         color[4] = 0.8
-        Display.drawTextCenter(PLAYER_NAME_FONT, V.gamestate.player_name(obj), obj.x, obj.y-25, color, 14)
+        Display.drawTextCenter(PLAYER_NAME_FONT, V.gamestate\player_name(obj), obj.x, obj.y-25, color, 14)
 
 return {:step, :handle_io, :start, :pre_draw, :draw, :assertSync}

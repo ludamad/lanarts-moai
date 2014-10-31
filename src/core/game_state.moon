@@ -27,7 +27,9 @@ GameState = newtype {
         @gametype = _SETTINGS.gametype
         @local_death = false
         @game_id = 0
-        @map = false
+        @actions = false -- : GameActionSet
+        @map = false -- : Map
+        @map_view = false -- : MapView
 
         @_init_player_state()
         @_init_network_state()
@@ -36,9 +38,9 @@ GameState = newtype {
     _init_network_state: () =>
         @doing_client_side_prediction = false
         if @gametype == 'client'
-            @net_handler = ClientMessageHandler.create G, {ip: _SETTINGS.server_ip, port: _SETTINGS.server_port}
+            @net_handler = ClientMessageHandler.create @, {ip: _SETTINGS.server_ip, port: _SETTINGS.server_port}
         elseif @gametype == 'server'
-            @net_handler = ServerMessageHandler.create G, {port: _SETTINGS.server_port}
+            @net_handler = ServerMessageHandler.create @, {port: _SETTINGS.server_port}
         else
             @net_handler = false
 
@@ -82,6 +84,9 @@ GameState = newtype {
         player = @players[obj.id_player]
         return player.player_name
 
+    initialize_actions: () =>
+        @actions = require("@game_actions").GameActionSet.create(#@players, @game_id)
+
     initialize_rng: (seed) =>
         logI("initialize_rng: Seed is", seed)
         @rng = mtwist.create(seed)
@@ -92,6 +97,8 @@ GameState = newtype {
         if @net_handler 
             @net_handler\reset_frame_count()
         @game_id = (@game_id + 1) % 256
+        -- Make sure GameActionSet updates as well:
+        @actions.game_id = @game_id
         for map in *@maps
             -- Free resources allocated on the C/C++ side of the engine, as soon as possible.
             map\free_resources()
@@ -107,8 +114,7 @@ GameState = newtype {
         @map_view\make_active()
 
     -- Setup function
-    start: (on_death) => 
-        return main_thread(G, on_death)
+    start: (on_death) => @_main_thread(on_death)
 
     -- Tear-down function
     stop: () => 
@@ -123,11 +129,11 @@ GameState = newtype {
         return ret
 
     serialize_fork: () =>
-        serialization.exclude(G)
+        serialization.exclude(@)
         serialization.push_state(@map)
         @fork_step_number = @step_number
     serialize_revert: () =>
-        serialization.exclude(G)
+        serialization.exclude(@)
         serialization.pop_state(@map)
         @step_number = @fork_step_number
 
@@ -158,17 +164,17 @@ CHECK_TIME = 0 / 1000 -- seconds
 
 last_time = MOAISim\getDeviceTime()
 
--- The main stepping 'thread' (coroutine)
-GameState.main_thread = (on_death) => profile () ->
+-- The main stepping 'thread' (coroutine). Called by '@start' above.
+GameState._main_thread = (on_death) => profile () ->
     last_full_send_time = MOAISim\getDeviceTime()
     last_part_send_time = MOAISim\getDeviceTime()
     while true
         coroutine.yield()
 
-        last_best = @player_actions\find_latest_complete_frame()
+        last_best = @actions\find_latest_complete_frame()
         if @net_handler then @net_handler\poll(1)
         -- Should we make a local player action from user input, for the current frame?
-        if not _SETTINGS.network_lockstep or not @get_action(@local_player_id, @step_number)
+        if not _SETTINGS.network_lockstep or not @actions\get_action(@local_player_id, @step_number)
             @handle_io()
         if @net_handler and not _SETTINGS.network_lockstep
             -- Client side prediction
@@ -185,18 +191,18 @@ GameState.main_thread = (on_death) => profile () ->
             logV "'_net_step' took #{(after - before)*1000} milliseconds!"
 
             last_needed = math.min(@fork_step_number, @net_handler\min_acknowledged_frame())
-            @drop_old_actions(last_needed - 1)
+            @actions\drop_old_actions(last_needed - 1)
         elseif @net_handler
             if @step_number <= last_best
                 -- Lock-step
                 @doing_client_side_prediction = false
                 @step()
                 last_needed = math.min(@fork_step_number, @net_handler\min_acknowledged_frame())
-                @drop_old_actions(last_needed - 1)
+                @actions\drop_old_actions(last_needed - 1)
         else -- Single player
             @doing_client_side_prediction = false
             @step()
-            @drop_old_actions(@step_number - 1)
+            @actions\drop_old_actions(@step_number - 1)
         @pre_draw()
 
         if @_check_quit_conditions()
@@ -212,7 +218,7 @@ GameState._net_step = () =>
     time_passed = (new_time - last_time)
 
     -- Incorporate new information (if any) and replay actions
-    last_best = @player_actions\find_latest_complete_frame()
+    last_best = @actions\find_latest_complete_frame()
     -- Ensure we don't step past the current step
     last_best = math.min(last_best, @step_number)
     -- Could we move our fork further along?

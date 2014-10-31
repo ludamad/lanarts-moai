@@ -72,7 +72,7 @@ pregame_setup_and_join_screen = (controller, continue_callback) ->
     if G.gametype == 'single_player'
         logI("create_menu_view: single player detected")
 
-        game_actions.setup_action_state(G)
+        G\initialize_actions()
         -- We use the local seed as the server, or during single-player.
         -- If we are a client, we use the seed provided by the server during the handshake.
         G\initialize_rng(make_local_seed())
@@ -255,7 +255,6 @@ main = () ->
                 mdeath()
             else
                 mstartgame(G, stat_components)
-        print "WHWW"
         -- Set up first menu
         if os.getenv("TEST_ARCHER")
             mpregame {class: "Archer", race: "Human", class_args: {}}

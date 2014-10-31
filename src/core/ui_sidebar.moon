@@ -123,7 +123,7 @@ Sidebar = newtype {
             when "items"
                 ui_inventory.InventoryUI.create(@gamestate, x, y)
             when "skills"
-                ui_skills.SkillsUI.create(@gamestate.local_player().stats, x, y)
+                ui_skills.SkillsUI.create(@gamestate\local_player().stats, x, y)
 
     ICON_MAGIC1: data.get_sprite 'icon-magic1'
     ICON_MAGIC2: data.get_sprite 'icon-magic2'
@@ -162,7 +162,7 @@ Sidebar = newtype {
 
     -- Main draw function ---
     draw: () =>
-        focus = @gamestate.local_player()
+        focus = @gamestate\local_player()
         if not focus then return
         @_draw_stats(focus.stats, @x + STATBAR_OFFSET_X, @y + STATBAR_OFFSET_Y)
         @minimap\draw()

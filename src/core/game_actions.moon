@@ -243,36 +243,39 @@ GameActionFrameSet = with newtype()
             @frames\set(step_number, frame)
         return frame
 
-setup_action_state = (G) ->
-    G.player_actions = GameActionFrameSet.create(#G.players)
-    -- Actions that seem to be aimed at a different game incarnation:
-    G.limbo_actions = {}
+GameActionSet = newtype {
+    init: (n_players, game_id) =>
+        @player_actions = GameActionFrameSet.create(n_players)
+        -- Actions that seem to be aimed at a different game incarnation:
+        @limbo_actions = {}
+        @game_id = game_id
 
-    G.queue_action = (action) ->
-        if action.game_id == G.game_id
-            return G.player_actions\add(action)
-        append G.limbo_actions, action
+    queue_action: (action) =>
+        if action.game_id == @game_id
+            return @player_actions\add(action)
+        append @limbo_actions, action
         return false
 
-    G.reset_action_state = () ->
-        G.player_actions = GameActionFrameSet.create(#G.players)
+    reset_action_state: (n_players) =>
+        @player_actions = GameActionFrameSet.create(n_players)
         -- Clear and grab the limbo-list
-        old_limbo, G.limbo_actions = G.limbo_actions, {}
+        old_limbo, @limbo_actions = @limbo_actions, {}
         for action in *old_limbo
-            G.queue_action(action)
+            @queue_action(action)
 
-    G.drop_old_actions = (step_number) ->
-        G.player_actions\drop_until(step_number)
+    find_latest_complete_frame: () => @player_actions\find_latest_complete_frame()
+    drop_old_actions: (step_number) =>
+        @player_actions\drop_until(step_number)
 
     -- Returns 'false' if no action yet queued (should never be the case for local player!)
-    G.get_action = (id_player, step_number = G.step_number) ->
-        frame = G.player_actions\get_frame(step_number)
+    get_action: (id_player, step_number) =>
+        frame = @player_actions\get_frame(step_number)
         return frame\get(id_player)
 
     -- Find the next action, even in the future
     -- debug only
-    G.seek_action = (id_player) ->
-        A = G.player_actions
+    seek_action: (id_player) =>
+        A = @player_actions
         best = nil
         for i=A\first(),A\last()
             frame = A\get_frame(i)
@@ -282,19 +285,20 @@ setup_action_state = (G) ->
         return best
     -- Find next action, starting from the end
     -- debug only
-    G.bseek_action = (id_player) ->
-        A = G.player_actions
+    bseek_action: (id_player) =>
+        A = @player_actions
         for i=A\last(),A\first(),-1
             frame = A\get_frame(i)
             action = frame\get(id_player)
             if action return action
 
-    G.have_all_actions_for_step = () ->
-        return G.player_actions\get_frame(G.step_number)\is_complete(G.step_number)
+    have_all_actions_for_step: (step_number) =>
+        return @player_actions\get_frame(step_number)\is_complete(step_number)
+}
 
 return {
-    :GameAction, :GameActionFrame, :GameActionFrameSet, 
-    :setup_action_state, :make_move_action, :make_weapon_action,
+    :GameAction, :GameActionSet, :GameActionFrame, :GameActionFrameSet, 
+    :make_move_action, :make_weapon_action,
     :unbox_move_component,
     :ACTION_NORMAL, :ACTION_USE_WEAPON, :ACTION_USE_ITEM, :ACTION_USE_SPELL
 }

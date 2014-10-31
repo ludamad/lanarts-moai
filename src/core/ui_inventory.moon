@@ -65,7 +65,7 @@ InventoryUI = newtype {
 
     -- Performs either a predraw (object setup) or a draw (primitives only)
     draw: () =>
-        focus = @gamestate.local_player()
+        focus = @gamestate\local_player()
         gridx, gridy = 1, 1
         for i=1,DRAWN_SLOTS
             gridx += 1

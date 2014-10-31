@@ -36,6 +36,6 @@ map_place_monsters = (M, monsters, area = nil, selector = DEFAULT_SELECTOR) ->
                     }, area, selector
                 break
             num -= n
-    require("@map_logic").assertSync "step_objects (frame #{M.gamestate.frame})", M
+    require("@map_logic").assertSync "step_objects (frame #{M.gamestate.step_number})", M
 
 return {:map_place_object, :map_place_monsters}

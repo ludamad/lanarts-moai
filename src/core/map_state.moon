@@ -120,7 +120,7 @@ _setup_map_state_helpers = (M) ->
     M.local_player = () ->
         G = M.gamestate
         for p in *M.player_list
-            if G.is_local_player(p)
+            if G\is_local_player(p)
                 return p
         return nil
 
