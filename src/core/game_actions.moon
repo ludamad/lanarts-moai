@@ -280,6 +280,7 @@ GameActionSet = newtype {
         for i=A\first(),A\last()
             frame = A\get_frame(i)
             action = frame\get(id_player)
+            pretty i, frame, action
             if not action return best
             else best = action
         return best

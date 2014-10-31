@@ -150,11 +150,11 @@ pregame_setup_and_join_screen = (controller, continue_callback) ->
                 continue_callback(G)
         elseif G.gametype == 'server' and (user_io.key_pressed("K_ENTER") or user_io.key_pressed("K_SPACE"))
             server_starting = true
-            game_actions.setup_action_state(G)
+            G\initialize_actions()
             net_send("ServerRequestStartGame")
         elseif G.gametype == 'client' and net_recv("ServerRequestStartGame")
             client_starting = true
-            game_actions.setup_action_state(G)
+            G\initialize_actions()
             net_send("ClientAckStartGame")
 
     -- Step until our handshake in the above function has completed.

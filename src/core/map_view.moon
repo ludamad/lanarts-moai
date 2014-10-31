@@ -145,9 +145,9 @@ MapView = newtype {
         map_logic.draw(@)
 
 }
-cacheidx = MapView.__index
-MapView.__index = (k) => 
-    print "Map got ", k
-    return cacheidx(@, k)
+-- cacheidx = MapView.__index
+-- MapView.__index = (k) => 
+--     print "Map got ", k
+--     return cacheidx(@, k)
 
 return {:MapView}

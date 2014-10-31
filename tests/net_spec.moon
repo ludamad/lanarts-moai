@@ -1,5 +1,6 @@
 import ErrorReporting from require 'system'
 
+import util_test from require 'core'
 import RawNetConnection from require 'core.net_connection'
 
 TEST_PORT = 3000
@@ -81,7 +82,7 @@ describe "net_connection test", () ->
     actiondata = {}
 
     for playerid=1,2
-      action = GameAction.create(playerid, 2, 3, 4, 5, 6, 7, 8)
+      action = GameAction.create(playerid, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12)
       buffer\clear()
       action\write(buffer)
       append actiondata, buffer\tostring()
@@ -138,5 +139,46 @@ describe "net_connection test", () ->
 
     server\disconnect()
     client\disconnect()
+    -- Ensure next test uses a different port:
+    TEST_PORT += 1
+
+  it "Performance Test: game action latency over localhost", () ->
+    -- Test the fundamentals
+
+    import GameAction from require "core.game_actions"
+    N_PLAYERS = (os.getenv "N_TEST_PLAYERS") or 2
+
+    -- The player states:
+    states = util_test.mock_player_network(TEST_PORT, N_PLAYERS)
+    server = states[1]
+
+    print "pre connect"
+    -- Ensure initialization:
+    for s in *states
+        while #s.players < N_PLAYERS
+            s.net_handler\poll(1)
+            for G in *states do G.net_handler\poll()
+    print "post connect - everyone is aware of all the players"
+    util_test.mock_player_network_post_connect(states)
+
+    make_step = (s) ->
+        s.step_number += 1
+        s.actions\queue_action(util_test.mock_action(s, s.local_player_id, s.step_number))
+        pretty "make_step () :: LastAck", s.net_handler.last_acknowledged_frame
+        s.net_handler\send_unacknowledged_actions()
+
+    -- Sanity check: 
+    print "sanity check, sending one action to everyone"
+    for s in *states do make_step(s)
+
+    for s in *states 
+        print "Complete for player #{s.local_player_id}"
+        -- Complete the action for everyone
+        while not s.actions\have_all_actions_for_step(s.step_number)
+            s.net_handler\poll(1)
+            for G in *states do G.net_handler\poll()
+    print "action received by everyone"
+    print "frame completion lag"
+
     -- Ensure next test uses a different port:
     TEST_PORT += 1

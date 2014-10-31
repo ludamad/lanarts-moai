@@ -251,13 +251,5 @@ player_handle_io = (M, obj) ->
         -- Send last two unacknowledged actions (included the one just queued)
         G.net_handler\send_unacknowledged_actions(1)
 
-    if user_io.key_pressed "K_P"
-        Projectile.create M, {
-            x: obj.x
-            y: obj.y
-            vx: -1
-            vy: -1
-            action: "TODO"
-        }
 
 return {:player_step, :player_handle_io, :player_perform_action, :draw_player_target}

@@ -33,7 +33,7 @@ handlers_client = {
 
 handlers_server = {
     JoinRequest: (G, msg) =>
-        G.add_new_player msg.name, false, msg.peer -- Not controlled
+        G\add_new_player msg.name, false, msg.peer -- Not controlled
         send_message_broadcast_player_list(@, G)
 }
 
@@ -145,7 +145,7 @@ ClientMessageHandler = create: (G, args) ->
                 for action in *actions
                     if G.actions\queue_action(action)
                         new_actions += 1
-                -- print(">> CLIENT RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
+                print(">> CLIENT RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }
     }
 
@@ -161,7 +161,7 @@ ClientMessageHandler = create: (G, args) ->
         -- Clear the buffer for writing
         N.buffer\clear()
         -- Acknowledge the last full frame
-        ack_to_send = G.player_actions\find_latest_complete_frame()
+        ack_to_send = G.actions\find_latest_complete_frame()
         -- Channel to send over
         channel = if lookback then 1 else 2
 
@@ -170,8 +170,8 @@ ClientMessageHandler = create: (G, args) ->
 
         -- From the last acknowledge frame, to our most recent, send
         -- all the actions
-        for i=first_to_send, G.player_actions\last()
-            frame = G.player_actions\get_frame(i)
+        for i=first_to_send, G.actions.player_actions\last()
+            frame = G.actions.player_actions\get_frame(i)
             if frame
                 action = frame\get(pid)
                 if action 
@@ -214,11 +214,11 @@ ServerMessageHandler = create: (G, args) ->
                 N.last_acknowledged_frame[msg.peer] = math.max(last_ack, N.last_acknowledged_frame[msg.peer] or 0)
                 new_actions = 0
                 for action in *actions
-                    if G.peer_player_id(msg.peer) ~= action.id_player
+                    if G\peer_player_id(msg.peer) ~= action.id_player
                         error("Player #{G.peer_player_id(msg.peer)} trying to send actions for player #{action.id_player}!")
                     if G.actions\queue_action(action)
                         new_actions += 1
-                -- print(">> SERVER RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
+                print(">> SERVER RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }
     }
 
@@ -239,11 +239,12 @@ ServerMessageHandler = create: (G, args) ->
 
     _send_unacknowledged_actions = (peer, lookback = nil) =>
         -- The current player
-        pid = G.peer_player_id(peer)
+        pid = G\peer_player_id(peer)
         first_to_send = if lookback then G.step_number - lookback else (N.last_acknowledged_frame[peer] or 0) + 1
         -- last_ack = G.player_actions\first()
-        last_action = G.seek_action(pid)
+        last_action = G.actions\seek_action(pid)
         if not last_action 
+            print "NOT LAST"
             return 
         ack_to_send = (if last_action then last_action.step_number else G.fork_step_number - 1)
         -- Channel to send over
@@ -254,8 +255,11 @@ ServerMessageHandler = create: (G, args) ->
 
         -- From the last acknowledge frame, to our most recent, send
         -- all the actions
-        for i=first_to_send, G.player_actions\last()
-            frame = G.player_actions\get_frame(i)
+        -- TODO: cleanup
+        print first_to_send, G.actions.player_actions\last()
+        for i=first_to_send, G.actions.player_actions\last()
+            frame = G.actions.player_actions\get_frame(i)
+            pretty frame
             if frame
                 for action in *frame.actions
                     if action and action.id_player ~= pid
@@ -268,7 +272,7 @@ ServerMessageHandler = create: (G, args) ->
         if @buffer\size() > 4 -- Does it have an action?
             @_flush_action_buffer(channel, peer)
 
-        logV("SERVER SENDING PEER #{peer} PID #{pid} #{first_to_send}, to #{G.player_actions\last()}")
+        logV("SERVER SENDING PEER #{peer} PID #{pid} #{first_to_send}, to #{G.actions.player_actions\last()}")
 
     N.send_unacknowledged_actions = (lookback = nil) =>
         for peer in *@peers()
