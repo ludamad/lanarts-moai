@@ -104,7 +104,7 @@ GameState = newtype {
             -- Free resources allocated on the C/C++ side of the engine, as soon as possible.
             map\free_resources()
         table.clear @maps
-        @reset_action_state()
+        @actions\reset_action_state()
 
     change_view: (V) =>
         if @map_view
@@ -172,12 +172,11 @@ GameState._main_thread = (on_death) => profile () ->
     while true
         coroutine.yield()
 
-        last_best = @actions\find_latest_complete_frame()
-        if @net_handler then @net_handler\poll(1)
         -- Should we make a local player action from user input, for the current frame?
         if not _SETTINGS.network_lockstep or not @actions\get_action(@local_player_id, @step_number)
             @handle_io()
         if @net_handler and not _SETTINGS.network_lockstep
+            @net_handler\poll(1)
             -- Client side prediction
             if MOAISim\getDeviceTime() > last_full_send_time + (100/1000)
                 @net_handler\send_unacknowledged_actions()
@@ -194,12 +193,13 @@ GameState._main_thread = (on_death) => profile () ->
             last_needed = math.min(@fork_step_number, @net_handler\min_acknowledged_frame())
             @actions\drop_old_actions(last_needed - 1)
         elseif @net_handler
-            if @step_number <= last_best
-                -- Lock-step
-                @doing_client_side_prediction = false
-                @step()
-                last_needed = math.min(@fork_step_number, @net_handler\min_acknowledged_frame())
-                @actions\drop_old_actions(last_needed - 1)
+            while @step_number > @actions\find_latest_complete_frame()
+                @net_handler\poll(1)
+            -- Lock-step
+            @doing_client_side_prediction = false
+            @step()
+            last_needed = math.min(@step_number, @net_handler\min_acknowledged_frame())
+            @actions\drop_old_actions(last_needed - 1)
         else -- Single player
             @doing_client_side_prediction = false
             @step()

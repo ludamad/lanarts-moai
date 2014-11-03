@@ -249,7 +249,7 @@ player_handle_io = (M, obj) ->
     G.actions\queue_action(action)
     if G.net_handler
         -- Send last two unacknowledged actions (included the one just queued)
-        G.net_handler\send_unacknowledged_actions(1)
+        G.net_handler\send_unacknowledged_actions()
 
 
 return {:player_step, :player_handle_io, :player_perform_action, :draw_player_target}

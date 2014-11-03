@@ -161,7 +161,6 @@ GameActionFrame = with newtype()
         @actions = [false for i=1,num_players]
     .get = (id_player) =>
         assert(id_player >= 1 and id_player <= #@actions)
-        pretty @actions, id_player, @actions[id_player]
         return @actions[id_player]
     .set = (id_player, action) =>
         assert(id_player >= 1 and id_player <= #@actions)
@@ -257,8 +256,8 @@ GameActionSet = newtype {
         append @limbo_actions, action
         return false
 
-    reset_action_state: (n_players) =>
-        @player_actions = GameActionFrameSet.create(n_players)
+    reset_action_state: () =>
+        @player_actions = GameActionFrameSet.create(@player_actions.num_players)
         -- Clear and grab the limbo-list
         old_limbo, @limbo_actions = @limbo_actions, {}
         for action in *old_limbo
@@ -281,7 +280,6 @@ GameActionSet = newtype {
         for i=A\first(),A\last()
             frame = A\get_frame(i)
             action = frame\get(id_player)
-            pretty i, frame, action
             if not action return best
             else best = action
         return best

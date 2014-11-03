@@ -110,7 +110,7 @@ setup_handler_base = (N) ->
 
     return N
 
-MAX_PACKET_SIZE = 999999--1200
+MAX_PACKET_SIZE = 300--999999--1200
 
 -------------------------------------------------------------------------------
 -- Client & server message handlers
@@ -145,7 +145,9 @@ ClientMessageHandler = create: (G, args) ->
                 for action in *actions
                     if G.actions\queue_action(action)
                         new_actions += 1
-                print(">> CLIENT #{G.local_player_id} RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
+                    -- if new_actions > 0
+                    --     print "CLIENT_NEW_ACTIONS", new_actions
+                --print(">> CLIENT #{G.local_player_id} RECEIVING #{#actions} ACTIONS, #{new_actions} NEW")
         }
     }
 
@@ -218,6 +220,7 @@ ServerMessageHandler = create: (G, args) ->
                         error("Player #{G.peer_player_id(msg.peer)} trying to send actions for player #{action.id_player}!")
                     if G.actions\queue_action(action)
                         append new_actions, action
+
                 for peer in *@peers() 
                     if peer ~= msg.peer 
                         _send_actions(N, peer, new_actions)
