@@ -17,7 +17,7 @@ statsystem = require "statsystem"
 import map_object_types, game_state, map_state, map_view from require 'core'
 
 import Display from require "ui"
-import MenuMain, MenuSettings, MenuCharGen, MenuDeath from require "ui.menus"
+import MenuMain, MenuSettings, MenuCharGen, MenuDeath from require "@menus"
 
 import thread_create from require 'core.util'
 
