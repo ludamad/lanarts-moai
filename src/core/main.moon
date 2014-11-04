@@ -7,17 +7,10 @@ logI("Starting loading core.define_data")
 require '@define_data'
 logI("Finished loading core.define_data")
 
-user_io = require "user_io"
-modules = require "core.data"
-mtwist = require 'mtwist'
-tablediff = require 'tablediff'
-util = require 'core.util'
-
-statsystem = require "statsystem"
+import user_io, mtwist, tablediff, statsystem from require ""
 import map_object_types, game_state, map_state, map_view from require 'core'
 
 import Display from require "ui"
-import MenuMain, MenuSettings, MenuCharGen, MenuDeath from require "@menus"
 
 import thread_create from require 'core.util'
 
@@ -234,15 +227,17 @@ main = () ->
         -- Ensure that we only consider keys for a single step in the key query methods
         user_io.clear_keys_for_step()
 
+    import MenuMain, MenuSettings, MenuCharGen, MenuDeath, MenuLobby from require "@menus"
     -- The main thread performing the menu/game traversal
     main_thread = thread_create () ->
         -- Foward declare the 'transitions'
-        local mmain, msettings, mchargen, mpregame, mstartgame
+        local mmain, msettings, mchargen, mpregame, mstartgame, mlobby
         -- Set up the 'transitions' between the menus -- functions that initiate the menu
         mmain = nextf ()     -> MenuMain.start(SC, msettings, do_nothing, do_nothing) 
         msettings = nextf () -> MenuSettings.start(SC, mmain, mchargen)
         mchargen = nextf ()  -> MenuCharGen.start(SC, msettings, mpregame)
         mdeath = nextf () -> MenuDeath.start(SC, msettings)
+        mlobby = nextf () -> MenuLobby.start(SC, mmain)
         mpregame = nextf (stat_components) -> 
             pregame_setup_and_join_screen SC, (G) -> 
                 logI("finished pregame_setup_and_join_screen")
@@ -261,7 +256,8 @@ main = () ->
         elseif os.getenv("TEST_KNIGHT")
             mpregame {class: "Knight", race: "Human", class_args: {weapon_skill: "slashing_weapons"}}
         else
-    	    mchargen()
+            mlobby()
+    	    --mchargen()
         -- Loop through the menu state machine (SceneController)
         -- For these purposes, the game itself is considered a 'menu'
         while true

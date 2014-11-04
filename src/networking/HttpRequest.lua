@@ -96,9 +96,13 @@ end
 function M.json_request(url, message)
     -- nil if message is nil
     local json_request = message and jsonlib.generate(message)
+    pretty(json_request)
     local json_response, code, headers, status = M.http_request(url, json_request)
-    local status, response_table = jsonlib.parse(json_response)
-    if not status then error(response_table) end
+    pretty(json_response)
+    local response_table = MOAIJsonParser.decode(json_response)
+    if not response_table then 
+        error("Could not parse JSON with " + message + "!")
+    end
 
     return response_table, code, headers, status
 end

@@ -25,7 +25,7 @@ regen_on_death: false
 --Online settings
 network_lockstep: true
 username: 'User'
-lobby_server_url: 'http://putterson.homedns.org:8080'
+lobby_server_url: 'http://localhost:8080'
 
 --Window settings
 fullscreen: false

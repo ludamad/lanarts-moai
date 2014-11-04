@@ -70,7 +70,9 @@ function require(vpath, fenv)
 
     VPATH_TO_ENVIRONMENT[vpath] = fenv
 
-    local function loader() return wrapped_require(vpath) end
+    local function loader() 
+        return wrapped_require(vpath) 
+    end
     setfenv(loader, fenv)
     return loader()
 end
