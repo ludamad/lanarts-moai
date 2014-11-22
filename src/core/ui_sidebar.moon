@@ -40,7 +40,7 @@ Sidebar = newtype {
         @minimap = ui_minimap.MiniMap.create(@map, @x + SIDEBAR_WIDTH / 2, @y + 240)
         @_set_contents "items"
         @current_contents = "items"
-        Display.display_add_draw_func (() -> @draw())
+        @prop = Display.display_add_draw_func (() -> @draw())
     predraw: () =>
 
     _drawText: (...) => Display.drawText(SIDEBAR_FONT, ...)
@@ -57,7 +57,7 @@ Sidebar = newtype {
         MOAIGfxDevice.setPenColor(unpack(frontcol))
         MOAIDraw.fillRect(x,y,x+w*ratio,y+h)
 
-        if draw_num 
+        if draw_num
             textx,texty = x+w/2, y+h/2
             @_drawTextCenter ("%d/%d")\format(statmin, statmax), textx, texty, Display.COL_BLACK
 
@@ -68,14 +68,14 @@ Sidebar = newtype {
 
         ---- Long term stats
 
-        -- Draw name 
+        -- Draw name
         @_drawTextXCenter "#{stats.name}", x2-5, y, Display.COL_PALE_BLUE
         y += 15
         -- Draw location name
         @_drawTextXCenter @map.map_label, x2-5, y, Display.COL_BROWN
         y += 15
         -- Draw level and class title
-        @_drawText "Level #{stats.level}", x1, y, Display.COL_MUTED_GREEN 
+        @_drawText "Level #{stats.level}", x1, y, Display.COL_MUTED_GREEN
         @_drawText stats.class_name, x2, y, Display.COL_BABY_BLUE
         y += 15
 
@@ -88,9 +88,9 @@ Sidebar = newtype {
 
         -- Draw deaths & kills
         y += 15
-        @_drawText "Deaths #{stats.level}", x1, y, Display.COL_PALE_RED 
-        @_drawText "Kills #{stats.level}", x2, y, Display.COL_WHITE 
- 
+        @_drawText "Deaths #{stats.level}", x1, y, Display.COL_PALE_RED
+        @_drawText "Kills #{stats.level}", x2, y, Display.COL_WHITE
+
         y += 20
 
         cooldown, cooldown_max = (stats.cooldowns.rest_cooldown), statsystem.REST_COOLDOWN

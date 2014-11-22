@@ -3,23 +3,23 @@ import Display from require "ui"
 
 data = {
     -- Sprite data
-    sprites: {}, 
-    id_to_sprite: {}, 
-    next_sprite_id: 1, 
+    sprites: {},
+    id_to_sprite: {},
+    next_sprite_id: 1,
 
     -- Tile data
-    tiles: {}, 
-    id_to_tile: {}, 
+    tiles: {},
+    id_to_tile: {},
     next_tile_id: 1,
 
     -- Tile variation data
     id_to_tilelist: {},
-    next_tilelist_id: 1, 
+    next_tilelist_id: 1,
 
     -- Map data
-    maps: {}, 
+    maps: {},
     id_to_map: {}
-    next_map_id: 1, 
+    next_map_id: 1,
 }
 
 -------------------------------------------------------------------------------
@@ -27,12 +27,12 @@ data = {
 -------------------------------------------------------------------------------
 
 TileGrid = newtype {
-    init: (w, h) => 
+    init: (w, h) =>
         @w, @h = w,h
         @grid = [0 for i=1,w*h]
-    set: (x, y, val) => 
+    set: (x, y, val) =>
         @grid[y * (@h-1) + x] = val
-    get: (x, y) => 
+    get: (x, y) =>
         @grid[y * (@h-1) + x]
 }
 
@@ -49,20 +49,20 @@ TexPart = newtype {
         MOAIDraw.drawTexture @texture, sx, sy, sx+@w, sy + @h, @x/texw, @y/texh, (@x+@w)/texw, (@y+@h)/texh, r,g,b, alpha
     update_quad: (quad) =>
         texw, texh = @texture\getSize()
-        with quad 
+        with quad
             \setTexture @texture
             \setUVRect @x/texw, @y/texh,
                  (@x+@w)/texw, (@y+@h)/texh
             -- Center tile on origin:
-            \setRect -@w/2, -@h/2, 
+            \setRect -@w/2, -@h/2,
                 @w/2, @h/2
 }
 
 -- Represents a single tile
 Tile = newtype {
     __constant: true -- For serialization
-    init: (id, grid_id, solid) => 
-            @id, @grid_id, @solid= id, grid_id, solid 
+    init: (id, grid_id, solid) =>
+            @id, @grid_id, @solid= id, grid_id, solid
 }
 
 -- Keep track of all used minicolors
@@ -83,14 +83,14 @@ _minicolor_to_id = (col) ->
 -- Represents a list of variant tiles (from same tile-set)
 TileList = newtype {
     __constant: true -- For serialization
-    init: (id, name, tiles, texfile, minicolor, line_of_sight) => 
+    init: (id, name, tiles, texfile, minicolor, line_of_sight) =>
         @id, @name, @tiles, @texfile = id, name, tiles, texfile
         @minicolor, @line_of_sight = _minicolor_to_id(minicolor), line_of_sight
 }
 
 Sprite = newtype {
     __constant: true -- For serialization
-    init: (tex_parts, kind, w, h, id) => 
+    init: (tex_parts, kind, w, h, id) =>
         @tex_parts, @kind, @w, @h, @id = tex_parts, kind, w, h, id
     update_quad: (quad, frame = 1) =>
         @tex_parts[frame]\update_quad(quad)
@@ -116,7 +116,7 @@ Sprite = newtype {
 -------------------------------------------------------------------------------
 
 MapData = newtype {
-    init: (name, generator) => 
+    init: (name, generator) =>
         @name, @generator = name, generator
 }
 
@@ -146,7 +146,7 @@ part_xy_iterator = (_from, to, id = 1) ->
 --         .define <values1>
 --         .define <values2>
 define_wrapper = (func) ->
-    return setmetatable {define: func}, { 
+    return setmetatable {define: func}, {
             -- Metatable, makes object callable
             -- when called, incorporate as 'defaults'
             __call: (defaults) =>
@@ -178,8 +178,8 @@ setup_define_functions = (fenv, module_name) ->
         tex_w, tex_h = (pix_w / TILE_WIDTH), (pix_h / TILE_HEIGHT)
 
         -- Gather the tile list
-        tiles = for x, y, id in part_xy_iterator(_from, to, first_id) 
-            Tile.create id, 
+        tiles = for x, y, id in part_xy_iterator(_from, to, first_id)
+            Tile.create id,
                 (y-1) * tex_w + x,
                 solid
 
@@ -190,7 +190,7 @@ setup_define_functions = (fenv, module_name) ->
         data.id_to_tilelist[list_id] = tilelist
 
         -- Assign by tile id
-        for tile in *tiles 
+        for tile in *tiles
             data.id_to_tile[tile.id] = tile
 
         -- Skip the amount of tiles added
@@ -209,7 +209,7 @@ setup_define_functions = (fenv, module_name) ->
         to = to or _from
 
         -- Gather the sprite frames
-        frames = for x, y in part_xy_iterator(_from, to) 
+        frames = for x, y in part_xy_iterator(_from, to)
             TexPart.create(res.get_texture(file), (x-1)*w, (y-1)*h, w, h)
 
         id = data.next_sprite_id
@@ -235,22 +235,22 @@ setup_define_functions(_G, "NotUsedYet")
 
 -------------------------------------------------------------------------------
 
-return { 
+return {
     :load,
-    get_tilelist: (key) -> 
-        if type(key) == 'string' 
+    get_tilelist: (key) ->
+        if type(key) == 'string'
             assert(data.tiles[key])
-        else 
+        else
             assert(data.id_to_tilelist[key])
 
     get_minimap_colors: () -> _minicolor_colors
-    get_minimap_color_id: _minicolor_to_id 
+    get_minimap_color_id: _minicolor_to_id
 
     get_tilelist_id: (name) -> assert(data.tiles[name].id, name)
-    get_sprite: (key) -> 
-        if type(key) == 'string' 
+    get_sprite: (key) ->
+        if type(key) == 'string'
             assert(data.sprites[key], key)
-        else 
+        else
             assert(data.id_to_sprite[key], key)
     get_map: (name) -> assert(data.maps[name], name)
 }
