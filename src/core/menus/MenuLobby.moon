@@ -35,10 +35,10 @@ login_if_needed = () ->
 loading_box_create = (size) ->
     obj = InstanceBox.create {:size}
 
-    -- TODO Animate!
-    loading_anim = Sprite.image_create("loading_64x64.png", alpha: 0.25)
+    loading_anim = Sprite.animation_create("loading_64x64.png", alpha: 0.25, size: {64,64}, frame_speed: 0.1)
     obj\add_instance(loading_anim, Display.CENTER_TOP, {0,50})
     -- Called when component has loaded
+    contents = loading_anim
     obj.replace = (newcontents, origin) =>
         if contents then @remove(contents) 
         contents = newcontents
@@ -56,6 +56,7 @@ loading_box_create = (size) ->
 --    }
 --}
 
+local game_entry_draw
 game_entry_create = (entry_number, entry_data) ->
     obj = {}
     obj.entry_data = entry_data
@@ -63,13 +64,12 @@ game_entry_create = (entry_number, entry_data) ->
 
     obj.step = (xy) =>
         bbox = bbox_create(xy, @size)
-        if bbox_left_clicked(bbox) then
-                join_game_task_create(obj.entry_data)
-                print("Entry " .. entry_number .. " was clicked.")
+        -- if bbox_left_clicked(bbox) then
+        --         join_game_task_create(obj.entry_data)
+        --         print("Entry " .. entry_number .. " was clicked.")
 
     obj.draw = (xy) =>
-        bbox = bbox_create(xy, @size)
-        game_entry_draw(entry_number, @entry_data, bbox)
+        game_entry_draw(entry_number, @entry_data, bbox_create(xy, @size))
     return obj
 
 -- Recreated every time the game set changes
@@ -77,6 +77,9 @@ game_entry_list_create = (entries) ->
     obj = InstanceLine.create( {dx: 0, dy: ENTRY_SPACING, per_row: 1} )
     for i=1,#entries
         obj\add_instance(game_entry_create(i, entries[i]))
+
+    if #entries == 0
+        return TextLabel.create font: MENU_FONT, text: "No Open Games Currently!\nConnected to #{_SETTINGS.lobby_server_url}"
     return obj
 
 draw_in_box = (font, bbox, origin, offset, ...) ->
@@ -116,9 +119,7 @@ game_list_updater_create = (game_list) ->
     return coroutine.create () ->
         timer = nil
         while true
-            print "ITER"
             while timer and timer\get_milliseconds() < UPDATE_FREQUENCY 
-                pretty timer\get_milliseconds()
                 coroutine.yield()
             timer = timer_create()
             response = Lobby.query_game_list()

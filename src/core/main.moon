@@ -256,7 +256,7 @@ main = () ->
         elseif os.getenv("TEST_KNIGHT")
             mpregame {class: "Knight", race: "Human", class_args: {weapon_skill: "slashing_weapons"}}
         else
-            mlobby()
+            mmain()
     	    --mchargen()
         -- Loop through the menu state machine (SceneController)
         -- For these purposes, the game itself is considered a 'menu'

@@ -251,6 +251,6 @@ return {
         if type(key) == 'string' 
             assert(data.sprites[key], key)
         else 
-            assert(data.id_to_sprite[key])
+            assert(data.id_to_sprite[key], key)
     get_map: (name) -> assert(data.maps[name], name)
 }

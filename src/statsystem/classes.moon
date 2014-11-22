@@ -29,7 +29,7 @@ add_item = (stats, itemdesc) ->
         item.enchantment = enchantment
     if is_equipped ~= nil
         item.is_equipped = is_equipped
-    stats.inventory\add item
+    stats.inventory\add(item)
 
 add_spells_and_items = (stats, _class) ->
     for itemdesc in *_class.items
