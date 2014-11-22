@@ -1,3 +1,5 @@
+local sdl = require "sdl"
+
 local M = nilprotect {}
 
 --------------------------------------------------------------------------------
@@ -49,6 +51,14 @@ function M.mouse_middle_released()
 end
 function M.mouse_right_released()
     return mright:up()
+end
+
+function M.left_ctrl_down()
+    return sdl.IsLCTRLDown()
+end
+
+function M.right_ctrl_down()
+    return sdl.IsRCTRLDown()
 end
 
 -- Is a mouse button currently down?
@@ -189,8 +199,6 @@ M.K_MINUS = byte("-")
 M.K_UNDERSCORE = byte("_")
 M.K_EQUAL = byte("=")
 M.K_PLUS = byte("+")
-M.K_LCTRL = 224
-M.K_RCTRL = 228
 
 for i=1,9 do
     M["K_F"..i] = (313 + i)

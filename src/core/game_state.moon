@@ -139,11 +139,11 @@ GameState = newtype {
         @step_number = @fork_step_number
 
     handle_io: () =>
-        if user_io.key_down "K_Q"
+        if user_io.left_ctrl_down() and user_io.key_down "K_Q"
             serialization.push_state(@map)
             @fork_step_number = @step_number
 
-        if user_io.key_down "K_E"
+        if user_io.left_ctrl_down() and user_io.key_down "K_E"
             serialization.pop_state(@map)
 
         if @map then @map.handle_io() 
@@ -257,7 +257,7 @@ GameState._check_quit_conditions = () =>
     if @local_death
         return true
     -- Are we initiating a restart?
-    if user_io.key_pressed "K_R"
+    if user_io.left_ctrl_down() and user_io.key_pressed "K_R"
         if @net_handler 
             new_seed = @rng\random(0, 2^31)
             @net_handler\send_message {type: "Restart", :new_seed}
